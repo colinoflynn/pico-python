@@ -23,6 +23,15 @@ import inspect
 #Probably bad?
 from ctypes import *
 
+import numpy as np
+
+class CaseInsensitiveDict(dict):
+    def __setitem__(self, key, value):
+        super(CaseInsensitiveDict, self).__setitem__(key.lower(), value)
+
+    def __getitem__(self, key):
+        return super(CaseInsensitiveDict, self).__getitem__(key.lower())
+
 class PSBase(object):
     #Specify Library
     LIBNAME = "ps4000.dll"
@@ -50,6 +59,15 @@ class PSBase(object):
 
     ###You must reimplement this in device specific classes
     CHANNEL_COUPLINGS = {"DC":1, "AC":0} #Other option: DC50:2
+
+    THRESHOLD_TYPE = CaseInsensitiveDict(
+                      {"Above":0,
+                      "Below":1,
+                      "Rising":2,
+                      "Falling":3,
+                      "RiseOrFall":4})
+
+
 
     ###Error codes - copied from PS6000 programmers manual. I think they are fairly unviersal though, just ignore ref to 'PS6000'...
     #To get formatting correct do following copy-replace in Programmers Notepad
@@ -175,6 +193,9 @@ class PSBase(object):
         self.lib = windll.LoadLibrary(self.LIBNAME)         
         self.handle = None
 
+        self.CHRange = [None]*self.NUM_CHANNELS
+        self.CHOffset = [None]*self.NUM_CHANNELS
+
     def checkResult(self, ec):
         """Check result of function calls, raise exception if not 0"""
         if ec == 0:
@@ -203,11 +224,14 @@ class PSBase(object):
     def setChannel(self, chNum=0, coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False):
         """ Sets up a specific channel """
 
+        #Will save these if successful
+        VRangeNum = VRange
+        VOffsetNum = VOffset
+
         if enabled:
             enabled = 1
         else:
             enabled = 0
-
         
         coupling = self.CHANNEL_COUPLINGS[coupling]
 
@@ -230,19 +254,45 @@ class PSBase(object):
 
         self.checkResult(message)
 
-    def setSampling(self, sampleFreq, noSamples, oversample=False, segmentIndex=0):
+
+        self.CHRange[chNum] = VRangeNum
+        self.CHOffset[chNum] = VOffsetNum
+
+    def runBlock(self, pretrig=0.0):
+        """Runs a single block, must have already called setSampling for proper setup"""
+        m = self._lowLevelRunBlock(int(self.maxSamples*pretrig), int(self.maxSamples*(1-pretrig)),self.timebase, self.oversample, self.segmentIndex)
+        self.checkResult(m)
+
+    def isReady(self):
+        """Check if scope done"""
+        [m, res] = self._lowLevelIsReady()
+        self.checkResult(m)
+        return res
+
+    def setSampling(self, sampleFreq, noSamples, oversample=1, segmentIndex=0):
         """Returns [actualSampleFreq, actualNoSamples]"""
 
+        self.oversample = oversample
+        self.segmentIndex = segmentIndex
         tb = self.getTimeBaseNum(1.0/sampleFreq)
-
-        if oversample:
-            oversample = 1
-        else:
-            oversample = 0
+        self.timebase = tb
 
         m = self._lowLevelGetTimebase(tb, noSamples, oversample, segmentIndex)
         self.checkResult(m[0])
+        self.sampleRate = 1.0/m[1]
+        self.maxSamples = m[2]
         return [1.0/m[1], m[2]]
+
+    def setTriggerSimple(self, trigSrc, threshold=0, direction="Rising", delay=0, timeoutms=100, enabled=True):
+        """Simple trigger setup, only allows level"""
+
+        if enabled:
+            enabled = 1
+        else:
+            enabled = 0
+
+        direction = self.THRESHOLD_TYPE[direction]
+        self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold, direction, delay, timeoutms)
 
     def flashLed(self, times=5, start=False, stop=False):
         """Flash the front panel LEDs"""
@@ -255,6 +305,9 @@ class PSBase(object):
             
         self.checkResult(self._lowLevelFlashLed(times))
 
+
+    def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+        return self._lowLevelGetData(channel, numSamples,startIndex,downSampleRatio,downSampleMode)
 
     def open(self, sn=None):
         """Open the scope, if sn is None just opens first one found"""
@@ -277,25 +330,8 @@ class PSBase(object):
 
     #### The following are low-level functions which should be reimplemented in all classes
 
-    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
-        """Reimplement this in scope-specific class"""
-        return self.lib.ps4000SetChannel(self.handle, chNum, enabled, coupling, VRange, VOffset, BWLimited)
+        
 
-    def _lowLevelOpenUnit(self, handle, sn):
-        """Reimplement this in scope-specific class"""
-        return self.lib.ps4000OpenUnit(byref(handle), sn)
-
-    def _lowLevelCloseUnit(self):
-        """Reimplement this in scope-specific class"""
-        return self.lib.ps4000CloseUnit(self.handle)
-
-    def _lowLevelFlashLed(self, times):
-        """Reimplement this in scope-specific class"""
-        return self.lib.ps4000FlashLed(self.handle, times)
-
-    def getTimeBaseNum(self, sampleTimeS):
-        """Convert sample time in S to something to pass to API Call"""
-        pass
         
 class PS6000(PSBase):
     CHANNEL_COUPLINGS = {"AC":0, "DC":1, "DC50":2}          
@@ -313,6 +349,23 @@ class PS6000(PSBase):
 
     def _lowLevelFlashLed(self, times):
         return self.lib.ps6000FlashLed(self.handle, times)
+
+    def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold, direction, delay, auto):
+        return self.lib.ps6000SetSimpleTrigger(self.handle, enabled, trigsrc, threshold, direction, delay, auto)
+
+    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase, oversample, segmentIndex):
+        timeIndisposedMs = c_long()
+        pParameter = c_void_p()
+        return self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples, timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, byref(pParameter) )
+
+    def _lowLevelIsReady(self):
+        ready = c_short()
+        m = self.lib.ps6000IsReady( self.handle, byref(ready) )
+        if ready.value:
+            isDone = True
+        else:
+            isDone = False
+        return [m, isDone]
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         maxSamples = c_long()
@@ -340,6 +393,34 @@ class PS6000(PSBase):
 
         return int(st)
 
+    def _lowLevelSetDataBuffer(self, channel, dataPointer, numSamples, downSampleMode):
+        return self.lib.ps6000SetDataBuffer( self.handle, channel, dataPointer, numSamples, downSampleMode )
+        
+    def _lowLevelGetData(self, channel, numSamples,startIndex,downSampleRatio,downSampleMode):
+        if numSamples == 0:
+            numSamples = self.maxSamples
+      
+        dataPointer = ( c_short * (numSamples) )()
+        m = self.lib.ps6000SetDataBuffer( self.handle, channel, byref(dataPointer), numSamples, downSampleMode )
+        self.checkResult(m)
+
+        numSamplesReturned = c_long()
+        numSamplesReturned.value = numSamples
+        overflow = c_short() 
+        m = self.lib.ps6000GetValues( self.handle, startIndex, byref(numSamplesReturned), downSampleRatio, downSampleMode, self.segmentIndex, byref(overflow) )
+        overflow = overflow.value
+        numSamplesReturned = numSamplesReturned.value
+                
+        self.checkResult(m)
+
+        if overflow != 0:
+            print "WARNING: Overflow detected. Should we raise exception?"
+
+        newData = np.asarray(list(dataPointer))
+        a2v = self.CHRange[channel] / self.MAX_VALUE
+        newData = newData * a2v + self.CHOffset[channel]
+        return newData
+
 def examplePS6000():
     print "Attempting to open..."
     ps = PS6000()
@@ -356,7 +437,14 @@ def examplePS6000():
     res = ps.setSampling(100E6, 1000)
     print "Sampling @ %f MHz, %d samples"%(res[0]/1E6, res[1])
     ps.setChannel(0, "AC", 50E-3)
+
+    ps.runBlock()
+    while(ps.isReady() == False): time.sleep(0.01)
+
+    #TODO: Doesn't work on larger arrays
+    data = ps.getData(0, 4096)
     
+    print data[0:100]
 
     ps.close()
                              
