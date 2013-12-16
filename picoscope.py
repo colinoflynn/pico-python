@@ -250,24 +250,18 @@ class PSBase(object):
 
         VOffset =c_float(VOffset)
 
-        message = self._lowLevelSetChannel(chNum, enabled, coupling, VRange, VOffset, BWLimited)
-
-        self.checkResult(message)
-
+        self._lowLevelSetChannel(chNum, enabled, coupling, VRange, VOffset, BWLimited)
 
         self.CHRange[chNum] = VRangeNum
         self.CHOffset[chNum] = VOffsetNum
 
     def runBlock(self, pretrig=0.0):
         """Runs a single block, must have already called setSampling for proper setup"""
-        m = self._lowLevelRunBlock(int(self.maxSamples*pretrig), int(self.maxSamples*(1-pretrig)),self.timebase, self.oversample, self.segmentIndex)
-        self.checkResult(m)
+        self._lowLevelRunBlock(int(self.maxSamples*pretrig), int(self.maxSamples*(1-pretrig)),self.timebase, self.oversample, self.segmentIndex)
 
     def isReady(self):
         """Check if scope done"""
-        [m, res] = self._lowLevelIsReady()
-        self.checkResult(m)
-        return res
+        return self._lowLevelIsReady()
 
     def setSampling(self, sampleFreq, noSamples, oversample=1, segmentIndex=0):
         """Returns [actualSampleFreq, actualNoSamples]"""
@@ -278,10 +272,9 @@ class PSBase(object):
         self.timebase = tb
 
         m = self._lowLevelGetTimebase(tb, noSamples, oversample, segmentIndex)
-        self.checkResult(m[0])
-        self.sampleRate = 1.0/m[1]
-        self.maxSamples = m[2]
-        return [1.0/m[1], m[2]]
+        self.sampleRate = 1.0/m[0]
+        self.maxSamples = m[1]
+        return [1.0/m[0], m[1]]
 
     def setTriggerSimple(self, trigSrc, threshold=0, direction="Rising", delay=0, timeoutms=100, enabled=True):
         """Simple trigger setup, only allows level"""
@@ -303,10 +296,29 @@ class PSBase(object):
         if stop:
             times = 0
             
-        self.checkResult(self._lowLevelFlashLed(times))
+        self._lowLevelFlashLed(times)
 
 
     def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+        if numSamples == 0:
+            numSamples = self.maxSamples
+      
+        dataPointer = ( c_short * (numSamples) )()
+
+        self._lowLevelSetDataBuffer(channel, dataPointer, numSamples, downSampleMode)
+        [numSamplesReturned, overflow] = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
+        
+
+        if overflow != 0:
+            print "WARNING: Overflow detected. Should we raise exception?"
+
+        newData = np.asarray(list(dataPointer))
+        a2v = self.CHRange[channel] / self.MAX_VALUE
+        newData = newData * a2v + self.CHOffset[channel]
+        return newData
+    
+
+        
         return self._lowLevelGetData(channel, numSamples,startIndex,downSampleRatio,downSampleMode)
 
     def open(self, sn=None):
@@ -317,9 +329,8 @@ class PSBase(object):
         else:
             serialNullTermStr = c_char_p( bytes(sn,'ascii') )
                              
-        message = self._lowLevelOpenUnit( handlePointer, serialNullTermStr )
+        self._lowLevelOpenUnit( handlePointer, serialNullTermStr )
         self.handle = handlePointer
-        self.checkResult(message)
 
     def close(self):
         """Close the scope"""
@@ -339,24 +350,30 @@ class PS6000(PSBase):
     LIBNAME = "ps6000.dll"
 
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
-        return self.lib.ps6000SetChannel(self.handle, chNum, enabled, coupling, VRange, VOffset, BWLimited)
+        m = self.lib.ps6000SetChannel(self.handle, chNum, enabled, coupling, VRange, VOffset, BWLimited)
+        self.checkResult(m)
 
     def _lowLevelOpenUnit(self, handle, sn):
-        return self.lib.ps6000OpenUnit(byref(handle), sn)
+        m = self.lib.ps6000OpenUnit(byref(handle), sn)
+        self.checkResult(m)
 
     def _lowLevelCloseUnit(self):
-        return self.lib.ps6000CloseUnit(self.handle)
+        m = self.lib.ps6000CloseUnit(self.handle)
+        self.checkResult(m)
 
     def _lowLevelFlashLed(self, times):
-        return self.lib.ps6000FlashLed(self.handle, times)
+        m = self.lib.ps6000FlashLed(self.handle, times)
+        self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold, direction, delay, auto):
-        return self.lib.ps6000SetSimpleTrigger(self.handle, enabled, trigsrc, threshold, direction, delay, auto)
+        m = self.lib.ps6000SetSimpleTrigger(self.handle, enabled, trigsrc, threshold, direction, delay, auto)
+        self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase, oversample, segmentIndex):
         timeIndisposedMs = c_long()
         pParameter = c_void_p()
-        return self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples, timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, byref(pParameter) )
+        m = self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples, timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, byref(pParameter) )
+        self.checkResult(m)
 
     def _lowLevelIsReady(self):
         ready = c_short()
@@ -365,14 +382,16 @@ class PS6000(PSBase):
             isDone = True
         else:
             isDone = False
-        return [m, isDone]
+        self.checkResult(m)
+        return isDone
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         maxSamples = c_long()
         sampleRate = c_float()
         
-        msg = self.lib.ps6000GetTimebase2(self.handle, tb, noSamples, byref(sampleRate), oversample, byref(maxSamples), segmentIndex)
-        return [msg, sampleRate.value/1.0E9, maxSamples.value]
+        m = self.lib.ps6000GetTimebase2(self.handle, tb, noSamples, byref(sampleRate), oversample, byref(maxSamples), segmentIndex)
+        self.checkResult(m)
+        return [sampleRate.value/1.0E9, maxSamples.value]
 
     def getTimeBaseNum(self, sampleTimeS):
         """Convert sample time in S to something to pass to API Call"""
@@ -394,32 +413,16 @@ class PS6000(PSBase):
         return int(st)
 
     def _lowLevelSetDataBuffer(self, channel, dataPointer, numSamples, downSampleMode):
-        return self.lib.ps6000SetDataBuffer( self.handle, channel, dataPointer, numSamples, downSampleMode )
-        
-    def _lowLevelGetData(self, channel, numSamples,startIndex,downSampleRatio,downSampleMode):
-        if numSamples == 0:
-            numSamples = self.maxSamples
-      
-        dataPointer = ( c_short * (numSamples) )()
         m = self.lib.ps6000SetDataBuffer( self.handle, channel, byref(dataPointer), numSamples, downSampleMode )
         self.checkResult(m)
-
+        
+    def _lowLevelGetValues(self,numSamples,startIndex,downSampleRatio,downSampleMode):      
         numSamplesReturned = c_long()
         numSamplesReturned.value = numSamples
         overflow = c_short() 
         m = self.lib.ps6000GetValues( self.handle, startIndex, byref(numSamplesReturned), downSampleRatio, downSampleMode, self.segmentIndex, byref(overflow) )
-        overflow = overflow.value
-        numSamplesReturned = numSamplesReturned.value
-                
         self.checkResult(m)
-
-        if overflow != 0:
-            print "WARNING: Overflow detected. Should we raise exception?"
-
-        newData = np.asarray(list(dataPointer))
-        a2v = self.CHRange[channel] / self.MAX_VALUE
-        newData = newData * a2v + self.CHOffset[channel]
-        return newData
+        return [numSamplesReturned.value, overflow.value]
 
 def examplePS6000():
     print "Attempting to open..."
