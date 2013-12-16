@@ -7,7 +7,7 @@ import time
 import inspect
 import numpy as np
 import picoscope as pico
-import matplotlib
+
 import pylab as plt
 
 import scipy
