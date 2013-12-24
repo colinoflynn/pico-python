@@ -270,14 +270,14 @@ class PSBase(object):
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
-        a2v = self.CHRange[channel] / self.MAX_VALUE
+        a2v = self.CHRange[channel] / float(self.MAX_VALUE)
         data = data * a2v + self.CHOffset[channel]
         return (data, numSamplesReturned, overflow)
 
     def getDataRaw(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
 
         if not isinstance(channel, int):
-            trigSrc = self.CHANNELS[channel]
+            channel = self.CHANNELS[channel]
 
         if numSamples == 0:
             # maxSamples is probably huge, 1Gig Sample can be HUGE....

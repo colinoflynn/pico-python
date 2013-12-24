@@ -86,9 +86,8 @@ class PS6000(PSBase):
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase, oversample, segmentIndex):
         timeIndisposedMs = c_long()
-        pParameter = c_void_p()
         m = self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples,
-                timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, byref(pParameter) )
+                timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, None)
         self.checkResult(m)
 
     def _lowLevelIsReady(self):
@@ -192,8 +191,6 @@ def examplePS6000():
     #Use to ID unit
     ps.flashLed(4)
     time.sleep(2)
-
-    ps.setChannel(0, 'DC', 2.0)
 
     (interval, nSamples, maxSamples) = ps.setSamplingInterval(10E-9, 1E-3)
     print("Sampling interval = %f ns"%(interval*1E9));
