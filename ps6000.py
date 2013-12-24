@@ -18,7 +18,15 @@ class PS6000(PSBase):
 
     NUM_CHANNELS = 4
     CHANNELS     = {"A":0, "B":1, "C":2, "D":3,
-                    "EXTERNAL":4, "MAX_CHANNELS":4, "TRIGGER_AUX":5, "MAX_TRIGGER_SOURCES":6}
+                    "External":4, "MaxChannels":4, "TriggerAux":5}
+
+
+    has_sig_gen = True
+    WAVE_TYPES = {"Sine":0, "Square":1, "Triangle":2, "RampUp":3, "RampDown":4,
+                  "Sinc":5, "Gaussian":6, "HalfSine":7, "DCVoltage": 8, "WhiteNoise": 9}
+
+    SIGGEN_TRIGGER_TYPES = {"Rising":0, "Falling":1, "GateHigh":2, "GateLow":3}
+    SIGGEN_TRIGGER_SOURCES = {"None":0, "ScopeTrig":1, "AuxIn":2, "ExtIn":3, "SoftTrig":4, "TriggerRaw":5}
 
     def __init__(self):
         super(PS6000, self).__init__()
@@ -49,6 +57,10 @@ class PS6000(PSBase):
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps6000CloseUnit(self.handle)
+        self.checkResult(m)
+
+    def _lowLevelStop(self):
+        m = self.lib.ps6000Stop(self.handle)
         self.checkResult(m)
 
     def _lowLevelGetUnitInfo(self, info):
@@ -117,7 +129,14 @@ class PS6000(PSBase):
 
             st = math.floor((sampleTimeS * 156250000) + 4)
 
-        return int(st)
+        st = int(st)
+
+        if st < 5:
+            dt = float(2.**st)/5E9
+        else:
+            dt = float(st - 4.) / 156250000.
+
+        return (st, dt)
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
         """ data should be a numpy array"""
@@ -135,6 +154,27 @@ class PS6000(PSBase):
                 downSampleRatio, downSampleMode, self.segmentIndex, byref(overflow) )
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
+
+    def _lowLevelSetSigGenSimple(self, offsetVoltage, pkToPk, waveType, frequency, shots,
+            triggerType, triggerSource):
+        if waveType is None:
+            waveType = self.WAVE_TYPES["Sine"]
+        if triggerType is None:
+            triggerType = self.SIGGEN_TRIGGER_TYPES["Rising"]
+        if triggerSource is None:
+            triggerSource = self.SIGGEN_TRIGGER_SOURCES["None"]
+
+        if not isinstance(waveType, int):
+            waveType = self.WAVE_TYPES[waveType]
+        if not isinstance(triggerType, int):
+            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
+        if not isinstance(triggerSource, int):
+            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
+
+        m = self.lib.ps6000SetSigGenBuiltIn(self.handle, int(offsetVoltage * 1E6),
+                int(pkToPk * 1E6), waveType, c_float(frequency), c_float(frequency),
+                0, 0, 0, 0, shots, 0, triggerType, triggerSource, 0)
+        self.checkResult(m)
 
 def examplePS6000():
     import textwrap
@@ -155,23 +195,30 @@ def examplePS6000():
 
     ps.setChannel(0, 'DC', 2.0)
 
-    #Example of simple capture
-    #res = ps.setSampling(100E6, 1000)
-    #print("Sampling @ %f MHz, maximum samples = %d"%(res[0]/1E6, res[1]))
-    #print("Sampling delta = %f ns"%(1/res[0]*1E9))
-    res = ps.setSamplingInterval(10E-9, 1000)
-    print("Sampling @ %f MHz, maximum samples = %d"%(1/res[0]/1E6, res[1]))
-    print("Sampling delta = %f ns"%(res[0]*1E9))
+    (interval, nSamples, maxSamples) = ps.setSamplingInterval(10E-9, 1E-3)
+    print("Sampling interval = %f ns"%(interval*1E9));
+    print("Taking  samples = %d"%nSamples)
+    print("Maximum samples = %d"%maxSamples)
 
-    ps.setSimpleTrigger('A', 1.0, 'Rising')
+    ps.setChannel('A', 'DC', 50E-3, 0.0, True, False)
+    ps.setSimpleTrigger('A', 0.0, 'Rising')
+
+
+    # Technically, this should generate a a 2.2 V peak to peak waveform, but there is a bug
+    # with the picoscope, causing it to only generate a useless waveform....
+    ps.setSigGenSimple(0, 2.2, "Square", 10E6)
 
     ps.runBlock()
-    while(ps.isReady() == False): time.sleep(0.01)
+    #while(ps.isReady() == False): time.sleep(0.01)
+    ps.waitReady()
 
-    #TODO: Doesn't work on larger arrays
-    (data, numSamplesReturned, overflow) = ps.getDataV(0, 4096)
+    # returns a numpy array
+    (data, numSamplesReturned, overflow) = ps.getDataV(0, nSamples)
 
-    print("We read %d samples from the requested %d"%(numSamplesReturned, 4096))
+    # call this when you are done taking data
+    ps.stop()
+
+    print("We read %d samples from the requested %d"%(numSamplesReturned, nSamples))
     print("Overflow value is %d"%(overflow))
     print("The first 100 datapoints are ")
     print(data[0:100])

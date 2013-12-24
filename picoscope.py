@@ -25,6 +25,7 @@
 
 
 import inspect
+import time
 
 import numpy as np
 
@@ -64,6 +65,15 @@ class PSBase(object):
 
     ###You must reimplement this in device specific classes
     CHANNEL_COUPLINGS = {"DC50": 2, "DC":1, "AC":0}
+    has_sig_gen = False
+
+
+    # If we don't get this CaseInsentiveDict working, I would prefer to stick
+    # with their spelling of archaic C all caps for this. I know it is silly,
+    # but it removes confusion for certain things like
+    # DC_VOLTAGE = DCVoltage or DcVoltage or DC_Voltage
+    # or even better
+    # SOFT_TRIG = SoftwareTrigger vs SoftTrig
 
     # For some reason this isn't working with me :S
     #THRESHOLD_TYPE = CaseInsensitiveDict(
@@ -136,15 +146,23 @@ class PSBase(object):
         print("Analog version   " + self.getUnitInfo("ANALOGUE_HARDWARE_VERSION"))
 
 
-    def setChannel(self, chNum=0, coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False):
+    def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False):
         """ Sets up a specific channel """
         if enabled:
             enabled = 1
         else:
             enabled = 0
 
+        if not isinstance(channel, int):
+            chNum = self.CHANNELS[channel]
+        else:
+            chNum = channel
+
         coupling = self.CHANNEL_COUPLINGS[coupling]
 
+        # I don't know if I like the fact that you are comparing floating points
+        # I think this should just be a string, because then we know the user is
+        # in charge of properly formatting it
         try:
             VRangeAPI = (item for item in self.CHANNEL_RANGE if item["rangeV"] == VRange).next()
             VRangeAPI = VRangeAPI["apivalue"]
@@ -166,28 +184,43 @@ class PSBase(object):
 
     def runBlock(self, pretrig=0.0):
         """Runs a single block, must have already called setSampling for proper setup"""
-        self._lowLevelRunBlock(int(self.maxSamples*pretrig), int(self.maxSamples*(1-pretrig)),self.timebase, self.oversample, self.segmentIndex)
+
+        # getting max samples is riddiculous. 1GS buffer means it will take so long
+        nSamples = min(self.noSamples, self.maxSamples)
+
+        self._lowLevelRunBlock(int(nSamples*pretrig), int(nSamples*(1-pretrig)), self.timebase,
+                self.oversample, self.segmentIndex)
 
     def isReady(self):
         """Check if scope done"""
         return self._lowLevelIsReady()
 
-    def setSamplingInterval(self, sampleInterval, noSamples, oversample=0, segmentIndex=0):
-        """Returns [actualSampleInterval, maxSamples]"""
+    def waitReady(self):
+        while(self.isReady() == False): time.sleep(0.01)
+
+
+    def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
+        """Returns [actualSampleInterval, noSamples, maxSamples]"""
         self.oversample = oversample
         self.segmentIndex = segmentIndex
-        self.timebase = self.getTimeBaseNum(sampleInterval)
+        (self.timebase, timebase_dt) = self.getTimeBaseNum(sampleInterval)
+        print timebase_dt
+
+        noSamples = int(round(duration / timebase_dt))
 
         m = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
 
         self.sampleInterval = m[0]
         self.sampleRate = 1.0/m[0]
         self.maxSamples = m[1]
-        return (self.sampleInterval, self.maxSamples)
+        self.noSamples = noSamples
+        return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
         """Returns [actualSampleFreq, maxSamples]"""
-        self.setSamplingInterval(1.0/sampleFreq, noSamples, oversample, segmentIndex)
+        sampleInterval = 1.0 * sampleFreq
+        duration = noSamples * sampleInterval
+        self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
     def setSampling(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
@@ -219,6 +252,7 @@ class PSBase(object):
 
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeoutms)
 
+
     def flashLed(self, times=5, start=False, stop=False):
         """Flash the front panel LEDs"""
 
@@ -229,6 +263,9 @@ class PSBase(object):
             times = 0
 
         self._lowLevelFlashLed(times)
+
+    def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+        return self.getDataV(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
@@ -259,6 +296,16 @@ class PSBase(object):
 
         return (data, numSamplesReturned, overflow)
 
+    def setSigGenSimple(self, offsetVoltage=0, pkToPk=2, waveType=None, frequency=1E6,
+            shots=1, triggerType=None, triggerSource=None):
+        """ I don't expose all the options from setSigGenBuiltIn so I'm not
+            calling it that. Their signal generator can actually do quite fancy
+            things that I don't care for"""
+        if self.has_sig_gen == False:
+            raise NotImplementedError()
+        self._lowLevelSetSigGenSimple(offsetVoltage, pkToPk, waveType, frequency,
+                shots, triggerType, triggerSource)
+
     def open(self, sn=None):
         """Open the scope, if sn is None just opens first one found"""
 
@@ -267,6 +314,8 @@ class PSBase(object):
     def close(self):
         """Close the scope"""
         self._lowLevelCloseUnit()
+    def stop(self):
+        self._lowLevelStop()
 
     def __del__(self):
         self.close()
