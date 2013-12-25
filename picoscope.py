@@ -270,6 +270,9 @@ class PSBase(object):
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+
         a2v = self.CHRange[channel] / float(self.MAX_VALUE)
         data = data * a2v + self.CHOffset[channel]
         return (data, numSamplesReturned, overflow)
