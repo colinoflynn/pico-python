@@ -24,8 +24,12 @@
 # which was adapted from http://www.picotech.com/support/topic4926.html
 
 
+from __future__ import division
+
+
 import inspect
 import time
+import warnings
 
 import numpy as np
 
@@ -37,18 +41,25 @@ class CaseInsensitiveDict(dict):
         return super(CaseInsensitiveDict, self).__getitem__(key.lower())
 
 class PSBase(object):
-    #Specify Library
-    LIBNAME = "ps6000"
+    """
+    This class defines a general interface for Picoscope oscilloscopes.
+
+    This  class should not be called directly since it relies on lower level
+    functions to communicate with the actual devices.
+    """
+
 
     ###You must reimplement this in device specific classes
-    #Maximum Limits
+
+    # Do not include .dll or .so, these will be appended automatically
+    LIBNAME = "ps6000"
+
     MAX_VALUE = 32764
     MIN_VALUE = -32764
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 20
 
-    ###You must reimplement this in device specific classes
     CHANNEL_RANGE = [{"rangeV":20E-3, "apivalue":1, "rangeStr":"20 mV"},
                      {"rangeV":50E-3, "apivalue":2, "rangeStr":"50 mV"},
                      {"rangeV":100E-3, "apivalue":3, "rangeStr":"100 mV"},
@@ -59,14 +70,16 @@ class PSBase(object):
                      {"rangeV":5.0, "apivalue":8, "rangeStr":"5 V"},
                      ]
 
-    ###You must reimplement this in device specific classes
     NUM_CHANNELS = 2
     CHANNELS = {"A":0, "B":1}
 
-    ###You must reimplement this in device specific classes
     CHANNEL_COUPLINGS = {"DC50": 2, "DC":1, "AC":0}
-    has_sig_gen = False
 
+    # don't know if we really need this. Python should throw an
+    # error for us shouldn't it ?
+    #has_sig_gen = False
+
+    ###End of things you must reimplement (I think).
 
     # If we don't get this CaseInsentiveDict working, I would prefer to stick
     # with their spelling of archaic C all caps for this. I know it is silly,
@@ -84,15 +97,17 @@ class PSBase(object):
                       "RiseOrFall":4}
 
     ### getUnitInfo parameter types
-    UNIT_INFO_TYPES = { "DRIVER_VERSION"           : 0,
-                        "USB_VERSION"              : 1,
-                        "HARDWARE_VERSION"         : 2,
-                        "VARIANT_INFO"             : 3,
-                        "BATCH_AND_SERIAL"         : 4,
-                        "CAL_DATE"                 : 5,
-                        "KERNEL_VERSION"           : 6,
-                        "DIGITAL_HARDWARE_VERSION" : 7,
-                        "ANALOGUE_HARDWARE_VERSION": 8}
+    UNIT_INFO_TYPES = { "DRIVER_VERSION"           : 0x0,
+                        "USB_VERSION"              : 0x1,
+                        "HARDWARE_VERSION"         : 0x2,
+                        "VARIANT_INFO"             : 0x3,
+                        "BATCH_AND_SERIAL"         : 0x4,
+                        "CAL_DATE"                 : 0x5,
+                        "KERNEL_VERSION"           : 0x6,
+                        "DIGITAL_HARDWARE_VERSION" : 0x7,
+                        "ANALOGUE_HARDWARE_VERSION": 0x8,
+                        "PICO_FIRMWARE_VERSION_1"  : 0x9,
+                        "PICO_FIRMWARE_VERSION_2"  : 0xA}
 
     def __init__(self):
         # Should be defined in child
@@ -104,6 +119,10 @@ class PSBase(object):
 
     def checkResult(self, ec):
         """Check result of function calls, raise exception if not 0"""
+        # NOTE: This will break some oscilloscopes that are powered by USB.
+        # Some of the newer scopes, can actually be powered by USB and will return
+        # a useful value. That should be given back to the user.
+        # I guess we can deal with these edge cases in the functions themselves
         if ec == 0:
             return
 
@@ -133,17 +152,27 @@ class PSBase(object):
             info = self.UNIT_INFO_TYPES[info]
         return self._lowLevelGetUnitInfo(info)
 
-    def printUnitInfo(self):
-        """ Prints the unit information in a human readible way """
-        print("Driver version   " + self.getUnitInfo("DRIVER_VERSION"))
-        print("USB version      " + self.getUnitInfo("USB_VERSION"))
-        print("Hardware version " + self.getUnitInfo("HARDWARE_VERSION"))
-        print("Found Picoscope  " + self.getUnitInfo("VARIANT_INFO"))
-        print("Serial number    " + self.getUnitInfo("BATCH_AND_SERIAL"))
-        print("Calibrated on    " + self.getUnitInfo("CAL_DATE"))
-        print("Kernel version   " + self.getUnitInfo("KERNEL_VERSION"))
-        print("Digital version  " + self.getUnitInfo("DIGITAL_HARDWARE_VERSION"))
-        print("Analog version   " + self.getUnitInfo("ANALOGUE_HARDWARE_VERSION"))
+    def getAllUnitInfo(self):
+        """
+        Returns a nice string containing the unit information in a human
+        readible way.
+        """
+        s = ""
+        for key in sorted(self.UNIT_INFO_TYPES.keys(), key=self.UNIT_INFO_TYPES.get):
+            s += key.ljust(30) + ": " + self.getUnitInfo(key) + "\n"
+
+        s = s[:-1]
+        return s
+
+        #return  "Driver version   " + self.getUnitInfo("DRIVER_VERSION")  + "\n" + \
+                #"USB version      " + self.getUnitInfo("USB_VERSION")     + "\n" + \
+                #"Hardware version " + self.getUnitInfo("HARDWARE_VERSION")+ "\n" + \
+                #"Found Picoscope  " + self.getUnitInfo("VARIANT_INFO")    + "\n" + \
+                #"Serial number    " + self.getUnitInfo("BATCH_AND_SERIAL")+ "\n" + \
+                #"Calibrated on    " + self.getUnitInfo("CAL_DATE")        + "\n" + \
+                #"Kernel version   " + self.getUnitInfo("KERNEL_VERSION")  + "\n" + \
+                #"Digital version  " + self.getUnitInfo("DIGITAL_HARDWARE_VERSION") + "\n" + \
+                #"Analog version   " + self.getUnitInfo("ANALOGUE_HARDWARE_VERSION")
 
 
     def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False):
@@ -183,7 +212,10 @@ class PSBase(object):
         self.CHOffset[chNum] = VOffset
 
     def runBlock(self, pretrig=0.0):
-        """Runs a single block, must have already called setSampling for proper setup"""
+        """
+        Runs a single block, must have already called setSampling for proper
+        setup.
+        """
 
         # getting max samples is riddiculous. 1GS buffer means it will take so long
         nSamples = min(self.noSamples, self.maxSamples)
@@ -200,11 +232,10 @@ class PSBase(object):
 
 
     def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
-        """Returns [actualSampleInterval, noSamples, maxSamples]"""
+        """Returns (actualSampleInterval, noSamples, maxSamples)"""
         self.oversample = oversample
         self.segmentIndex = segmentIndex
         (self.timebase, timebase_dt) = self.getTimeBaseNum(sampleInterval)
-        print timebase_dt
 
         noSamples = int(round(duration / timebase_dt))
 
@@ -217,48 +248,64 @@ class PSBase(object):
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
-        """Returns [actualSampleFreq, maxSamples]"""
+        """Returns (actualSampleFreq, maxSamples)"""
         sampleInterval = 1.0 * sampleFreq
         duration = noSamples * sampleInterval
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
     def setSampling(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
-        """Kept for backwards compatibilit, use setSamplingInterval or
-           setSamplingFrequency instead"""
+        """
+        Kept for backwards compatibilit, use setSamplingInterval or
+        setSamplingFrequency instead
+        """
+        warnings.warn("Deprecated, use setSamplingInterval or setSamplingFrequency instead", DeprecationWarning)
         return self.setSamplingFrequency(sampleFreq, noSamples, oversample, segmentIndex)
 
 
 
-    def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeoutms=100, enabled=True):
-        """Simple trigger setup, only allows level"""
+    def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100, enabled=True):
+        """
+        Simple Trigger setup.
 
-        if enabled:
-            enabled = 1
-        else:
-            enabled = 0
+        trigSrc can be either a number corresponding to the low level
+        specifications of the scope or a string such as 'A' or 'AUX'
 
-
-        direction = self.THRESHOLD_TYPE[direction]
+        Currently AUX is not supported
+        """
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
 
+
+        direction = self.THRESHOLD_TYPE[direction]
+
         if trigSrc >= self.NUM_CHANNELS:
-            print("We do not support AUX triggering yet...")
-            return -1
+            # The only unknown is how to convert the voltage to an AUX ADC count
+            raise NotImplementedError("We do not support AUX triggering yet...")
+
+        enabled = int(bool(enabled))
 
         a2v = self.CHRange[trigSrc] / self.MAX_VALUE
         threshold_adc = int(threshold_V / a2v)
 
-        self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeoutms)
+        self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeout_ms)
 
 
     def flashLed(self, times=5, start=False, stop=False):
-        """Flash the front panel LEDs"""
+        """
+        Flash the front panel LEDs
 
+        Use one of input arguments to specify how the Picoscope will flash the
+        LED
+
+        times = The number of times the picoscope will flash the LED
+        start = If true, will flash the LED indefinitely
+        stop  = If true, will stop any flashing.
+
+        Note that calls to the RunStreaming or RunBlock will stop any flashing.
+        """
         if start:
             times = -1
-
         if stop:
             times = 0
 
@@ -299,25 +346,140 @@ class PSBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    def setSigGenSimple(self, offsetVoltage=0, pkToPk=2, waveType=None, frequency=1E6,
+    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType=None, frequency=1E6,
             shots=1, triggerType=None, triggerSource=None):
         """ I don't expose all the options from setSigGenBuiltIn so I'm not
             calling it that. Their signal generator can actually do quite fancy
             things that I don't care for"""
-        if self.has_sig_gen == False:
-            raise NotImplementedError()
-        self._lowLevelSetSigGenSimple(offsetVoltage, pkToPk, waveType, frequency,
+        #if self.has_sig_gen == False:
+            #raise NotImplementedError()
+        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
                 shots, triggerType, triggerSource)
+    def setAWGSimple(self, waveform, duration, offsetVoltage=0.,
+            pkToPk=0., indexMode='SINGLE', shots=1, triggerType=0, triggerSource=0):
+        """
+        This function sets the AWG to output the given waveform (numpy array).
+        It takes in the total waveform duration. This means that it will compute
+        the phaseIncrement itself. If you require more control of the timestep
+        increment, you should use setSigGenAritrarySimpleDelaPhase instead
 
-    def open(self, sn=None):
-        """Open the scope, if sn is None just opens first one found"""
 
-        self._lowLevelOpenUnit(sn)
+        If pkToPk and offset Voltage are both set to 0, then the waveform is
+        interpreted as voltage values.
+
+        pkToPk = np.max(waveform) - np.min(waveform)
+        offset = (np.max(waveform) + np.min(waveform)) / 2
+
+        This should in theory minimize the quantization error in the ADC
+
+        else, the waveform shoudl be a numpy int16 type array with the containing
+        waveform
+
+        Returns: The actual duration of the waveform
+        """
+        deltaPhase = self.getAWGDeltaPhase(duration/len(waveform))
+
+        return self.setAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage,
+                pkToPk, indexMode, shots, triggerType, triggerSource)
+
+    def setAWGSimpleDeltaPhase(self, waveform, deltaPhase, offsetVoltage=0,
+            pkToPk=0, indexMode='SINGLE', shots=1, triggerType=0, triggerSource=0):
+        """
+        This is function provides a little more control than
+        setAWGSimple in the sense that you are able to specify deltaPhase
+        directly. It should only be used when deltaPhase becomes very small.
+
+        Returns the actual time duration of the waveform
+
+        Warning. Ideally, you would want this to be a power of 2 that way each
+        sample is given out at exactly the same difference in time otherwise,
+        if you give it something closer to 1.25 you would obtain
+
+         T  | phase accumulator value | sample
+         0  |      0                  |      0
+         5  |      1.25               |      1
+        10  |      2.50               |      2
+        15  |      3.75               |      3
+        20  |      5                  |      5
+
+        and you just skipped sample 4
+        This is why this low level function is exposed to the user so that he
+        can control these edge cases
+
+        I would suggest using something like this: if you care about obtaining
+        evenly spaced samples at the expense of the precise duration of the your
+        waveform
+        To find the next highest power of 2
+            always a smaller sampling interval than the one you asked for
+        math.pow(2, math.ceil(math.log(deltaPhase, 2)))
+
+        To find the next smaller power of 2
+            always a larger sampling interval than the one you asked for
+        math.pow(2, math.floor(math.log(deltaPhase, 2)))
+
+        To find the nearest power of 2
+        math.pow(2, int(math.log(deltaPhase, 2), + 0.5))
+        """
+
+        if offsetVoltage == 0 and pkToPk == 0:
+            offsetVoltage = (np.max(waveform) + np.min(waveform)) / 2
+            pkToPk        = np.max(waveform) - np.min(waveform)
+
+            # make a copy of the original data
+            # this will make sure we don't destroy the user's original array
+            waveform = waveform - offsetVoltage
+            # This is an in place operation meaning that memory does not get copied
+            waveform /= (pkToPk / np.iinfo(np.int16).max)
+            # inplace round
+            waveform.round(out=waveform)
+
+            # convert to an int16 type as requried by the function
+            waveform = np.array(waveform, dtype=np.int16)
+
+        print waveform.dtype
+        if waveform.dtype != np.int16:
+            raise TypeError("Provided waveform must be numpy array with dtype=numpy.int16.")
+
+        self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase,
+                offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource)
+
+        timeIncrement = self.getAWGTimeIncrement(deltaPhase)
+        return timeIncrement * len(waveform)
+
+    def getAWGDeltaPhase(self, timeIncrement):
+        """
+        Returns the DeltaPhase integer used by the AWG to set the increment
+        between samples of the generated waveform.
+        This is useful when you are trying to generate very fast waveforms when
+        you are getting close to the limits of your waveform generator.
+        """
+        return self._lowLevelGetAWGDeltaPhase(timeIncrement)
+
+    def getAWGTimeIncrement(self, deltaPhase):
+        """
+        Returns in the timestep, in seconds, from a given deltaPhase integer
+        between samples of the AWG.
+        You should use this function in conjunction with
+        getAWGDeltaPhase to obtain the actual timestep of AWG.
+        """
+        return self._lowLevelGetAWGTimeIncrement(deltaPhase)
+    def open(self, serialNumber=None):
+        """Open the scope, if serialNumber is None just opens first one found"""
+
+        self._lowLevelOpenUnit(serialNumber)
 
     def close(self):
-        """Close the scope"""
+        """
+        Close the scope.
+        You should call this yourself because the Python garbage collector
+        might take some time.
+        """
         self._lowLevelCloseUnit()
     def stop(self):
+        """
+        Let the Picoscope know that you are done acquiring data
+        for the time being.
+        """
         self._lowLevelStop()
 
     def __del__(self):
@@ -330,16 +492,15 @@ class PSBase(object):
     #3. Copy/replace '^([0-9A-F]{2} ){1}' with '0x\1, "' (enable regex when doing this)
     #4. Copy/replace '^([0-9A-F]{3} ){1}' with '0x\1, "' (enable regex when doing this)
     #5. Copy/repplace '0x' with '[0x'
-
-    ERROR_CODES = [[0x00 , "PICO_OK", "The PicoScope 6000 is functioning correctly."],
-        [0x01 , "PICO_MAX_UNITS_OPENED", "An attempt has been made to open more than PS6000_MAX_UNITS."],
+    ERROR_CODES = [[0x00 , "PICO_OK", "The PicoScope XXXX is functioning correctly."],
+        [0x01 , "PICO_MAX_UNITS_OPENED", "An attempt has been made to open more than PSXXXX_MAX_UNITS."],
         [0x02 , "PICO_MEMORY_FAIL", "Not enough memory could be allocated on the host machine."],
-        [0x03 , "PICO_NOT_FOUND", "No PicoScope 6000 could be found."],
+        [0x03 , "PICO_NOT_FOUND", "No PicoScope XXXX could be found."],
         [0x04 , "PICO_FW_FAIL", "Unable to download firmware."],
         [0x05 , "PICO_OPEN_OPERATION_IN_PROGRESS"],
         [0x06 , "PICO_OPERATION_FAILED"],
-        [0x07 , "PICO_NOT_RESPONDING", "The PicoScope 6000 is not responding to commands from the PC."],
-        [0x08 , "PICO_CONFIG_FAIL", "The configuration information in the PicoScope 6000 has become corrupt or is missing."],
+        [0x07 , "PICO_NOT_RESPONDING", "The PicoScope XXXX is not responding to commands from the PC."],
+        [0x08 , "PICO_CONFIG_FAIL", "The configuration information in the PicoScope XXXX has become corrupt or is missing."],
         [0x09 , "PICO_KERNEL_DRIVER_TOO_OLD", "The picopp.sys file is too old to be used with the device driver."],
         [0x0A , "PICO_EEPROM_CORRUPT", "The EEPROM has become corrupt, so the device will use a default setting."],
         [0x0B , "PICO_OS_NOT_SUPPORTED", "The operating system on the PC is not supported by this driver."],
@@ -365,8 +526,8 @@ class PSBase(object):
         [0x20 , "PICO_DELAY", "One or more of the hold-off parameters are out of range."],
         [0x21 , "PICO_SOURCE_DETAILS", "One or more of the source details are incorrect."],
         [0x22 , "PICO_CONDITIONS", "One or more of the conditions are incorrect."],
-        [0x23 , "PICO_USER_CALLBACK", "The driver's thread is currently in the ps6000BlockReady callback function and therefore the action cannot be carried out."],
-        [0x24 , "PICO_DEVICE_SAMPLING", "An attempt is being made to get stored data while streaming. Either stop streaming by calling ps6000Stop, or use ps6000GetStreamingLatestValues."],
+        [0x23 , "PICO_USER_CALLBACK", "The driver's thread is currently in the psXXXXBlockReady callback function and therefore the action cannot be carried out."],
+        [0x24 , "PICO_DEVICE_SAMPLING", "An attempt is being made to get stored data while streaming. Either stop streaming by calling psXXXXStop, or use psXXXXGetStreamingLatestValues."],
         [0x25 , "PICO_NO_SAMPLES_AVAILABLE", "because a run has not been completed."],
         [0x26 , "PICO_SEGMENT_OUT_OF_RANGE", "The memory index is out of range."],
         [0x27 , "PICO_BUSY", "Data cannot be returned yet."],
@@ -390,16 +551,16 @@ class PSBase(object):
         [0x41 , "PICO_INVALID_STATE", "Device is in an invalid state."],
         [0x42 , "PICO_NOT_ENOUGH_SEGMENTS", "The number of segments allocated is fewer than the number of captures requested."],
         [0x43 , "PICO_DRIVER_FUNCTION", "You called a driver function while another driver function was still being processed."],
-        [0x45 , "PICO_INVALID_COUPLING", "An invalid coupling type was specified in ps6000SetChannel."],
+        [0x45 , "PICO_INVALID_COUPLING", "An invalid coupling type was specified in psXXXXSetChannel."],
         [0x46 , "PICO_BUFFERS_NOT_SET", "An attempt was made to get data before a data buffer was defined."],
         [0x47 , "PICO_RATIO_MODE_NOT_SUPPORTED", "The selected downsampling mode (used for data reduction) is not allowed."],
-        [0x49 , "PICO_INVALID_TRIGGER_PROPERTY", "An invalid parameter was passed to ps6000SetTriggerChannelProperties."],
+        [0x49 , "PICO_INVALID_TRIGGER_PROPERTY", "An invalid parameter was passed to psXXXXSetTriggerChannelProperties."],
         [0x4A , "PICO_INTERFACE_NOT_CONNECTED", "The driver was unable to contact the oscilloscope."],
-        [0x4D , "PICO_SIGGEN_WAVEFORM_SETUP_FAILED", "A problem occurred in ps6000SetSigGenBuiltIn or ps6000SetSigGenArbitrary."],
+        [0x4D , "PICO_SIGGEN_WAVEFORM_SETUP_FAILED", "A problem occurred in psXXXXSetSigGenBuiltIn or psXXXXSetSigGenArbitrary."],
         [0x4E , "PICO_FPGA_FAIL"],
         [0x4F , "PICO_POWER_MANAGER"],
-        [0x50 , "PICO_INVALID_ANALOGUE_OFFSET", "An impossible analogue offset value was specified in ps6000SetChannel."],
-        [0x51 , "PICO_PLL_LOCK_FAILED", "Unable to configure the PicoScope 6000."],
+        [0x50 , "PICO_INVALID_ANALOGUE_OFFSET", "An impossible analogue offset value was specified in psXXXXSetChannel."],
+        [0x51 , "PICO_PLL_LOCK_FAILED", "Unable to configure the PicoScope XXXX."],
         [0x52 , "PICO_ANALOG_BOARD", "The oscilloscope's analog board is not detected, or is not connected to the digital board."],
         [0x53 , "PICO_CONFIG_FAIL_AWG", "Unable to configure the signal generator."],
         [0x54 , "PICO_INITIALISE_FPGA", "The FPGA cannot be initialized, so unit cannot be opened."],

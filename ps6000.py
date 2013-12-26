@@ -1,6 +1,8 @@
 #/usr/bin/env python2.7
 # vim: set ts=4 sw=4 tw=0 et :
 
+from __future__ import division
+
 import math
 import time
 import inspect
@@ -8,7 +10,7 @@ import inspect
 # to load the proper dll
 import platform
 
-from ctypes import byref, c_long, c_void_p, c_short, c_float, create_string_buffer, c_ulong, POINTER, cdll
+from ctypes import byref, c_long, c_void_p, c_short, c_float, create_string_buffer, c_ulong, POINTER, cdll, c_uint32
 
 from picoscope import PSBase
 
@@ -21,12 +23,26 @@ class PS6000(PSBase):
                     "External":4, "MaxChannels":4, "TriggerAux":5}
 
 
-    has_sig_gen = True
+    #has_sig_gen = True
     WAVE_TYPES = {"Sine":0, "Square":1, "Triangle":2, "RampUp":3, "RampDown":4,
                   "Sinc":5, "Gaussian":6, "HalfSine":7, "DCVoltage": 8, "WhiteNoise": 9}
 
     SIGGEN_TRIGGER_TYPES = {"Rising":0, "Falling":1, "GateHigh":2, "GateLow":3}
     SIGGEN_TRIGGER_SOURCES = {"None":0, "ScopeTrig":1, "AuxIn":2, "ExtIn":3, "SoftTrig":4, "TriggerRaw":5}
+
+    # This is actually different depending on the AB/CD models
+    # I wonder how we could detect the difference between the oscilloscopes
+    # I believe we can obtain this information from the setInfo function
+    # by readign the hardware version
+    # for the PS6403B version, the hardware version is "1 1",
+    # an other possibility is that the PS6403B shows up as 6403 when using
+    # VARIANT_INFO and others show up as PS6403X where X = A,C or D
+    AWGBufferAddressWidth   = 14
+    AWGPhaseAccumulatorSize = 32
+    AWGSamplingInterval = 5E-9 # in seconds
+
+    AWG_INDEX_MODES = {"SINGLE":0, "DUAL":1, "QUAD":2}
+
 
     def __init__(self):
         super(PS6000, self).__init__()
@@ -68,20 +84,21 @@ class PS6000(PSBase):
         requiredSize = c_short(0);
 
         m = self.lib.ps6000GetUnitInfo(self.handle, byref(s), len(s), byref(requiredSize), info);
+        self.checkResult(m)
         if requiredSize.value > len(s):
             s = create_string_buffer(requiredSize.value + 1)
             m = self.lib.ps6000GetUnitInfo(self.handle, byref(s), len(s), byref(requiredSize), info);
+            self.checkResult(m)
 
-        self.checkResult(m)
         return s.value
 
     def _lowLevelFlashLed(self, times):
         m = self.lib.ps6000FlashLed(self.handle, times)
         self.checkResult(m)
 
-    def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc, direction, delay, auto):
+    def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc, direction, timeout_ms, auto):
         m = self.lib.ps6000SetSimpleTrigger(self.handle, enabled, trigsrc, threshold_adc,
-                direction, delay, auto)
+                direction, timeout_ms, auto)
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase, oversample, segmentIndex):
@@ -137,6 +154,53 @@ class PS6000(PSBase):
 
         return (st, dt)
 
+    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
+            offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource):
+        """ waveform should be an array of shorts """
+
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_short))
+
+        if not isinstance(indexMode, int):
+            indexMode = self.AWG_INDEX_MODES[indexMode]
+        if not isinstance(triggerType, int):
+            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
+        if not isinstance(triggerSource, int):
+            triggerSource = slef.SIGGEN_TRIGGER_SOURCES[triggerSource]
+
+        m = self.lib.ps6000SetSigGenArbitrary(
+                self.handle,
+                c_uint32(int(offsetVoltage * 1E6)), # offset voltage in microvolts
+                c_uint32(int(pkToPk * 1E6)), # pkToPk in microvolts
+                deltaPhase, # startDeltaPhase
+                deltaPhase, # stopDeltaPhase
+                0,          # deltaPhaseIncrement
+                0,          # dwellCount
+                waveformPtr, # arbitraryWaveform
+                len(waveform), # arbitraryWaveformSize
+                0, # sweepType for deltaPhase
+                0, # operation (adding random noise and whatnot)
+                indexMode, # single, dual, quad
+                shots,
+                0,
+                triggerType,
+                triggerSource,
+                0) # extInThreshold
+        self.checkResult(m)
+
+
+    def _lowLevelGetAWGDeltaPhase(self, timeIncrement):
+        """
+        The ps6000 works on a an 5ns clock. Assuming we have a A/B model, then
+        the top 14 bits or the 32bit long are used to address the AWG buffer
+        Therefore, everytime the phase accumulator increases by
+        2**(32- 14)
+        """
+        nStepsRequiredPerBuffer = timeIncrement / self.AWGSamplingInterval
+        deltaPhase = long(2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth) / nStepsRequiredPerBuffer)
+        return deltaPhase
+    def _lowLevelGetAWGTimeIncrement(self, deltaPhase):
+        return self.AWGSamplingInterval * deltaPhase / (2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
+
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
         """ data should be a numpy array"""
         dataPtr = data.ctypes.data_as(POINTER(c_short))
@@ -154,7 +218,7 @@ class PS6000(PSBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    def _lowLevelSetSigGenSimple(self, offsetVoltage, pkToPk, waveType, frequency, shots,
+    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType, frequency, shots,
             triggerType, triggerSource):
         if waveType is None:
             waveType = self.WAVE_TYPES["Sine"]
@@ -177,6 +241,8 @@ class PS6000(PSBase):
 
 def examplePS6000():
     import textwrap
+    import pylab as plt
+    import numpy as np
     print(textwrap.fill("This demo will use the AWG to generate a gaussian pulse and measure " +
     "it on Channel A. To run this demo connect the AWG output of the PS6000 channel A."))
 
@@ -186,31 +252,48 @@ def examplePS6000():
     ps = PS6000()
     ps.open()
 
-    ps.printUnitInfo()
+    print(ps.getAllUnitInfo())
 
     #Use to ID unit
-    ps.flashLed(4)
-    time.sleep(2)
+    #ps.flashLed(10)
+    #time.sleep(5)
+    obs_duration = 600E-6
 
-    (interval, nSamples, maxSamples) = ps.setSamplingInterval(10E-9, 1E-3)
+    waveform = np.arange(0, 1, step=0.01)
+    ps.setAWGSimple(waveform, obs_duration)
+
+    (interval, nSamples, maxSamples) = ps.setSamplingInterval(10E-9, obs_duration)
     print("Sampling interval = %f ns"%(interval*1E9));
     print("Taking  samples = %d"%nSamples)
     print("Maximum samples = %d"%maxSamples)
 
-    ps.setChannel('A', 'DC', 50E-3, 0.0, True, False)
-    ps.setSimpleTrigger('A', 0.0, 'Rising')
+    ps.setChannel('A', 'DC', 1.0, 0.0, True, False)
+    ps.setSimpleTrigger('A', 0.0, 'Rising', delay=0, timeout_ms=100, enabled=True)
 
 
     # Technically, this should generate a a 2.2 V peak to peak waveform, but there is a bug
     # with the picoscope, causing it to only generate a useless waveform....
-    ps.setSigGenSimple(0, 2.2, "Square", 10E6)
+    #ps.setSigGenBuiltInSimple(0, 2.0, "Square", 5E3)
 
-    ps.runBlock()
-    #while(ps.isReady() == False): time.sleep(0.01)
-    ps.waitReady()
 
-    # returns a numpy array
-    (data, numSamplesReturned, overflow) = ps.getDataV(0, nSamples)
+
+    for i in xrange(10):
+        print("Iteration %d"%i)
+        ps.runBlock()
+        #time.sleep(1)
+        ps.waitReady()
+        print("Done waiting for trigger")
+
+
+        # returns a numpy array
+        (data, numSamplesReturned, overflow) = ps.getDataRaw(0, nSamples)
+
+        #plt.ion()
+        #plt.plot(np.arange(nSamples)*interval, data)
+        #plt.hold(1)
+        #plt.plot(np.arange(len(waveform)) * interval, waveform)
+        #plt.hold(0)
+        raw_input("Press enter to continue ...")
 
     # call this when you are done taking data
     ps.stop()
@@ -221,6 +304,7 @@ def examplePS6000():
     print(data[0:100])
 
     ps.close()
+
 
 if __name__ == "__main__":
     examplePS6000()
