@@ -3,7 +3,7 @@ PS6000 AWG Demo
 By: Mark Harfouche
 
 This is a demo of how to use AWG with the Picoscope 6000
-It was tested with the PS6403D USB2.0 version
+It was tested with the PS6403(B???) USB2.0 version
 
 It shows how to setup the AWG in single shot mode to trigger
 with the waveform acquisition.
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     obs_duration = 10*clk_period
     sampling_interval = clk_period/4096
 
-    (interval, nSamples, maxSamples) = ps.setSamplingInterval(sampling_interval, obs_duration)
-    print("Sampling interval = %f ns"%(interval*1E9));
+    (actualSamplingInterval, nSamples, maxSamples) = ps.setSamplingInterval(sampling_interval, obs_duration)
+    print("Sampling interval = %f ns"%(actualSamplingInterval*1E9));
     print("Taking  samples = %d"%nSamples)
     print("Maximum samples = %d"%maxSamples)
 
@@ -54,16 +54,21 @@ if __name__ == "__main__":
 
     # take the desired waveform
     # This measures all the channels that have been enabled
-    ps.runBlock()
-    ps.waitReady()
-    print("Done waiting for trigger")
 
 
+    nSamplesRead = 4096
     # Get the data one by one
     # There is no way to get the data all at once using our Python interface yet
-    dataA = ps.getDataV('A', nSamples, returnOverflow=False)
-    dataB = ps.getDataV('B', nSamples, returnOverflow=False)
+    nCaptures = 4000
+    for i in xrange(nCaptures):
+        print("Capturing waveform %d/%d"%(i, nCaptures))
+        ps.runBlock()
+        ps.waitReady()
+        print("Done waiting for trigger")
+        dataA = ps.getDataV('A', nSamplesRead, returnOverflow=False)
+        dataB = ps.getDataV('B', nSamplesRead, returnOverflow=False)
 
+    dataTimeAxis = np.arange(nSamplesRead) * actualSamplingInterval
 
     # call this when you are done taking data
     #ps.stop()
@@ -75,8 +80,8 @@ if __name__ == "__main__":
 
     plt.figure()
     plt.hold(True)
-    plt.plot(np.arange(nSamples)*interval*1E3, dataA, label="Clock")
-    plt.plot(np.arange(nSamples)*interval*1E3, dataB, label="AWG Waveform")
+    plt.plot(dataTimeAxis, dataA, label="Clock")
+    plt.plot(dataTimeAxis, dataB, label="AWG Waveform")
     plt.grid(True, which='major')
     plt.title("Picoscope 6000 waveforms")
     plt.ylabel("Voltage (V)")

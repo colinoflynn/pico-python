@@ -217,9 +217,10 @@ class PSBase(object):
 
         noSamples = int(round(duration / timebase_dt))
 
-        (self.sampleInterval, self.maxSamples, self.noSamples) = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
+        (self.sampleInterval, self.maxSamples) = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
 
-        self.sampleRate = 1.0/m[0]
+        self.noSamples = noSamples
+        self.sampleRate = 1.0/self.sampleInterval
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
@@ -350,17 +351,18 @@ class PSBase(object):
         # I really do not know what is causing it to happen :S
 
         # temporarily reverting to what Colin had because something is not right with this implementation
-        #dataPointer = (c_short * numSamples)()
-        #m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
-        #self.checkResult(m)
+        dataPointer = (c_short * numSamples)()
+        m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
+        self.checkResult(m)
 
         # Numpy way
-        data = np.empty(numSamples, dtype=np.int16)
-        self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+        #data = np.empty(numSamples, dtype=np.int16)
+        #self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
 
         # Colin's ctypes way
-        #data = np.asarray(list(dataPointer))
+        data = np.asarray(list(dataPointer))
 
         return (data, numSamplesReturned, overflow)
 
@@ -421,9 +423,9 @@ class PSBase(object):
 
         if   indexMode == self.AWG_INDEX_MODES["Single"]:
             pass
-        elif indexMode == self.AWG_IDNEX_MODES["Dual"]:
+        elif indexMode == self.AWG_INDEX_MODES["Dual"]:
             sampling_interval /= 2
-        elif indexMode == self.AWG_IDNEX_MODES["Quad"]:
+        elif indexMode == self.AWG_INDEX_MODES["Quad"]:
             sampling_interval /= 4
 
         deltaPhase = self.getAWGDeltaPhase(sampling_interval)
