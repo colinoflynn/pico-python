@@ -99,17 +99,17 @@ class PSBase(object):
                       "RiseOrFall":4}
 
     ### getUnitInfo parameter types
-    UNIT_INFO_TYPES = { "DRIVER_VERSION"           : 0x0,
-                        "USB_VERSION"              : 0x1,
-                        "HARDWARE_VERSION"         : 0x2,
-                        "VARIANT_INFO"             : 0x3,
-                        "BATCH_AND_SERIAL"         : 0x4,
-                        "CAL_DATE"                 : 0x5,
-                        "KERNEL_VERSION"           : 0x6,
-                        "DIGITAL_HARDWARE_VERSION" : 0x7,
-                        "ANALOGUE_HARDWARE_VERSION": 0x8,
-                        "PICO_FIRMWARE_VERSION_1"  : 0x9,
-                        "PICO_FIRMWARE_VERSION_2"  : 0xA}
+    UNIT_INFO_TYPES = { "DriverVersion"          : 0x0,
+                        "USBVersion"             : 0x1,
+                        "HardwareVersion"        : 0x2,
+                        "VarianInfo"             : 0x3,
+                        "BatchAndSerial"         : 0x4,
+                        "CalDate"                : 0x5,
+                        "KernelVersion"          : 0x6,
+                        "DigitalHardwareVersion" : 0x7,
+                        "AnalogueHardwareVersion": 0x8,
+                        "PicoFirmwareVersion1"   : 0x9,
+                        "PicoFirmwareVersion2"   : 0xA}
 
     def __init__(self):
         # Should be defined in child
@@ -316,40 +316,76 @@ class PSBase(object):
     def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         return self.getDataV(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
-    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0, returnOverflow=False):
+        """
+        getDataV returns the data as an array of voltage values
+
+        it returns (dataV, overflow) if returnOverflow = True
+        else, it returns returns dataV
+        dataV is an array with size numSamplesReturned
+        overflow is a flag that is true when the signal was either too large
+                 or too small to be properly digitized
+
+        TODO: decide wether or not we want to raise an exception in the case of overflow
+        """
+
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
         a2v = self.CHRange[channel] / float(self.MAX_VALUE)
-        data = data * a2v + self.CHOffset[channel]
-        return (data, numSamplesReturned, overflow)
+        dataV = data[:numSamplesReturned] * a2v + self.CHOffset[channel]
+
+
+        # No we should not warn about this.
+        # I'm going to assume the user is advanced and knows to check this himself
+        # if things are weird with data.
+        # NOTE: Now maybe I might agree that we could throw a warning since getDataRaw exists
+        if overflow != 0:
+            print "WARNING: Overflow detected. Should we raise exception?"
+        if returnOverflow:
+            return (dataV, overflow)
+        else:
+            return dataV
 
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+        """
+        TODO: Figure out why this function is crashing :S.
+
+        getDataRaw returns the data in the purest form.
+        it returns a tuple containing:
+        (data, numSamplesReturned, overflow)
+        data is an array of size numSamples
+        numSamplesReturned is the number of samples returned by the Picoscope
+                (I don't know when this would not be equal to numSamples)
+        overflow is a flag that is true when the signal was either too large
+                 or too small to be properly digitized
+        """
+
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
         if numSamples == 0:
             # maxSamples is probably huge, 1Gig Sample can be HUGE....
             numSamples = min(self.maxSamples, 4096)
-        #data = np.empty(numSamples, dtype=np.int16)
+
+        # This function is randomly crashing
+        # I think it is because it is addressing wrong memory when writing data
+        # I really do not know what is causing it to happen :S
+
         # temporarily reverting to what Colin had because something is not right with this implementation
+        #dataPointer = (c_short * numSamples)()
+        #m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
+        #self.checkResult(m)
 
-        dataPointer = (c_short * numSamples)()
-
-        #self._lowLevelSetDataBuffer(channel, data, downSampleMode)
-
-        m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
-        self.checkResult(m)
+        # Numpy way
+        data = np.empty(numSamples, dtype=np.int16)
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode)
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
-        data = np.asarray(list(dataPointer))
 
-        # No we should not warn about this.
-        # I'm going to assume the user is advanced and knows to check this himself
-        # if things are weird with data.
-        #if overflow != 0:
-            #print "WARNING: Overflow detected. Should we raise exception?"
+        # Colin's ctypes way
+        #data = np.asarray(list(dataPointer))
 
         return (data, numSamplesReturned, overflow)
 
@@ -362,8 +398,8 @@ class PSBase(object):
             #raise NotImplementedError()
         self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
                 shots, triggerType, triggerSource)
-    def setAWGSimple(self, waveform, duration, offsetVoltage=0.,
-            pkToPk=0., indexMode='Single', shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
+    def setAWGSimple(self, waveform, duration, offsetVoltage=None,
+            pkToPk=None, indexMode='Single', shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
         """
         This function sets the AWG to output the given waveform (numpy array).
         It takes in the total waveform duration. This means that it will compute
@@ -382,16 +418,30 @@ class PSBase(object):
         else, the waveform shoudl be a numpy int16 type array with the containing
         waveform
 
+        As it turns out, their programming guide is wrong. The int16 array should
+        contain numbers from 0x0000 to 0x0FFF (12 bit unsigned numbers).
+        0x000 corresponds to the lowest value of the AWG (offset - pkToPk/2)
+        while
+        0xFFF corresponds to the highest value of the AWG (ofset + pkToPk/2)
+
         Returns: The actual duration of the waveform
         """
-        deltaPhase = self.getAWGDeltaPhase(duration/len(waveform))
+        sampling_interval = duration/len(waveform)
+        if   indexMode == "Single":
+            pass
+        elif indexMode == "Dual":
+            sampling_interval /= 2
+        elif indexMode == "Quad":
+            sampling_interval /= 4
+
+        deltaPhase = self.getAWGDeltaPhase(sampling_interval)
 
         actual_druation = self.setAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage,
                 pkToPk, indexMode, shots, triggerType, triggerSource)
         return (actual_druation, deltaPhase)
 
-    def setAWGSimpleDeltaPhase(self, waveform, deltaPhase, offsetVoltage=0,
-            pkToPk=0, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
+    def setAWGSimpleDeltaPhase(self, waveform, deltaPhase, offsetVoltage=None,
+            pkToPk=None, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
         """
         This is function provides a little more control than
         setAWGSimple in the sense that you are able to specify deltaPhase
@@ -431,31 +481,90 @@ class PSBase(object):
         math.pow(2, int(math.log(deltaPhase, 2), + 0.5))
         """
 
-        if offsetVoltage == 0 and pkToPk == 0:
-            offsetVoltage = (np.max(waveform) + np.min(waveform)) / 2
-            pkToPk        = np.max(waveform) - np.min(waveform)
+        """
+        This part of the code is written for the PS6403 (PS6403D if that matters)
+        I don't really know a good way to differentiate between PS6403 versions
 
-            # make a copy of the original data
-            # this will make sure we don't destroy the user's original array
+        It essentially does some autoscaling for the waveform so that it can be sent
+        to the Picoscope to allow for maximum resolution from the DDS.
+
+        I haven't tested if you can actually obtain more resolution than simply setting
+        the DDS to output from -2 to +2
+
+        I assume they have some type of adjustable gain and offset on their DDS
+        allowing them to claim that they can get extremely high resolution.
+        """
+        if waveform.dtype != np.int16:
+
+
+            # TODO:
+            # Decide how to mirror the Quad mode. Right now, it is mirrored about the
+            # minimum value of
+            if indexMode == "Quad":
+                # Optimize for the Quad mode.
+                """
+                Quad mode. The generator outputs the contents of the buffer,
+                then on its second pass through the buffer outputs the same
+                data in reverse order. On the third and fourth passes
+                it does the same but with a negative version of the data. This
+                allows you to specify only the first quarter of a waveform with
+                fourfold symmetry, such as a sine wave, and let the generator
+                fill in the other three quarters.
+                """
+                if offsetVoltage is None:
+                    offsetVoltage = np.min(waveform)
+
+            else:
+                # Nothing to do for the dual mode or the single mode
+                if offsetVoltage is None:
+                    offsetVoltage = (np.max(waveform) + np.min(waveform)) / 2
+
+            # make a copy of the original data as to not clobber up the array
             waveform = waveform - offsetVoltage
-            # This is an in place operation meaning that memory does not get copied
-            waveform /= (pkToPk/2 / np.iinfo(np.int16).max)
-            # inplace round
+            if pkToPk is None:
+                pkToPk = np.max(np.absolute(waveform))*2
+
+
+
+            # waveform should now be baised around 0
+            # with
+            #     max(waveform) = +pkToPk/2
+            #     min(waveform) = -pkToPk/2
+
+            waveform /= pkToPk
+            # waveform should now be a number between -0.5 and +0.5
+
+            # and now the waveform is between 0 and 1
+            # inclusively???
+            waveform += 0.5
+
+            # now the waveform is properly quantized
+            waveform *= (self.AWGMaxVal - self.AWGMinVal)
+            waveform += self.AWGMinVal
+
             waveform.round(out=waveform)
 
             # convert to an int16 typqe as requried by the function
             waveform = np.array(waveform, dtype=np.int16)
 
+            # funny floating point rounding errors
+            waveform.clip(self.AWGMinVal, self.AWGMaxVal, out=waveform)
 
-        if waveform.dtype != np.int16:
-            raise TypeError("Provided waveform must be numpy array with dtype=numpy.int16.")
-        #waveform.byteswap(True)
+
         self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase,
                 offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource)
 
-        #waveform.byteswap(True)
+
         timeIncrement = self.getAWGTimeIncrement(deltaPhase)
-        return timeIncrement * len(waveform)
+        waveform_duration = timeIncrement * len(waveform)
+        if   indexMode == "Single":
+            pass
+        elif indexMode == "Dual":
+            waveform_duration *= 2
+        elif indexMode == "Quad":
+            waveform_duration *= 4
+
+        return waveform_duration
 
     def getAWGDeltaPhase(self, timeIncrement):
         """

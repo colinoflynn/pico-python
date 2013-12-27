@@ -36,18 +36,20 @@ class PS6000(PSBase):
     # an other possibility is that the PS6403B shows up as 6403 when using
     # VARIANT_INFO and others show up as PS6403X where X = A,C or D
 
-    #AWGBufferAddressWidth   = 16
-    #AWGPhaseAccumulatorSize = 32
 
-
-    #AWGBufferAddressWidth   = 14
-    #AWGPhaseAccumulatorSize = 28
     AWGPhaseAccumulatorSize = 32
     AWGBufferAddressWidth   = 14
     AWGMaxSamples           = 2**AWGBufferAddressWidth
 
     AWGDACInterval          = 5E-9 # in seconds
     AWGDACFrequency         = 1/AWGDACInterval
+
+    # Note this is NOT what is written in the Programming guide as of version
+    # 10_5_0_28
+    # NOTE: if these numbers ever end up being negative, you will have to make sure
+    # that they sign extend. As well as making sure that the type casting works.
+    AWGMaxVal               = 0x0FFF
+    AWGMinVal               = 0x0000
 
     AWG_INDEX_MODES = {"Single":0, "Dual":1, "Quad":2}
     def __init__(self):
