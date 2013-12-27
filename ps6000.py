@@ -1,3 +1,11 @@
+"""
+This is the low level driver file for a specific Picoscope.
+
+By this, I mean if parameters want to get passed as strings, they should be
+handled by PSBase
+All functions here should take things as close to integers as possible.
+"""
+
 #/usr/bin/env python2.7
 # vim: set ts=4 sw=4 tw=0 et :
 
@@ -52,24 +60,17 @@ class PS6000(PSBase):
     AWGMinVal               = 0x0000
 
     AWG_INDEX_MODES = {"Single":0, "Dual":1, "Quad":2}
+
     def __init__(self):
         super(PS6000, self).__init__()
 
+        """Load DLL etc"""
         if platform.system() == 'Linux':
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
         else:
             from ctypes import windll
-            """Load DLL etc"""
-            # This was windll before, I don't know what the difference is.
-            # can't test it now
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
-
-    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
-        #VOffset = ctypes.c_float(VOffset)
-        m = self.lib.ps6000SetChannel(self.handle, chNum, enabled, coupling, VRange,
-                c_float(VOffset), BWLimited)
-        self.checkResult(m)
 
     def _lowLevelOpenUnit(self, sn):
         handlePointer = c_short()
@@ -82,11 +83,16 @@ class PS6000(PSBase):
         m = self.lib.ps6000OpenUnit(byref(handlePointer), serialNullTermStr)
         self.checkResult(m)
         self.handle = handlePointer
-
     def _lowLevelCloseUnit(self):
         m = self.lib.ps6000CloseUnit(self.handle)
         self.checkResult(m)
         self.handle = None
+
+    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
+        m = self.lib.ps6000SetChannel(self.handle, chNum, enabled, coupling, VRange,
+                c_float(VOffset), BWLimited)
+        self.checkResult(m)
+
 
     def _lowLevelStop(self):
         m = self.lib.ps6000Stop(self.handle)
@@ -119,19 +125,19 @@ class PS6000(PSBase):
         m = self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples,
                 timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, None)
         self.checkResult(m)
+        return timeIndisposedMs.value
 
     def _lowLevelIsReady(self):
         ready = c_short()
         m = self.lib.ps6000IsReady( self.handle, byref(ready) )
-        if ready.value:
-            isDone = True
-        else:
-            isDone = False
         self.checkResult(m)
-        return isDone
+        if ready.value:
+            return True
+        else:
+            return False
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """ returns [timeIntervalSeconds, maxSamples] """
+        """ returns (timeIntervalSeconds, maxSamples) """
         maxSamples = c_long()
         sampleRate = c_float()
 
@@ -146,11 +152,12 @@ class PS6000(PSBase):
         maxSampleTime = (((2**32 - 1) - 4) / 156250000)
 
         if sampleTimeS < 6.4E-9:
-            if sampleTimeS < 200E-12:
-                st = 0
-            else:
-                st = math.floor(1/math.log(2, (sampleTimeS * 5E9)))
-
+            # you had the parameters inverted in the log function
+            #if sampleTimeS < 200E-12:
+            #    st = 0
+            #st = math.floor(1/math.log(2, (sampleTimeS * 5E9)))
+            st = math.floor(math.log(sampleTimeS*5E9, 2))
+            st = max(st, 0)
         else:
             #Otherwise in range 2^32-1
             if sampleTimeS > maxSampleTime:
@@ -158,27 +165,22 @@ class PS6000(PSBase):
 
             st = math.floor((sampleTimeS * 156250000) + 4)
 
+        # is this cast needed?
         st = int(st)
+        return st
 
-        if st < 5:
-            dt = float(2.**st)/5E9
+    def getTimestepFromTimebase(self, timebase):
+        if timebase < 5:
+            dt = 2.**timebase/5E9
         else:
-            dt = float(st - 4.) / 156250000.
-
-        return (st, dt)
+            dt = (timebase - 4.) / 156250000.
+        return dt
 
     def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
             offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource):
         """ waveform should be an array of shorts """
 
         waveformPtr = waveform.ctypes.data_as(POINTER(c_short))
-
-        if not isinstance(indexMode, int):
-            indexMode = self.AWG_INDEX_MODES[indexMode]
-        if not isinstance(triggerType, int):
-            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
-        if not isinstance(triggerSource, int):
-            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
 
         m = self.lib.ps6000SetSigGenArbitrary(
                 self.handle,
@@ -200,22 +202,6 @@ class PS6000(PSBase):
                 0) # extInThreshold
         self.checkResult(m)
 
-
-    def _lowLevelGetAWGDeltaPhase(self, timeIncrement):
-        """
-        The ps6000 works on a an 5ns clock. Assuming we have a A/B model, then
-        the top 14 bits or the 32bit long are used to address the AWG buffer
-        Therefore, everytime the phase accumulator increases by
-        2**(32- 14)
-        """
-
-        samplingFrequency = 1/timeIncrement
-        deltaPhase = long(samplingFrequency / self.AWGDACFrequency * 2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
-        return deltaPhase
-    def _lowLevelGetAWGTimeIncrement(self, deltaPhase):
-        samplingFrequency = deltaPhase * self.AWGDACFrequency / 2 **(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth)
-        return 1/samplingFrequency
-
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
         """ data should be a numpy array"""
         dataPtr = data.ctypes.data_as(POINTER(c_short))
@@ -235,20 +221,6 @@ class PS6000(PSBase):
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType, frequency, shots,
             triggerType, triggerSource):
-        if waveType is None:
-            waveType = self.WAVE_TYPES["Sine"]
-        if triggerType is None:
-            triggerType = self.SIGGEN_TRIGGER_TYPES["Rising"]
-        if triggerSource is None:
-            triggerSource = self.SIGGEN_TRIGGER_SOURCES["None"]
-
-        if not isinstance(waveType, int):
-            waveType = self.WAVE_TYPES[waveType]
-        if not isinstance(triggerType, int):
-            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
-        if not isinstance(triggerSource, int):
-            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
-
         m = self.lib.ps6000SetSigGenBuiltIn(self.handle, int(offsetVoltage * 1E6),
                 int(pkToPk * 1E6), waveType, c_float(frequency), c_float(frequency),
                 0, 0, 0, 0, shots, 0, triggerType, triggerSource, 0)

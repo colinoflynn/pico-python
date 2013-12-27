@@ -58,6 +58,7 @@ class PSBase(object):
 
     MAX_VALUE = 32764
     MIN_VALUE = -32764
+
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 20
@@ -116,37 +117,11 @@ class PSBase(object):
         self.lib = None
         self.handle = None
 
+        # TODO: Make A class for each channel
+        # that way the settings will make more sense
         self.CHRange = [None]*self.NUM_CHANNELS
         self.CHOffset = [None]*self.NUM_CHANNELS
 
-    def checkResult(self, ec):
-        """Check result of function calls, raise exception if not 0"""
-        # NOTE: This will break some oscilloscopes that are powered by USB.
-        # Some of the newer scopes, can actually be powered by USB and will return
-        # a useful value. That should be given back to the user.
-        # I guess we can deal with these edge cases in the functions themselves
-        if ec == 0:
-            return
-
-        else:
-            ecName = self.errorNumToName(ec)
-            ecDesc = self.errorNumToDesc(ec)
-            raise IOError('Error calling %s: %s (%s)'%(inspect.stack()[1][3], ecName, ecDesc))
-
-    def errorNumToName(self, num):
-        """Convert error number to name"""
-        for t in self.ERROR_CODES:
-            if t[0] == num:
-                return t[1]
-
-    def errorNumToDesc(self, num):
-        """Convert error number to description"""
-        for t in self.ERROR_CODES:
-            if t[0] == num:
-                try:
-                    return t[2]
-                except IndexError:
-                    return ""
 
     def getUnitInfo(self, info):
         """ returns a string containing the requested information """
@@ -232,25 +207,25 @@ class PSBase(object):
     def waitReady(self):
         while(self.isReady() == False): time.sleep(0.01)
 
-
     def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
         """Returns (actualSampleInterval, noSamples, maxSamples)"""
         self.oversample = oversample
         self.segmentIndex = segmentIndex
-        (self.timebase, timebase_dt) = self.getTimeBaseNum(sampleInterval)
+        self.timebase = self.getTimeBaseNum(sampleInterval)
+
+        timebase_dt = self.getTimestepFromTimebase(self.timebase)
 
         noSamples = int(round(duration / timebase_dt))
 
-        m = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
+        (self.sampleInterval, self.maxSamples, self.noSamples) = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
 
-        self.sampleInterval = m[0]
         self.sampleRate = 1.0/m[0]
-        self.maxSamples = m[1]
-        self.noSamples = noSamples
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
         """Returns (actualSampleFreq, maxSamples)"""
+        # TODO: make me more like the functions above
+        #       at least in terms of what I return
         sampleInterval = 1.0 * sampleFreq
         duration = noSamples * sampleInterval
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
@@ -389,17 +364,26 @@ class PSBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType=None, frequency=1E6,
-            shots=1, triggerType=None, triggerSource=None):
-        """ I don't expose all the options from setSigGenBuiltIn so I'm not
-            calling it that. Their signal generator can actually do quite fancy
-            things that I don't care for"""
-        #if self.has_sig_gen == False:
-            #raise NotImplementedError()
+    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
+            shots=1, triggerType="Rising", triggerSource="None"):
+        """
+        This allows you to use the built in function generator's in a more
+        straightforward way.
+
+        Not all the options are exposed making it easier to use for the simple
+        things.
+        """
+        if not isinstance(waveType, int):
+            waveType = self.WAVE_TYPES[waveType]
+        if not isinstance(triggerType, int):
+            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
+        if not isinstance(triggerSource, int):
+            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
+
         self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
                 shots, triggerType, triggerSource)
     def setAWGSimple(self, waveform, duration, offsetVoltage=None,
-            pkToPk=None, indexMode='Single', shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
+            pkToPk=None, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
         """
         This function sets the AWG to output the given waveform (numpy array).
         It takes in the total waveform duration. This means that it will compute
@@ -424,14 +408,22 @@ class PSBase(object):
         while
         0xFFF corresponds to the highest value of the AWG (ofset + pkToPk/2)
 
+
+        For the Quad mode, if offset voltage is not provided, then waveform[0]
+        is assumed to be the offset
+
         Returns: The actual duration of the waveform
         """
         sampling_interval = duration/len(waveform)
-        if   indexMode == "Single":
+
+        if not isinstance(indexMode, int):
+            indexMode = self.AWG_INDEX_MODES[indexMode]
+
+        if   indexMode == self.AWG_INDEX_MODES["Single"]:
             pass
-        elif indexMode == "Dual":
+        elif indexMode == self.AWG_IDNEX_MODES["Dual"]:
             sampling_interval /= 2
-        elif indexMode == "Quad":
+        elif indexMode == self.AWG_IDNEX_MODES["Quad"]:
             sampling_interval /= 4
 
         deltaPhase = self.getAWGDeltaPhase(sampling_interval)
@@ -494,13 +486,21 @@ class PSBase(object):
         I assume they have some type of adjustable gain and offset on their DDS
         allowing them to claim that they can get extremely high resolution.
         """
-        if waveform.dtype != np.int16:
 
+        if not isinstance(indexMode, int):
+            indexMode = self.AWG_INDEX_MODES[indexMode]
+        if not isinstance(triggerType, int):
+            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
+        if not isinstance(triggerSource, int):
+            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
 
-            # TODO:
-            # Decide how to mirror the Quad mode. Right now, it is mirrored about the
-            # minimum value of
-            if indexMode == "Quad":
+        if waveform.dtype == np.int16:
+            if offsetVoltage is None:
+                offsetVoltage = 0.0
+            if pkToPk is None:
+                pkToPk = 2.0
+        else:
+            if indexMode == self.AWG_INDEX_MODES["Quad"]:
                 # Optimize for the Quad mode.
                 """
                 Quad mode. The generator outputs the contents of the buffer,
@@ -512,8 +512,7 @@ class PSBase(object):
                 fill in the other three quarters.
                 """
                 if offsetVoltage is None:
-                    offsetVoltage = np.min(waveform)
-
+                    offsetVoltage = waveform[0]
             else:
                 # Nothing to do for the dual mode or the single mode
                 if offsetVoltage is None:
@@ -550,18 +549,18 @@ class PSBase(object):
             # funny floating point rounding errors
             waveform.clip(self.AWGMinVal, self.AWGMaxVal, out=waveform)
 
-
         self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase,
                 offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource)
 
-
         timeIncrement = self.getAWGTimeIncrement(deltaPhase)
         waveform_duration = timeIncrement * len(waveform)
-        if   indexMode == "Single":
-            pass
-        elif indexMode == "Dual":
+
+        #if   indexMode == self.AWG_INDEX_MODES["Single"]:
+            #pass
+        #elif
+        if indexMode == self.AWG_INDEX_MODES["Dual"]:
             waveform_duration *= 2
-        elif indexMode == "Quad":
+        elif indexMode == self.AWG_INDEX_MODES["Quad"]:
             waveform_duration *= 4
 
         return waveform_duration
@@ -570,19 +569,30 @@ class PSBase(object):
         """
         Returns the DeltaPhase integer used by the AWG to set the increment
         between samples of the generated waveform.
+
         This is useful when you are trying to generate very fast waveforms when
         you are getting close to the limits of your waveform generator.
+
+        For example, the PS6000's DDS phase accumulator increments by
+        deltaPhase every AWGDACInterval.
+        The top 2**self.AWGBufferAddressWidth bits indicate which sample is
+        being output by the DDS.
         """
-        return self._lowLevelGetAWGDeltaPhase(timeIncrement)
+        samplingFrequency = 1/timeIncrement
+        deltaPhase = long(samplingFrequency / self.AWGDACFrequency *
+                2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
+        return deltaPhase
 
     def getAWGTimeIncrement(self, deltaPhase):
         """
-        Returns in the timestep, in seconds, from a given deltaPhase integer
-        between samples of the AWG.
+        Returns the time between AWG samples given a certain deltaPhase
+
         You should use this function in conjunction with
         getAWGDeltaPhase to obtain the actual timestep of AWG.
         """
-        return self._lowLevelGetAWGTimeIncrement(deltaPhase)
+        samplingFrequency = deltaPhase * self.AWGDACFrequency / 2 **(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth)
+        return 1/samplingFrequency
+
     def open(self, serialNumber=None):
         """Open the scope, if serialNumber is None just opens first one found"""
 
@@ -604,6 +614,35 @@ class PSBase(object):
 
     def __del__(self):
         self.close()
+
+    def checkResult(self, ec):
+        """Check result of function calls, raise exception if not 0"""
+        # NOTE: This will break some oscilloscopes that are powered by USB.
+        # Some of the newer scopes, can actually be powered by USB and will return
+        # a useful value. That should be given back to the user.
+        # I guess we can deal with these edge cases in the functions themselves
+        if ec == 0:
+            return
+
+        else:
+            ecName = self.errorNumToName(ec)
+            ecDesc = self.errorNumToDesc(ec)
+            raise IOError('Error calling %s: %s (%s)'%(inspect.stack()[1][3], ecName, ecDesc))
+
+    def errorNumToName(self, num):
+        """Convert error number to name"""
+        for t in self.ERROR_CODES:
+            if t[0] == num:
+                return t[1]
+
+    def errorNumToDesc(self, num):
+        """Convert error number to description"""
+        for t in self.ERROR_CODES:
+            if t[0] == num:
+                try:
+                    return t[2]
+                except IndexError:
+                    return ""
 
     ###Error codes - copied from PS6000 programmers manual. I think they are fairly unviersal though, just ignore ref to 'PS6000'...
     #To get formatting correct do following copy-replace in Programmers Notepad
