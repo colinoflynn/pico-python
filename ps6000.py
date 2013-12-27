@@ -4,13 +4,11 @@
 from __future__ import division
 
 import math
-import time
-import inspect
 
 # to load the proper dll
 import platform
 
-from ctypes import byref, c_long, c_void_p, c_short, c_float, create_string_buffer, c_ulong, POINTER, cdll, c_uint32
+from ctypes import byref, c_long, c_short, c_float, create_string_buffer, POINTER, c_uint32
 
 from picoscope import PSBase
 
@@ -37,23 +35,33 @@ class PS6000(PSBase):
     # for the PS6403B version, the hardware version is "1 1",
     # an other possibility is that the PS6403B shows up as 6403 when using
     # VARIANT_INFO and others show up as PS6403X where X = A,C or D
-    AWGBufferAddressWidth   = 14
+
+    #AWGBufferAddressWidth   = 16
+    #AWGPhaseAccumulatorSize = 32
+
+
+    #AWGBufferAddressWidth   = 14
+    #AWGPhaseAccumulatorSize = 28
     AWGPhaseAccumulatorSize = 32
-    AWGSamplingInterval = 5E-9 # in seconds
+    AWGBufferAddressWidth   = 14
+    AWGMaxSamples           = 2**AWGBufferAddressWidth
 
-    AWG_INDEX_MODES = {"SINGLE":0, "DUAL":1, "QUAD":2}
+    AWGDACInterval          = 5E-9 # in seconds
+    AWGDACFrequency         = 1/AWGDACInterval
 
-
+    AWG_INDEX_MODES = {"Single":0, "Dual":1, "Quad":2}
     def __init__(self):
         super(PS6000, self).__init__()
 
         if platform.system() == 'Linux':
+            from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
         else:
+            from ctypes import windll
             """Load DLL etc"""
             # This was windll before, I don't know what the difference is.
             # can't test it now
-            self.lib = cdll.LoadLibrary(self.LIBNAME + ".dll")
+            self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
 
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
         #VOffset = ctypes.c_float(VOffset)
@@ -65,15 +73,18 @@ class PS6000(PSBase):
         handlePointer = c_short()
         if sn is not None:
             serialNullTermStr = create_string_buffer(sn)
+        else:
+            serialNullTermStr = None
 
         # Passing None is the same as passing NULL
-        m = self.lib.ps6000OpenUnit(byref(handlePointer), sn)
+        m = self.lib.ps6000OpenUnit(byref(handlePointer), serialNullTermStr)
         self.checkResult(m)
         self.handle = handlePointer
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps6000CloseUnit(self.handle)
         self.checkResult(m)
+        self.handle = None
 
     def _lowLevelStop(self):
         m = self.lib.ps6000Stop(self.handle)
@@ -165,14 +176,14 @@ class PS6000(PSBase):
         if not isinstance(triggerType, int):
             triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
         if not isinstance(triggerSource, int):
-            triggerSource = slef.SIGGEN_TRIGGER_SOURCES[triggerSource]
+            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
 
         m = self.lib.ps6000SetSigGenArbitrary(
                 self.handle,
                 c_uint32(int(offsetVoltage * 1E6)), # offset voltage in microvolts
                 c_uint32(int(pkToPk * 1E6)), # pkToPk in microvolts
-                deltaPhase, # startDeltaPhase
-                deltaPhase, # stopDeltaPhase
+                c_uint32(int(deltaPhase)), # startDeltaPhase
+                c_uint32(int(deltaPhase)), # stopDeltaPhase
                 0,          # deltaPhaseIncrement
                 0,          # dwellCount
                 waveformPtr, # arbitraryWaveform
@@ -181,7 +192,7 @@ class PS6000(PSBase):
                 0, # operation (adding random noise and whatnot)
                 indexMode, # single, dual, quad
                 shots,
-                0,
+                0, # sweeps
                 triggerType,
                 triggerSource,
                 0) # extInThreshold
@@ -195,11 +206,13 @@ class PS6000(PSBase):
         Therefore, everytime the phase accumulator increases by
         2**(32- 14)
         """
-        nStepsRequiredPerBuffer = timeIncrement / self.AWGSamplingInterval
-        deltaPhase = long(2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth) / nStepsRequiredPerBuffer)
+
+        samplingFrequency = 1/timeIncrement
+        deltaPhase = long(samplingFrequency / self.AWGDACFrequency * 2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
         return deltaPhase
     def _lowLevelGetAWGTimeIncrement(self, deltaPhase):
-        return self.AWGSamplingInterval * deltaPhase / (2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
+        samplingFrequency = deltaPhase * self.AWGDACFrequency / 2 **(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth)
+        return 1/samplingFrequency
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
         """ data should be a numpy array"""
@@ -239,72 +252,4 @@ class PS6000(PSBase):
                 0, 0, 0, 0, shots, 0, triggerType, triggerSource, 0)
         self.checkResult(m)
 
-def examplePS6000():
-    import textwrap
-    import pylab as plt
-    import numpy as np
-    print(textwrap.fill("This demo will use the AWG to generate a gaussian pulse and measure " +
-    "it on Channel A. To run this demo connect the AWG output of the PS6000 channel A."))
 
-    print("Attempting to open Picoscope 6000...")
-
-    # see page 13 of the manual to understand how to work this beast
-    ps = PS6000()
-    ps.open()
-
-    print(ps.getAllUnitInfo())
-
-    #Use to ID unit
-    #ps.flashLed(10)
-    #time.sleep(5)
-    obs_duration = 600E-6
-
-    waveform = np.arange(0, 1, step=0.01)
-    ps.setAWGSimple(waveform, obs_duration)
-
-    (interval, nSamples, maxSamples) = ps.setSamplingInterval(10E-9, obs_duration)
-    print("Sampling interval = %f ns"%(interval*1E9));
-    print("Taking  samples = %d"%nSamples)
-    print("Maximum samples = %d"%maxSamples)
-
-    ps.setChannel('A', 'DC', 1.0, 0.0, True, False)
-    ps.setSimpleTrigger('A', 0.0, 'Rising', delay=0, timeout_ms=100, enabled=True)
-
-
-    # Technically, this should generate a a 2.2 V peak to peak waveform, but there is a bug
-    # with the picoscope, causing it to only generate a useless waveform....
-    #ps.setSigGenBuiltInSimple(0, 2.0, "Square", 5E3)
-
-
-
-    for i in xrange(10):
-        print("Iteration %d"%i)
-        ps.runBlock()
-        #time.sleep(1)
-        ps.waitReady()
-        print("Done waiting for trigger")
-
-
-        # returns a numpy array
-        (data, numSamplesReturned, overflow) = ps.getDataRaw(0, nSamples)
-
-        #plt.ion()
-        #plt.plot(np.arange(nSamples)*interval, data)
-        #plt.hold(1)
-        #plt.plot(np.arange(len(waveform)) * interval, waveform)
-        #plt.hold(0)
-        raw_input("Press enter to continue ...")
-
-    # call this when you are done taking data
-    ps.stop()
-
-    print("We read %d samples from the requested %d"%(numSamplesReturned, nSamples))
-    print("Overflow value is %d"%(overflow))
-    print("The first 100 datapoints are ")
-    print(data[0:100])
-
-    ps.close()
-
-
-if __name__ == "__main__":
-    examplePS6000()

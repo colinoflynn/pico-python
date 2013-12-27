@@ -33,6 +33,8 @@ import warnings
 
 import numpy as np
 
+from ctypes import c_short
+
 class CaseInsensitiveDict(dict):
     def __setitem__(self, key, value):
         super(CaseInsensitiveDict, self).__setitem__(key.lower(), value)
@@ -324,19 +326,24 @@ class PSBase(object):
         data = data * a2v + self.CHOffset[channel]
         return (data, numSamplesReturned, overflow)
 
-    def getDataRaw(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
-
+    def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
         if numSamples == 0:
             # maxSamples is probably huge, 1Gig Sample can be HUGE....
             numSamples = min(self.maxSamples, 4096)
+        #data = np.empty(numSamples, dtype=np.int16)
+        # temporarily reverting to what Colin had because something is not right with this implementation
 
-        data = np.empty(numSamples, dtype=np.int16)
+        dataPointer = (c_short * numSamples)()
 
-        self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+        #self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+
+        m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
+        self.checkResult(m)
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
+        data = np.asarray(list(dataPointer))
 
         # No we should not warn about this.
         # I'm going to assume the user is advanced and knows to check this himself
@@ -356,7 +363,7 @@ class PSBase(object):
         self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
                 shots, triggerType, triggerSource)
     def setAWGSimple(self, waveform, duration, offsetVoltage=0.,
-            pkToPk=0., indexMode='SINGLE', shots=1, triggerType=0, triggerSource=0):
+            pkToPk=0., indexMode='Single', shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
         """
         This function sets the AWG to output the given waveform (numpy array).
         It takes in the total waveform duration. This means that it will compute
@@ -379,30 +386,33 @@ class PSBase(object):
         """
         deltaPhase = self.getAWGDeltaPhase(duration/len(waveform))
 
-        return self.setAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage,
+        actual_druation = self.setAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage,
                 pkToPk, indexMode, shots, triggerType, triggerSource)
+        return (actual_druation, deltaPhase)
 
     def setAWGSimpleDeltaPhase(self, waveform, deltaPhase, offsetVoltage=0,
-            pkToPk=0, indexMode='SINGLE', shots=1, triggerType=0, triggerSource=0):
+            pkToPk=0, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
         """
         This is function provides a little more control than
         setAWGSimple in the sense that you are able to specify deltaPhase
-        directly. It should only be used when deltaPhase becomes very small.
+        directly. It should only be used when deltaPhase becomes very large.
 
         Returns the actual time duration of the waveform
 
         Warning. Ideally, you would want this to be a power of 2 that way each
         sample is given out at exactly the same difference in time otherwise,
-        if you give it something closer to 1.25 you would obtain
+        if you give it something closer to .75 you would obtain
 
          T  | phase accumulator value | sample
          0  |      0                  |      0
-         5  |      1.25               |      1
-        10  |      2.50               |      2
-        15  |      3.75               |      3
-        20  |      5                  |      5
+         5  |      0.75               |      0
+        10  |      1.50               |      1
+        15  |      2.25               |      2
+        20  |      3.00               |      3
+        25  |      3.75               |      3
 
-        and you just skipped sample 4
+        notice how sample 0 and 3 were played twice  while others were only
+        played once.
         This is why this low level function is exposed to the user so that he
         can control these edge cases
 
@@ -429,20 +439,21 @@ class PSBase(object):
             # this will make sure we don't destroy the user's original array
             waveform = waveform - offsetVoltage
             # This is an in place operation meaning that memory does not get copied
-            waveform /= (pkToPk / np.iinfo(np.int16).max)
+            waveform /= (pkToPk/2 / np.iinfo(np.int16).max)
             # inplace round
             waveform.round(out=waveform)
 
-            # convert to an int16 type as requried by the function
+            # convert to an int16 typqe as requried by the function
             waveform = np.array(waveform, dtype=np.int16)
 
-        print waveform.dtype
+
         if waveform.dtype != np.int16:
             raise TypeError("Provided waveform must be numpy array with dtype=numpy.int16.")
-
+        #waveform.byteswap(True)
         self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase,
                 offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource)
 
+        #waveform.byteswap(True)
         timeIncrement = self.getAWGTimeIncrement(deltaPhase)
         return timeIncrement * len(waveform)
 
