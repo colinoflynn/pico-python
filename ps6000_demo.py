@@ -14,13 +14,11 @@ The AWG is connected to Channel B
 from __future__ import division
 import ps6000
 
-import textwrap
 import pylab as plt
 import numpy as np
 
 if __name__ == "__main__":
-    print(textwrap.fill("This demo will use the AWG to generate a gaussian pulse and measure " +
-    "it on Channel A. To run this demo connect the AWG output of the PS6000 channel A."))
+    print(__doc__)
 
     print("Attempting to open Picoscope 6000...")
 
@@ -43,12 +41,15 @@ if __name__ == "__main__":
     ps.setChannel('A', 'DC', 2.0, 0.0, True, False)
     ps.setChannel('B', 'DC', 2.0, 0.0, True, False)
     ps.setSimpleTrigger('A', 0.0, 'Rising', delay=0, timeout_ms=100, enabled=True)
-    # Technically, this should generate a a 2.2 V peak to peak waveform, but there is a bug
-    # with the picoscope, causing it to only generate a useless waveform....
-    #ps.setSigGenBuiltInSimple(0, 2.0, "Square", 5E3)
+
 
     waveform = np.linspace(0.5, 1.25, num=ps.AWGMaxSamples, endpoint=True)
     waveform_desired_duration = clk_period*2
+
+    # Technically, this should generate a a 2.2 V peak to peak waveform, but there is a bug
+    # with the picoscope, causing it to only generate a useless waveform....
+    #ps.setSigGenBuiltInSimple(0, 2.0, "Square", 1/waveform_desired_duration)
+
     (waveform_duration, deltaPhase) = ps.setAWGSimple(waveform, waveform_desired_duration,
         offsetVoltage=0.0, indexMode="Dual", triggerSource='ScopeTrig', triggerType='Rising')
 
@@ -56,10 +57,14 @@ if __name__ == "__main__":
     # This measures all the channels that have been enabled
 
 
-    nSamplesRead = 4096
+    nSamplesRead = nSamples
     # Get the data one by one
     # There is no way to get the data all at once using our Python interface yet
-    nCaptures = 4000
+    # Set this number to greater than 5k since it
+    # seems crash at a high probability at iteration give or take 2030
+    # so if in the chance that you disable a channel, you will still go
+    # through more than 2030 * 2 getData calls
+    nCaptures = 4096
     for i in xrange(nCaptures):
         print("Capturing waveform %d/%d"%(i, nCaptures))
         ps.runBlock()
@@ -77,6 +82,7 @@ if __name__ == "__main__":
     # environment like Python(x,y), then you won't have time to view
     # the plot
     #plt.ion()
+
 
     plt.figure()
     plt.hold(True)
