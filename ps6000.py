@@ -16,7 +16,14 @@ import math
 # to load the proper dll
 import platform
 
-from ctypes import byref, c_long, c_short, c_float, create_string_buffer, POINTER, c_uint32
+# Do not import or use ill definied data types
+# such as short int or long
+# use the values specified in the h file
+# float is always defined as 32 bits
+# double is defined as 64 bits
+from ctypes import byref, POINTER, create_string_buffer, c_float, \
+                   c_int16, c_int32, c_uint32, c_void_p
+from ctypes import c_int32 as c_enum
 
 from picoscope import PSBase
 
@@ -73,63 +80,69 @@ class PS6000(PSBase):
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
 
     def _lowLevelOpenUnit(self, sn):
-        handlePointer = c_short()
+        c_handle = c_int16()
         if sn is not None:
             serialNullTermStr = create_string_buffer(sn)
         else:
             serialNullTermStr = None
-
         # Passing None is the same as passing NULL
-        m = self.lib.ps6000OpenUnit(byref(handlePointer), serialNullTermStr)
+        m = self.lib.ps6000OpenUnit(byref(c_handle), serialNullTermStr)
         self.checkResult(m)
-        self.handle = handlePointer
+        self.handle = c_handle.value
+
     def _lowLevelCloseUnit(self):
-        m = self.lib.ps6000CloseUnit(self.handle)
+        m = self.lib.ps6000CloseUnit(c_int16(self.handle))
         self.checkResult(m)
-        self.handle = None
 
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset, BWLimited):
-        m = self.lib.ps6000SetChannel(self.handle, chNum, enabled, coupling, VRange,
-                c_float(VOffset), BWLimited)
+        m = self.lib.ps6000SetChannel(c_int16(self.handle), c_enum(chNum), c_int16(enabled),
+                                      c_enum(coupling), c_enum(VRange), c_float(VOffset),
+                                      c_enum(BWLimited))
         self.checkResult(m)
 
-
     def _lowLevelStop(self):
-        m = self.lib.ps6000Stop(self.handle)
+        m = self.lib.ps6000Stop(c_int16(self.handle))
         self.checkResult(m)
 
     def _lowLevelGetUnitInfo(self, info):
         s = create_string_buffer(256)
-        requiredSize = c_short(0);
+        requiredSize = c_int16(0);
 
-        m = self.lib.ps6000GetUnitInfo(self.handle, byref(s), len(s), byref(requiredSize), info);
+        m = self.lib.ps6000GetUnitInfo(c_int16(self.handle), byref(s),
+                                       c_int16(len(s)), byref(requiredSize),
+                                       c_enum(info))
         self.checkResult(m)
         if requiredSize.value > len(s):
             s = create_string_buffer(requiredSize.value + 1)
-            m = self.lib.ps6000GetUnitInfo(self.handle, byref(s), len(s), byref(requiredSize), info);
+            m = self.lib.ps6000GetUnitInfo(c_int16(self.handle), byref(s),
+                                           c_int16(len(s)), byref(requiredSize),
+                                           c_enum(info))
             self.checkResult(m)
 
         return s.value
 
     def _lowLevelFlashLed(self, times):
-        m = self.lib.ps6000FlashLed(self.handle, times)
+        m = self.lib.ps6000FlashLed(c_int16(self.handle), c_int16(times))
         self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc, direction, timeout_ms, auto):
-        m = self.lib.ps6000SetSimpleTrigger(self.handle, enabled, trigsrc, threshold_adc,
-                direction, timeout_ms, auto)
+        m = self.lib.ps6000SetSimpleTrigger(c_int16(self.handle), c_int16(enabled),
+                                            c_enum(trigsrc), c_int16(threshold_adc),
+                                            c_enum(direction), c_uint32(timeout_ms), c_int16(auto))
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase, oversample, segmentIndex):
-        timeIndisposedMs = c_long()
-        m = self.lib.ps6000RunBlock( self.handle, numPreTrigSamples, numPostTrigSamples,
-                timebase, oversample, byref(timeIndisposedMs), segmentIndex, None, None)
+        timeIndisposedMs = c_int32()
+        m = self.lib.ps6000RunBlock(c_int16(self.handle), c_uint32(numPreTrigSamples),
+                                    c_uint32(numPostTrigSamples), c_uint32(timebase),
+                                    c_int16(oversample), byref(timeIndisposedMs),
+                                    c_uint32(segmentIndex), c_void_p(), c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
 
     def _lowLevelIsReady(self):
-        ready = c_short()
-        m = self.lib.ps6000IsReady( self.handle, byref(ready) )
+        ready = c_int16()
+        m = self.lib.ps6000IsReady(c_int16(self.handle), byref(ready) )
         self.checkResult(m)
         if ready.value:
             return True
@@ -138,11 +151,13 @@ class PS6000(PSBase):
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ returns (timeIntervalSeconds, maxSamples) """
-        maxSamples = c_long()
+        maxSamples = c_int32()
         sampleRate = c_float()
 
-        m = self.lib.ps6000GetTimebase2(self.handle, tb, noSamples, byref(sampleRate),
-                oversample, byref(maxSamples), segmentIndex)
+        m = self.lib.ps6000GetTimebase2(c_int16(self.handle), c_uint32(tb),
+                                        c_uint32(noSamples), byref(sampleRate),
+                                        c_int16(oversample), byref(maxSamples),
+                                        c_uint32(segmentIndex))
         self.checkResult(m)
 
         return (sampleRate.value/1.0E9, maxSamples.value)
@@ -180,50 +195,72 @@ class PS6000(PSBase):
             offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource):
         """ waveform should be an array of shorts """
 
-        waveformPtr = waveform.ctypes.data_as(POINTER(c_short))
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
         m = self.lib.ps6000SetSigGenArbitrary(
-                self.handle,
+                c_int16(self.handle),
                 c_uint32(int(offsetVoltage * 1E6)), # offset voltage in microvolts
                 c_uint32(int(pkToPk * 1E6)), # pkToPk in microvolts
                 c_uint32(int(deltaPhase)), # startDeltaPhase
                 c_uint32(int(deltaPhase)), # stopDeltaPhase
-                0,          # deltaPhaseIncrement
-                0,          # dwellCount
+                c_uint32(0),          # deltaPhaseIncrement
+                c_uint32(0),          # dwellCount
                 waveformPtr, # arbitraryWaveform
-                len(waveform), # arbitraryWaveformSize
-                0, # sweepType for deltaPhase
-                0, # operation (adding random noise and whatnot)
-                indexMode, # single, dual, quad
-                shots,
-                0, # sweeps
-                triggerType,
-                triggerSource,
-                0) # extInThreshold
+                c_int32(len(waveform)), # arbitraryWaveformSize
+                c_enum(0), # sweepType for deltaPhase
+                c_enum(0), # operation (adding random noise and whatnot)
+                c_enum(indexMode), # single, dual, quad
+                c_uint32(shots),
+                c_uint32(0), # sweeps
+                c_uint32(triggerType),
+                c_uint32(triggerSource),
+                c_int16(0)) # extInThreshold
         self.checkResult(m)
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
-        """ data should be a numpy array"""
-        dataPtr = data.ctypes.data_as(POINTER(c_short))
+        """
+        data should be a numpy array
+
+        Be sure to call _lowLevelClearDataBuffer
+        when you are done with the data array
+        or else subsequent calls to GetValue will still use the same array.
+        """
+        dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
-        m = self.lib.ps6000SetDataBuffer( self.handle, channel, dataPtr,
-                numSamples, downSampleMode )
+
+        m = self.lib.ps6000SetDataBuffer(c_int16(self.handle), c_enum(channel), dataPtr,
+                                         c_uint32(numSamples), c_enum(downSampleMode))
+        self.checkResult(m)
+
+    def _lowLevelClearDataBuffer(self, channel):
+        """ data should be a numpy array"""
+        m = self.lib.ps6000SetDataBuffer(c_int16(self.handle), c_enum(channel), c_void_p(),
+                                         c_uint32(0), c_enum(0))
         self.checkResult(m)
 
     def _lowLevelGetValues(self,numSamples,startIndex,downSampleRatio,downSampleMode):
-        numSamplesReturned = c_long()
+        numSamplesReturned = c_uint32()
         numSamplesReturned.value = numSamples
-        overflow = c_short()
-        m = self.lib.ps6000GetValues( self.handle, startIndex, byref(numSamplesReturned),
-                downSampleRatio, downSampleMode, self.segmentIndex, byref(overflow) )
+        overflow = c_int16()
+        m = self.lib.ps6000GetValues(c_int16(self.handle), c_uint32(startIndex),
+                                     byref(numSamplesReturned), c_uint32(downSampleRatio),
+                                     c_enum(downSampleMode), c_uint32(self.segmentIndex),
+                                     byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType, frequency, shots,
             triggerType, triggerSource):
-        m = self.lib.ps6000SetSigGenBuiltIn(self.handle, int(offsetVoltage * 1E6),
-                int(pkToPk * 1E6), waveType, c_float(frequency), c_float(frequency),
-                0, 0, 0, 0, shots, 0, triggerType, triggerSource, 0)
+        # TODO, I just noticed that V2 exists
+        # Maybe change to V2 in the future
+        m = self.lib.ps6000SetSigGenBuiltIn(c_int16(self.handle),
+                                            c_int32(int(offsetVoltage * 1000000)),
+                                            c_int32(int(pkToPk        * 1000000)),
+                                            c_int16(waveType),
+                                            c_float(frequency), c_float(frequency),
+                                            c_float(0), c_float(0), c_enum(0), c_enum(0),
+                                            c_uint32(shots), c_uint32(0), c_enum(triggerType), c_enum(triggerSource),
+                                            c_int16(0))
         self.checkResult(m)
 
 

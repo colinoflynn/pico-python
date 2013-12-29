@@ -346,23 +346,13 @@ class PSBase(object):
             # maxSamples is probably huge, 1Gig Sample can be HUGE....
             numSamples = min(self.maxSamples, 4096)
 
-        # This function is randomly crashing
-        # I think it is because it is addressing wrong memory when writing data
-        # I really do not know what is causing it to happen :S
-
-        # temporarily reverting to what Colin had because something is not right with this implementation
-        dataPointer = (c_short * numSamples)()
-        m = self.lib.ps6000SetDataBuffer(self.handle, channel, dataPointer, numSamples, downSampleMode)
-        self.checkResult(m)
-
-        # Numpy way
-        #data = np.empty(numSamples, dtype=np.int16)
-        #self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+        data = np.empty(numSamples, dtype=np.int16)
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode)
 
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
-
-        # Colin's ctypes way
-        data = np.asarray(list(dataPointer))
+        #necessary or else the next call to getValues will try to fill this array
+        # unless it is a call trying to read the same channel.
+        self._lowLevelClearDataBuffer(channel)
 
         return (data, numSamplesReturned, overflow)
 
@@ -606,7 +596,9 @@ class PSBase(object):
         You should call this yourself because the Python garbage collector
         might take some time.
         """
-        self._lowLevelCloseUnit()
+        if not self.handle is None:
+            self._lowLevelCloseUnit()
+            self.handle = None
     def stop(self):
         """
         Let the Picoscope know that you are done acquiring data
