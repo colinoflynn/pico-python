@@ -11,10 +11,6 @@ All functions here should take things as close to integers as possible.
 
 from __future__ import division
 
-
-import sys
-
-
 import math
 
 # to load the proper dll
