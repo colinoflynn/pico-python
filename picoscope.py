@@ -311,7 +311,7 @@ class PSBase(object):
             channel = self.CHANNELS[channel]
 
         a2v = self.CHRange[channel] / float(self.MAX_VALUE)
-        dataV = data[:numSamplesReturned] * a2v + self.CHOffset[channel]
+        dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
 
 
         # No we should not warn about this.

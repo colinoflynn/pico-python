@@ -166,10 +166,6 @@ class PS6000(PSBase):
         maxSampleTime = (((2**32 - 1) - 4) / 156250000)
 
         if sampleTimeS < 6.4E-9:
-            # you had the parameters inverted in the log function
-            #if sampleTimeS < 200E-12:
-            #    st = 0
-            #st = math.floor(1/math.log(2, (sampleTimeS * 5E9)))
             st = math.floor(math.log(sampleTimeS*5E9, 2))
             st = max(st, 0)
         else:
