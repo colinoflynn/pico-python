@@ -89,7 +89,6 @@ class PS6000(PSBase):
         m = self.lib.ps6000OpenUnit(byref(c_handle), serialNullTermStr)
         self.checkResult(m)
         self.handle = c_handle.value
-
     def _lowLevelCloseUnit(self):
         m = self.lib.ps6000CloseUnit(c_int16(self.handle))
         self.checkResult(m)
