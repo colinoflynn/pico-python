@@ -1,28 +1,43 @@
-# -*- coding: utf-8
-# Edited by Mark Harfouche
+#/usr/bin/env python2.7
+# vim: set ts=4 sw=4 tw=0 et :
+
+# This is the base class that all picoscope modules use. As much as possible logic is
+# put into this file. At minimum each instrument file requires you to modify the name
+# of the API function call (e.g. ps6000xxxx vs ps4000xxxx). You can find pico-python
+# at github.com/colinoflynn/pico-python .
 #
-# My idea is that this file should be a python only file with no use of ctypes
-# or knowledge that it is being used
-# All ctypes stuff should be in the daughter files
+# pico-python is Copyright (c) 2013 By:
+# Colin O'Flynn <coflynn@newae.com>
+# Mark Harfouche <mark.harfouche@gmail.com>
+# All rights reserved.
 #
-# I think that the names of the functions should resemple the picoscope function
-# names as much as possible
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met: 
 #
-# Colin O'Flynn, Copyright (C) 2013. All Rights Reserved. <coflynn@newae.com>
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer. 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution. 
 #
-# This is a Python 2.7 (or so) library for the Pico Scope. It uses the provided DLL
-# for actual communications with the instrument. There have been a few examples around,
-# but this one tries to improve on them via:
-#  * Subclass instrument-specific stuff, so can support more families
-#  * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
-#  * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
-#
-# So far INCOMPLETE and tested only with PS6000 scope. May change in the future.
-#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Inspired by Patrick Carle's code at http://www.picotech.com/support/topic11239.html
 # which was adapted from http://www.picotech.com/support/topic4926.html
 
+"""This is the base class for PicoScope instruments."""
+
+__author__ = "Colin O'Flynn, Mark Harfouche"
+__license__ = "FreeBSD"
 
 from __future__ import division
 
