@@ -13,13 +13,13 @@
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met: 
+# modification, are permitted provided that the following conditions are met:
 #
 # 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer. 
+#    list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright notice,
 #    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution. 
+#    and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -303,7 +303,7 @@ class PSBase(object):
         dataV is an array with size numSamplesReturned
         overflow is a flag that is true when the signal was either too large
                  or too small to be properly digitized
-        
+
         if exceptOverflow is true, an IOError exception is raised on overflow if returnOverflow is False. This allows you to detect overflows at
         higher layers w/o complicated return trees. You cannot however read the 'good' data, you only get the exception information then.
         """
@@ -316,12 +316,12 @@ class PSBase(object):
         a2v = self.CHRange[channel] / float(self.MAX_VALUE)
         dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
 
-        
+
         if returnOverflow:
             return (dataV, overflow)
         else:
             if (overflow != 0) & (exceptOverflow):
-                raise IOError("Overflow detected in data")            
+                raise IOError("Overflow detected in data")
             return dataV
 
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
