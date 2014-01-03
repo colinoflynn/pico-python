@@ -247,16 +247,6 @@ class PSBase(object):
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
-    def setSampling(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
-        """
-        Kept for backwards compatibilit, use setSamplingInterval or
-        setSamplingFrequency instead
-        """
-        warnings.warn("Deprecated, use setSamplingInterval or setSamplingFrequency instead", DeprecationWarning)
-        return self.setSamplingFrequency(sampleFreq, noSamples, oversample, segmentIndex)
-
-
-
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100, enabled=True):
         """
         Simple Trigger setup.
