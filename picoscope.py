@@ -242,7 +242,7 @@ class PSBase(object):
         """Returns (actualSampleFreq, maxSamples)"""
         # TODO: make me more like the functions above
         #       at least in terms of what I return
-        sampleInterval = 1.0 * sampleFreq
+        sampleInterval = 1.0 / sampleFreq
         duration = noSamples * sampleInterval
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
