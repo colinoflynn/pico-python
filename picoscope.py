@@ -297,7 +297,7 @@ class PSBase(object):
     def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         return self.getDataV(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
 
-    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0, returnOverflow=False):
+    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0, returnOverflow=False, exceptOverflow=False):
         """
         getDataV returns the data as an array of voltage values
 
@@ -306,8 +306,9 @@ class PSBase(object):
         dataV is an array with size numSamplesReturned
         overflow is a flag that is true when the signal was either too large
                  or too small to be properly digitized
-
-        TODO: decide wether or not we want to raise an exception in the case of overflow
+        
+        if exceptOverflow is true, an IOError exception is raised on overflow if returnOverflow is False. This allows you to detect overflows at
+        higher layers w/o complicated return trees. You cannot however read the 'good' data, you only get the exception information then.
         """
 
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
@@ -318,16 +319,12 @@ class PSBase(object):
         a2v = self.CHRange[channel] / float(self.MAX_VALUE)
         dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
 
-
-        # No we should not warn about this.
-        # I'm going to assume the user is advanced and knows to check this himself
-        # if things are weird with data.
-        # NOTE: Now maybe I might agree that we could throw a warning since getDataRaw exists
-        if overflow != 0:
-            print "WARNING: Overflow detected. Should we raise exception?"
+        
         if returnOverflow:
             return (dataV, overflow)
         else:
+            if (overflow != 0) & (exceptOverflow):
+                raise IOError("Overflow detected in data")            
             return dataV
 
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
