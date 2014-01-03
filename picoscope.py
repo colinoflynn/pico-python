@@ -1,4 +1,5 @@
 #/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 # vim: set ts=4 sw=4 tw=0 et :
 
 # This is the base class that all picoscope modules use. As much as possible logic is
@@ -36,11 +37,10 @@
 
 """This is the base class for PicoScope instruments."""
 
-__author__ = "Colin O'Flynn, Mark Harfouche"
-__license__ = "FreeBSD"
-
 from __future__ import division
 
+__author__ = "Colin O'Flynn, Mark Harfouche"
+__license__ = "FreeBSD"
 
 import inspect
 import time
