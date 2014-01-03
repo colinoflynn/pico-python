@@ -294,9 +294,6 @@ class PSBase(object):
 
         self._lowLevelFlashLed(times)
 
-    def getData(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
-        return self.getDataV(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
-
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0, returnOverflow=False, exceptOverflow=False):
         """
         getDataV returns the data as an array of voltage values
