@@ -6,7 +6,7 @@ import math
 import time
 import inspect
 import numpy as np
-import picoscope as pico
+import ps6000 as pico
 
 import pylab as plt
 
@@ -34,10 +34,10 @@ def examplePS6000():
     ps.open()    
 
     #Example of simple capture
-    res = ps.setSampling(250E6, 4096)
+    res = ps.setSamplingFrequency(250E6, 4096)
     sampleRate = res[0]
     print "Sampling @ %f MHz, %d samples"%(res[0]/1E6, res[1])
-    ps.setChannel(0, "AC", 50E-3)
+    ps.setChannel("A", "AC", 50E-3)
 
     blockdata = np.array(0)
 
@@ -46,7 +46,7 @@ def examplePS6000():
         while(ps.isReady() == False): time.sleep(0.01)
 
         print "Sampling Done"
-        data = ps.getData(0, 4096)
+        data = ps.getDataV("A", 4096)
         blockdata = np.append(blockdata, data)
 
         ##Simple FFT
