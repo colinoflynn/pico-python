@@ -5,10 +5,10 @@
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-import ps6000 as pico
+from picoscope import ps6000
 
 def setupScope():
-    ps = pico.PS6000()
+    ps = ps6000.PS6000()
     ps.open()    
 
     #Example of simple capture

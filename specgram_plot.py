@@ -6,7 +6,7 @@ import math
 import time
 import inspect
 import numpy as np
-import ps6000 as pico
+from picoscope import ps6000
 
 import pylab as plt
 
@@ -30,7 +30,7 @@ def examplePS6000():
     plt.show()
     
     print "Attempting to open..."
-    ps = pico.PS6000()
+    ps = ps6000.PS6000()
     ps.open()    
 
     #Example of simple capture
