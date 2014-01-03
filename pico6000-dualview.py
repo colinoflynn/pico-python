@@ -5,17 +5,17 @@
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-import picoscope as pico
+import ps6000 as pico
 
 def setupScope():
     ps = pico.PS6000()
     ps.open()    
 
     #Example of simple capture
-    res = ps.setSampling(500E6, 4096)
+    res = ps.setSamplingFrequency(500E6, 4096)
     sampleRate = res[0]
     print "Sampling @ %f MHz, %d samples"%(res[0]/1E6, res[1])
-    ps.setChannel(0, "AC", 50E-3)
+    ps.setChannel("A", "AC", 50E-3)
     return [ps, sampleRate]
 
 class MainWindow(QtGui.QMainWindow):
@@ -73,7 +73,7 @@ class MainWindow(QtGui.QMainWindow):
             self.scopeRunning = True
 
         if self.scope.isReady():
-            data = self.scope.getData(0, 4096)
+            data = self.scope.getDataV(0, 4096)
             self.scopeRunning = False
         else:
             data = []
