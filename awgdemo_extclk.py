@@ -12,8 +12,8 @@ The system triggers on an external clock connected to Channel A
 The AWG is connected to Channel B
 """
 from __future__ import division
-import ps6000
 
+from picoscope import ps6000
 import pylab as plt
 import numpy as np
 
