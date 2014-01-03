@@ -1,0 +1,2 @@
+These files are used to reproduce issues using C, which helps reporting bugs. Also can help in confirming our Python code is working
+as expected based on the C examples. This is for developers only, as a user you can ignore this directory.
