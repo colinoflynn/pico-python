@@ -10,6 +10,22 @@ around, but this one tries to improve on them via:
  o far INCOMPLETE and tested only with PS6000 scope. May change in the future.
 
 
+Installation Information
+------------------------------
+If you will be getting updated code from git, use git clone to put the directory
+somewhere. Then do the following to generate a link to your git directory:
+```
+python setup.py develop
+```
+
+If you want the normal installation (e.g. copies files to Python installation) use:
+```
+python setup.py install
+```
+
+Currently the code is changing frequently. Thus you may wish to use the git clone + develop option to
+keep up with new changes.
+
 Authors, Copyright, and Thanks
 ------------------------------
 pico-python is Copyright (C) 2013 By:
