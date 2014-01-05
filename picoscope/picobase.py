@@ -1,6 +1,4 @@
-#/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-# vim: set ts=4 sw=4 tw=0 et :
 
 # This is the base class that all picoscope modules use. As much as possible logic is
 # put into this file. At minimum each instrument file requires you to modify the name
@@ -134,9 +132,12 @@ class PSBase(object):
 
         # TODO: Make A class for each channel
         # that way the settings will make more sense
-        self.CHRange = [None]*self.NUM_CHANNELS
-        self.CHOffset = [None]*self.NUM_CHANNELS
 
+        # These do not correspond to API values, but rather to
+        # the "true" voltage as seen at the oscilloscope probe
+        self.CHRange = [None] * self.NUM_CHANNELS
+        self.CHOffset = [None] * self.NUM_CHANNELS
+        self.ProbeAttenuation = [None] * self.NUM_CHANNELS
 
     def getUnitInfo(self, info):
         """ returns a string containing the requested information """
@@ -167,7 +168,7 @@ class PSBase(object):
                 #"Analog version   " + self.getUnitInfo("ANALOGUE_HARDWARE_VERSION")
 
 
-    def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False):
+    def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False, probeAttenuation=1.0):
         """ Sets up a specific channel """
         if enabled:
             enabled = 1
@@ -185,11 +186,12 @@ class PSBase(object):
         # I think this should just be a string, because then we know the user is
         # in charge of properly formatting it
         try:
-            VRangeAPI = (item for item in self.CHANNEL_RANGE if item["rangeV"] == VRange).next()
+            # more resilient VRange
+            VRangeAPI = (item for item in self.CHANNEL_RANGE if np.abs(item["rangeV"]-VRange/probeAttenuation)/item["rangeV"]<1E-4).next()
             VRangeAPI = VRangeAPI["apivalue"]
         except StopIteration:
             rstr = ""
-            for t in self.CHANNEL_RANGE: rstr += "%f (%s), "%(t["rangeV"], t["rangeStr"])
+            for t in self.CHANNEL_RANGE: rstr += "%f (%s), "%(t["rangeV"]*probeAttenuation, t["rangeStr"])
             raise ValueError("%f is invalid range. Valid ranges: %s"%(VRange, rstr))
 
         if BWLimited:
@@ -197,11 +199,13 @@ class PSBase(object):
         else:
             BWLimited = 0
 
-        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI, VOffset, BWLimited)
+        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI, VOffset/probeAttenuation, BWLimited)
 
         # if all was successful, save the parameters
         self.CHRange[chNum] = VRange
         self.CHOffset[chNum] = VOffset
+        self.ProbeAttenuation[chNum] = probeAttenuation
+
 
     def runBlock(self, pretrig=0.0):
         """
@@ -255,6 +259,9 @@ class PSBase(object):
         specifications of the scope or a string such as 'A' or 'AUX'
 
         Currently AUX is not supported
+
+        Support for offset is currently untested
+
         """
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
@@ -269,7 +276,7 @@ class PSBase(object):
         enabled = int(bool(enabled))
 
         a2v = self.CHRange[trigSrc] / self.MAX_VALUE
-        threshold_adc = int(threshold_V / a2v)
+        threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeout_ms)
 
