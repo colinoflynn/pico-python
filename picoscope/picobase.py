@@ -144,6 +144,10 @@ class PSBase(object):
         if not isinstance(info, int):
             info = self.UNIT_INFO_TYPES[info]
         return self._lowLevelGetUnitInfo(info)
+    
+    def getMaxValue(self):
+        """ Returns the maximum ADC value, used for scaling """
+        return self.MAX_VALUE
 
     def getAllUnitInfo(self):
         """
@@ -275,7 +279,7 @@ class PSBase(object):
 
         enabled = int(bool(enabled))
 
-        a2v = self.CHRange[trigSrc] / self.MAX_VALUE
+        a2v = self.CHRange[trigSrc] / self.getMaxValue()
         threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeout_ms)
@@ -320,7 +324,7 @@ class PSBase(object):
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
-        a2v = self.CHRange[channel] / float(self.MAX_VALUE)
+        a2v = self.CHRange[channel] / float(self.getMaxValue())
         dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
 
 
