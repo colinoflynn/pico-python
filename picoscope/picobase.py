@@ -595,6 +595,10 @@ class PSBase(object):
         samplingFrequency = deltaPhase * self.AWGDACFrequency / 2 **(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth)
         return 1/samplingFrequency
 
+    def setResolution(self, resolution):
+        """For 5000-series scopes ONLY, sets the resolution. Error on other devices."""
+        self._lowLevelSetResolution(self.ADC_RESOLUTION[resolution])
+
     def open(self, serialNumber=None):
         """Open the scope, if serialNumber is None just opens first one found"""
 
