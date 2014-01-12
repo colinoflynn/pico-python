@@ -597,7 +597,7 @@ class PSBase(object):
 
     def setResolution(self, resolution):
         """For 5000-series scopes ONLY, sets the resolution. Error on other devices."""
-        self._lowLevelSetResolution(self.ADC_RESOLUTION[resolution])
+        self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
 
     def open(self, serialNumber=None):
         """Open the scope, if serialNumber is None just opens first one found"""
