@@ -62,7 +62,7 @@ from picobase import PSBase
 class PS5000(PSBase):
     """The following are low-level functions for the PS5000"""
 
-    LIBNAME = "ps5000"
+    LIBNAME = "ps5000a"
 
     NUM_CHANNELS = 4
     CHANNELS     =  {"A": 0, "B": 1, "C": 2, "D": 3,
@@ -157,8 +157,7 @@ class PS5000(PSBase):
                             BWLimited):
         m = self.lib.ps5000aSetChannel(c_int16(self.handle), c_enum(chNum),
                                       c_int16(enabled), c_enum(coupling),
-                                      c_enum(VRange), c_float(VOffset),
-                                      c_enum(BWLimited))
+                                      c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
 
     def _lowLevelStop(self):
@@ -328,14 +327,16 @@ class PS5000(PSBase):
         numSamples = len(data)
 
         m = self.lib.ps5000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
-                                         dataPtr, c_uint32(numSamples),
+                                         dataPtr, c_int32(numSamples),
+                                         c_uint32(self.segmentIndex),
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelClearDataBuffer(self, channel):
         """ data should be a numpy array"""
         m = self.lib.ps5000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
-                                         c_void_p(), c_uint32(0), c_enum(0))
+                                         c_void_p(), c_uint32(0), c_uint32(self.segmentIndex),
+                                          c_enum(0))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
