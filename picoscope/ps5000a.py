@@ -59,7 +59,7 @@ from ctypes import c_int32 as c_enum
 from picobase import PSBase
 
 
-class PS5000(PSBase):
+class PS5000a(PSBase):
     """The following are low-level functions for the PS5000"""
 
     LIBNAME = "ps5000a"
