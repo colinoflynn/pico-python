@@ -5,7 +5,7 @@
 # of the API function call (e.g. ps6000xxxx vs ps4000xxxx). You can find pico-python
 # at github.com/colinoflynn/pico-python .
 #
-# pico-python is Copyright (c) 2013 By:
+# pico-python is Copyright (c) 2013-2014 By:
 # Colin O'Flynn <coflynn@newae.com>
 # Mark Harfouche <mark.harfouche@gmail.com>
 # All rights reserved.

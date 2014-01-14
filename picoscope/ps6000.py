@@ -1,6 +1,6 @@
 # This is the instrument-specific file for the PS6000 series of instruments.
 #
-# pico-python is Copyright (c) 2013 By:
+# pico-python is Copyright (c) 2013-2014 By:
 # Colin O'Flynn <coflynn@newae.com>
 # Mark Harfouche <mark.harfouche@gmail.com>
 # All rights reserved.
