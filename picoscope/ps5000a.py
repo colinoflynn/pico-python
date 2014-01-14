@@ -126,8 +126,7 @@ class PS5000a(PSBase):
     MAX_VALUE_OTHER = 32767
     MIN_VALUE_OTHER = -32767
 
-    def __init__(self, serialNumber=None, connect=True):
-        super(PS5000, self).__init__()
+    def __init__(self, serialNumber=None, connect=True):       
         """Load DLL etc"""
         if platform.system() == 'Linux':
             from ctypes import cdll
@@ -138,8 +137,7 @@ class PS5000a(PSBase):
             
         self.resolution = self.ADC_RESOLUTIONS["8"]
         
-        if connect is True:
-            self.open(serialNumber)
+        super(PS5000, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()

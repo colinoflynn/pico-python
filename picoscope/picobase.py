@@ -114,9 +114,12 @@ class PSBase(object):
                        "PicoFirmwareVersion2"   : 0xA}
 
     def __init__(self, serialNumber=None, connect=True):
-        # Should be defined in child
-        self.lib = None
-        self.handle = None
+        """
+        Creates the class, and by default also connects to a scope.
+        Be warned ALL CHANNELS are enabled by default. Thus if you
+        need only a single channel turn off the unused ones, since
+        it will restrict your sample rate.
+        """         
 
         # TODO: Make A class for each channel
         # that way the settings will make more sense
@@ -127,8 +130,8 @@ class PSBase(object):
         self.CHOffset = [None] * self.NUM_CHANNELS
         self.ProbeAttenuation = [None] * self.NUM_CHANNELS
         
-        #due to needing to first load the lib, the potential
-        #call to open is done in the low-level __init__
+        if connect is True:
+            self.open(serialNumber)
 
     def getUnitInfo(self, info):
         """ returns a string containing the requested information """
