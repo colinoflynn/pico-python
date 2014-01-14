@@ -38,6 +38,7 @@ the specifics behind how the clib is called.
 
 The functions should not have any default values as these should be handled
 by PSBase.
+
 """
 
 from __future__ import division
@@ -60,7 +61,8 @@ from picobase import PSBase
 
 
 class PS6000(PSBase):
-    """The following are low-level functions for the PS6000"""
+
+    """The following are low-level functions for the PS6000."""
 
     LIBNAME = "ps6000"
 
@@ -191,7 +193,7 @@ class PS6000(PSBase):
             return False
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """ returns (timeIntervalSeconds, maxSamples) """
+        """ returns (timeIntervalSeconds, maxSamples). """
         maxSamples = c_int32()
         sampleRate = c_float()
 
@@ -204,7 +206,7 @@ class PS6000(PSBase):
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """Convert sample time in S to something to pass to API Call"""
+        """Convert sample time in S to something to pass to API Cal."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 156250000)
 
         if sampleTimeS < 6.4E-9:
@@ -231,7 +233,7 @@ class PS6000(PSBase):
     def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
                                         offsetVoltage, pkToPk, indexMode,
                                         shots, triggerType, triggerSource):
-        """ waveform should be an array of shorts """
+        """ waveform should be an array of shorts. """
 
         waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
@@ -257,11 +259,12 @@ class PS6000(PSBase):
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
         """
-        data should be a numpy array
+        data should be a numpy array.
 
         Be sure to call _lowLevelClearDataBuffer
         when you are done with the data array
         or else subsequent calls to GetValue will still use the same array.
+
         """
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
@@ -272,7 +275,7 @@ class PS6000(PSBase):
         self.checkResult(m)
 
     def _lowLevelClearDataBuffer(self, channel):
-        """ data should be a numpy array"""
+        """data should be a numpy array."""
         m = self.lib.ps6000SetDataBuffer(c_int16(self.handle), c_enum(channel),
                                          c_void_p(), c_uint32(0), c_enum(0))
         self.checkResult(m)
@@ -306,3 +309,242 @@ class PS6000(PSBase):
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
+
+    ####################################################################
+    # Untested functions below                                         #
+    #                                                                  #
+    ####################################################################
+
+    def _lowLevelEnumerateUnits():
+        count = c_int16(0)
+        m = self.lib.ps6000EnumerateUnits(byref(count), None, None)
+        self.checkResult(m)
+        # a serial number is rouhgly 8 characters
+        # an extra character for the comma
+        # and an extra one for the space after the comma?
+        # the extra two also work for the null termination
+        sertialLth = count.value * (8 + 2)
+        serials = create_string_buffer(sertialLth + 1)
+
+        m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
+        self.checkResult(m)
+
+        serialList = str(serials).split(',')
+
+        serialList = [x.strip() for x in serialList]
+
+        return serialList
+
+    def _lowLevelGetAnalogueOffset(self, range, coupling):
+        # TODO, populate properties with this function
+        maximumVoltage = c_float()
+        minimumVoltage = c_float()
+
+        m = self.lib.ps6000GetAnalogueOffset(
+            c_int16(self.handle), c_enum(range), c_enum(coupling),
+            byref(maximumVoltage), byref(minimumVoltage))
+        self.checkResult(m)
+
+        return (maximumVoltage.value, minimumVoltage.value)
+
+    def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
+                                       downSampleRatioMode, segmentIndex):
+        maxDownSampleRatio = c_uint32()
+
+        m = self.lib.ps6000GetMaxDownSampleRatio(
+            c_int16(self.handle), c_uint32(noOfUnaggregatedSamples), byref(maxDownSampleRatio),
+            c_enum(downSampleRatioMode), c_uint32(segmentIndex))
+        self.checkResult(m)
+
+        return maxDownSampleRatio.value
+
+    def _lowLevelGetNoOfCaptures():
+        nCaptures = c_utin32()
+
+        m = self.lib.ps6000GetNoOfCaptures(c_int16(self.handle), byref(nCaptures))
+        self.checkResult(m)
+
+        return nCaptures.value
+
+    def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
+        time = c_uint64()
+        timeUnits = c_enum()
+
+        m = self.lib.ps6000GetTriggerTimeOffset64(c_int16(self.handle), byref(time),
+                                                  byref(timeUnits), c_uint32(segmentIndex))
+        self.checkResult(m)
+
+        if timeUnits == 0:    # PS6000_FS
+            return time.value * 1E-15
+        elif timeUnits == 1:  # PS6000_PS
+            return time.value * 1E-12
+        elif timeUnits == 2:  # PS6000_NS
+            return time.value * 1E-9
+        elif timeUnits == 3:  # PS6000_US
+            return time.value * 1E-6
+        elif timeUnits == 4:  # PS6000_MS
+            return time.value * 1E-3
+        elif timeUnits == 5:  # PS6000_S
+            return time.value * 1E0
+
+    def _lowLevelMemorySegments(self, nSegments):
+        nMaxSamples = c_utin32()
+
+        m = self.lib.ps6000MemorySegments(c_int16(self.handle),
+                                          c_uint32(nSegments), byref(nMaxSamples))
+        self.checkResult(m)
+
+        return nMaxSamples.value
+
+    def _lowLevelOpenUnitAsync(self, sn):
+        c_status = c_int16()
+        if sn is not None:
+            serialNullTermStr = create_string_buffer(sn)
+        else:
+            serialNullTermStr = None
+
+        # Passing None is the same as passing NULL
+        m = self.lib.ps6000OpenUnitAsync(byref(c_status), serialNullTermStr)
+        self.checkResult(m)
+
+        return c_status.value
+
+    def _lowLevelOpenUnitProgress(self):
+        complete = c_int16()
+        progressPercent = c_int16()
+        handle = c_int16()
+
+        m = self.lib.ps6000OpenUnitProgress(byref(handle), byref(progressPercent), byref(complete))
+        self.checkResult(m)
+
+        # if we only wanted to return one value, we could do somethign like
+        # progressPercent = progressPercent * (1 - 0.1 * complete)
+        return (progressPercent, complete)
+
+    def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin, downSampleRatioMode):
+        bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
+        bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
+        bufferLth = len(bufferMax)
+
+        m = self.lib.ps6000SetDataBuffers(c_int16(self.handle), c_enum(channel),
+                                          bufferMaxPtr, bufferMinPtr, c_uint32(bufferLth),
+                                          c_enum(downSampleRatioMode))
+        self.checkResult(m)
+
+    def _lowLevelClearDataBuffers(self, channel):
+        m = self.lib.ps6000SetDataBuffers(c_int16(self.handle), c_enum(channel),
+                                          c_void_p(), c_void_p(), c_uint32(0), c_enum(0))
+        self.checkResult(m)
+
+    # Bulk values.
+    # These would be nice, but the user would have to provide us
+    # with an array.
+    # we would have to make sure that it is contiguous amonts other things
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegmentIndex, toSegmentIndex,
+                               downSampleRatio, downSampleRatioMode):
+        noOfSamples = c_uint32(numSamples)
+        overflow = c_int16()
+
+        m = self.lib.ps6000GetvaluesBulk(
+            c_int16(self.handle),
+            c_uint32(fromSegmentIndex), c_uint32(toSegmentIndex),
+            c_uint32(downSampleRatio), c_enum(downSampleRatioMode),
+            byref(overflow))
+        self.checkResult(m)
+        return (noOfSamples.value, overflow.value)
+
+    def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform, downSampleRatioMode):
+        bufferPtr = buffer.ctypes.data_as(POINTER(c_int16))
+        bufferLth = len(buffer)
+
+        m = self.lib.ps6000SetDataBufferBulk(
+            c_int16(self.handle),
+            c_enum(channel), bufferPtr, c_uint32(bufferLth),
+            c_uint32(waveform), c_enum(downSampleRatioMode))
+        self.checkResult(m)
+
+    def _lowLevelSetDataBuffersBulk(self, channel, bufferMax, bufferMin,
+                                    waveform, downSampleRatioMode):
+        bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
+        bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
+
+        bufferLth = len(bufferMax)
+
+        m = self.lib.ps6000SetDataBuffersBulk(
+            c_int16(self.handle), c_enum(channel),
+            bufferMaxPtr, bufferMinPtr, c_uint32(bufferLth),
+            c_uint32(waveform), c_enum(downSampleRatioMode))
+        self.checkResult(m)
+
+    def _lowLevelSetNoOfCaptures(self, nCaptures):
+        m = self.lib.ps6000SetNoOfCaptures(c_int16(self.handle), c_uint32(nCaptures))
+        self.checkResult(m)
+
+    # ETS Functions
+    def _lowLevelSetEts():
+        pass
+
+    def _lowLevelSetEtsTimeBuffer():
+        pass
+
+    def _lowLevelSetEtsTimeBuffers():
+        pass
+
+    def _lowLevelSetExternalClock():
+        pass
+
+    # Complicated triggering
+    # need to understand structs for this one to work
+    def _lowLevelIsTriggerOrPulseWidthQualifierEnabled():
+        pass
+
+    def _lowLevelGetValuesTriggerTimeOffsetBulk():
+        pass
+
+    def _lowLevelSetTriggerChannelConditions():
+        pass
+
+    def _lowLevelSetTriggerChannelDirections():
+        pass
+
+    def _lowLevelSetTriggerChannelProperties():
+        pass
+
+    def _lowLevelSetPulseWidthQualifier():
+        pass
+
+    def _lowLevelSetTriggerDelay():
+        pass
+
+    # Async functions
+    # would be nice, but we would have to learn to implement callbacks
+    def _lowLevelGetValuesAsync():
+        pass
+
+    def _lowLevelGetValuesBulkAsync():
+        pass
+
+    # overlapped functions
+    def _lowLevelGetValuesOverlapped():
+        pass
+
+    def _lowLevelGetValuesOverlappedBulk():
+        pass
+
+    # Streaming related functions
+    def _lowLevelGetStreamingLatestValues():
+        pass
+
+    def _lowLevelNoOfStreamingValues(self):
+        noOfValues = c_uint32()
+
+        m = self.lib.ps6000NoOfStreamingValues(c_int16(self.handle), byref(noOfValues))
+        self.checkResult(m)
+
+        return noOfValues.value
+
+    def _lowLevelRunStreaming():
+        pass
+
+    def _lowLevelStreamingReady():
+        pass
