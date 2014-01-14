@@ -1,0 +1,274 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module picoscope.picobase</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="picoscope.html"><font color="#ffffff">picoscope</font></a>.picobase</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:///C:/e/documents/pico/workspace/pico-python/pico-python/picoscope/picobase.py">c:\e\documents\pico\workspace\pico-python\pico-python\picoscope\picobase.py</a></font></td></tr></table>
+    <p><tt>This&nbsp;is&nbsp;the&nbsp;base&nbsp;class&nbsp;for&nbsp;PicoScope&nbsp;instruments.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="inspect.html">inspect</a><br>
+</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="time.html">time</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="__builtin__.html#object">__builtin__.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="picoscope.picobase.html#PSBase">PSBase</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="PSBase">class <strong>PSBase</strong></a>(<a href="__builtin__.html#object">__builtin__.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>This&nbsp;class&nbsp;defines&nbsp;a&nbsp;general&nbsp;interface&nbsp;for&nbsp;Picoscope&nbsp;oscilloscopes.<br>
+&nbsp;<br>
+This&nbsp;&nbsp;class&nbsp;should&nbsp;not&nbsp;be&nbsp;called&nbsp;directly&nbsp;since&nbsp;it&nbsp;relies&nbsp;on&nbsp;lower&nbsp;level<br>
+functions&nbsp;to&nbsp;communicate&nbsp;with&nbsp;the&nbsp;actual&nbsp;devices.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="PSBase-__del__"><strong>__del__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="PSBase-__init__"><strong>__init__</strong></a>(self, serialNumber<font color="#909090">=None</font>, connect<font color="#909090">=True</font>)</dt></dl>
+
+<dl><dt><a name="PSBase-checkResult"><strong>checkResult</strong></a>(self, ec)</dt><dd><tt>Check&nbsp;result&nbsp;of&nbsp;function&nbsp;calls,&nbsp;raise&nbsp;exception&nbsp;if&nbsp;not&nbsp;0</tt></dd></dl>
+
+<dl><dt><a name="PSBase-close"><strong>close</strong></a>(self)</dt><dd><tt>Close&nbsp;the&nbsp;scope.<br>
+You&nbsp;should&nbsp;call&nbsp;this&nbsp;yourself&nbsp;because&nbsp;the&nbsp;Python&nbsp;garbage&nbsp;collector<br>
+might&nbsp;take&nbsp;some&nbsp;time.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-errorNumToDesc"><strong>errorNumToDesc</strong></a>(self, num)</dt><dd><tt>Convert&nbsp;error&nbsp;number&nbsp;to&nbsp;description</tt></dd></dl>
+
+<dl><dt><a name="PSBase-errorNumToName"><strong>errorNumToName</strong></a>(self, num)</dt><dd><tt>Convert&nbsp;error&nbsp;number&nbsp;to&nbsp;name</tt></dd></dl>
+
+<dl><dt><a name="PSBase-flashLed"><strong>flashLed</strong></a>(self, times<font color="#909090">=5</font>, start<font color="#909090">=False</font>, stop<font color="#909090">=False</font>)</dt><dd><tt>Flash&nbsp;the&nbsp;front&nbsp;panel&nbsp;LEDs<br>
+&nbsp;<br>
+Use&nbsp;one&nbsp;of&nbsp;input&nbsp;arguments&nbsp;to&nbsp;specify&nbsp;how&nbsp;the&nbsp;Picoscope&nbsp;will&nbsp;flash&nbsp;the<br>
+LED<br>
+&nbsp;<br>
+times&nbsp;=&nbsp;The&nbsp;number&nbsp;of&nbsp;times&nbsp;the&nbsp;picoscope&nbsp;will&nbsp;flash&nbsp;the&nbsp;LED<br>
+start&nbsp;=&nbsp;If&nbsp;true,&nbsp;will&nbsp;flash&nbsp;the&nbsp;LED&nbsp;indefinitely<br>
+stop&nbsp;&nbsp;=&nbsp;If&nbsp;true,&nbsp;will&nbsp;stop&nbsp;any&nbsp;flashing.<br>
+&nbsp;<br>
+Note&nbsp;that&nbsp;calls&nbsp;to&nbsp;the&nbsp;RunStreaming&nbsp;or&nbsp;RunBlock&nbsp;will&nbsp;stop&nbsp;any&nbsp;flashing.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getAWGDeltaPhase"><strong>getAWGDeltaPhase</strong></a>(self, timeIncrement)</dt><dd><tt>Returns&nbsp;the&nbsp;DeltaPhase&nbsp;integer&nbsp;used&nbsp;by&nbsp;the&nbsp;AWG&nbsp;to&nbsp;set&nbsp;the&nbsp;increment<br>
+between&nbsp;samples&nbsp;of&nbsp;the&nbsp;generated&nbsp;waveform.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;when&nbsp;you&nbsp;are&nbsp;trying&nbsp;to&nbsp;generate&nbsp;very&nbsp;fast&nbsp;waveforms&nbsp;when<br>
+you&nbsp;are&nbsp;getting&nbsp;close&nbsp;to&nbsp;the&nbsp;limits&nbsp;of&nbsp;your&nbsp;waveform&nbsp;generator.<br>
+&nbsp;<br>
+For&nbsp;example,&nbsp;the&nbsp;PS6000's&nbsp;DDS&nbsp;phase&nbsp;accumulator&nbsp;increments&nbsp;by<br>
+deltaPhase&nbsp;every&nbsp;AWGDACInterval.<br>
+The&nbsp;top&nbsp;2**self.<strong>AWGBufferAddressWidth</strong>&nbsp;bits&nbsp;indicate&nbsp;which&nbsp;sample&nbsp;is<br>
+being&nbsp;output&nbsp;by&nbsp;the&nbsp;DDS.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getAWGTimeIncrement"><strong>getAWGTimeIncrement</strong></a>(self, deltaPhase)</dt><dd><tt>Returns&nbsp;the&nbsp;time&nbsp;between&nbsp;AWG&nbsp;samples&nbsp;given&nbsp;a&nbsp;certain&nbsp;deltaPhase<br>
+&nbsp;<br>
+You&nbsp;should&nbsp;use&nbsp;this&nbsp;function&nbsp;in&nbsp;conjunction&nbsp;with<br>
+getAWGDeltaPhase&nbsp;to&nbsp;obtain&nbsp;the&nbsp;actual&nbsp;timestep&nbsp;of&nbsp;AWG.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getAllUnitInfo"><strong>getAllUnitInfo</strong></a>(self)</dt><dd><tt>Retrun:&nbsp;String&nbsp;containing&nbsp;the&nbsp;unit&nbsp;information&nbsp;in&nbsp;a&nbsp;human&nbsp;readible&nbsp;way.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getDataRaw"><strong>getDataRaw</strong></a>(self, channel<font color="#909090">='A'</font>, numSamples<font color="#909090">=0</font>, startIndex<font color="#909090">=0</font>, downSampleRatio<font color="#909090">=1</font>, downSampleMode<font color="#909090">=0</font>)</dt><dd><tt>getDataRaw&nbsp;returns&nbsp;the&nbsp;data&nbsp;in&nbsp;the&nbsp;purest&nbsp;form.<br>
+it&nbsp;returns&nbsp;a&nbsp;tuple&nbsp;containing:<br>
+(data,&nbsp;numSamplesReturned,&nbsp;overflow)<br>
+data&nbsp;is&nbsp;an&nbsp;array&nbsp;of&nbsp;size&nbsp;numSamples<br>
+numSamplesReturned&nbsp;is&nbsp;the&nbsp;number&nbsp;of&nbsp;samples&nbsp;returned&nbsp;by&nbsp;the&nbsp;Picoscope<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(I&nbsp;don't&nbsp;know&nbsp;when&nbsp;this&nbsp;would&nbsp;not&nbsp;be&nbsp;equal&nbsp;to&nbsp;numSamples)<br>
+overflow&nbsp;is&nbsp;a&nbsp;flag&nbsp;that&nbsp;is&nbsp;true&nbsp;when&nbsp;the&nbsp;signal&nbsp;was&nbsp;either&nbsp;too&nbsp;large<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;too&nbsp;small&nbsp;to&nbsp;be&nbsp;properly&nbsp;digitized</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getDataV"><strong>getDataV</strong></a>(self, channel, numSamples<font color="#909090">=0</font>, startIndex<font color="#909090">=0</font>, downSampleRatio<font color="#909090">=1</font>, downSampleMode<font color="#909090">=0</font>, returnOverflow<font color="#909090">=False</font>, exceptOverflow<font color="#909090">=False</font>)</dt><dd><tt>getDataV&nbsp;returns&nbsp;the&nbsp;data&nbsp;as&nbsp;an&nbsp;array&nbsp;of&nbsp;voltage&nbsp;values<br>
+&nbsp;<br>
+it&nbsp;returns&nbsp;(dataV,&nbsp;overflow)&nbsp;if&nbsp;returnOverflow&nbsp;=&nbsp;True<br>
+else,&nbsp;it&nbsp;returns&nbsp;returns&nbsp;dataV<br>
+dataV&nbsp;is&nbsp;an&nbsp;array&nbsp;with&nbsp;size&nbsp;numSamplesReturned<br>
+overflow&nbsp;is&nbsp;a&nbsp;flag&nbsp;that&nbsp;is&nbsp;true&nbsp;when&nbsp;the&nbsp;signal&nbsp;was&nbsp;either&nbsp;too&nbsp;large<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;too&nbsp;small&nbsp;to&nbsp;be&nbsp;properly&nbsp;digitized<br>
+&nbsp;<br>
+if&nbsp;exceptOverflow&nbsp;is&nbsp;true,&nbsp;an&nbsp;IOError&nbsp;exception&nbsp;is&nbsp;raised&nbsp;on&nbsp;overflow&nbsp;if<br>
+returnOverflow&nbsp;is&nbsp;False.&nbsp;This&nbsp;allows&nbsp;you&nbsp;to&nbsp;detect&nbsp;overflows&nbsp;at<br>
+higher&nbsp;layers&nbsp;w/o&nbsp;complicated&nbsp;return&nbsp;trees.&nbsp;You&nbsp;cannot&nbsp;however&nbsp;read&nbsp;the&nbsp;'<br>
+good'&nbsp;data,&nbsp;you&nbsp;only&nbsp;get&nbsp;the&nbsp;exception&nbsp;information&nbsp;then.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getMaxValue"><strong>getMaxValue</strong></a>(self)</dt><dd><tt>Return:&nbsp;the&nbsp;maximum&nbsp;ADC&nbsp;value,&nbsp;used&nbsp;for&nbsp;scaling&nbsp;.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-getUnitInfo"><strong>getUnitInfo</strong></a>(self, info)</dt><dd><tt>returns&nbsp;a&nbsp;string&nbsp;containing&nbsp;the&nbsp;requested&nbsp;information</tt></dd></dl>
+
+<dl><dt><a name="PSBase-isReady"><strong>isReady</strong></a>(self)</dt><dd><tt>Check&nbsp;if&nbsp;scope&nbsp;done.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-open"><strong>open</strong></a>(self, serialNumber<font color="#909090">=None</font>)</dt><dd><tt>Open&nbsp;the&nbsp;scope,&nbsp;if&nbsp;serialNumber&nbsp;is&nbsp;None&nbsp;just&nbsp;opens&nbsp;first&nbsp;one&nbsp;found</tt></dd></dl>
+
+<dl><dt><a name="PSBase-runBlock"><strong>runBlock</strong></a>(self, pretrig<font color="#909090">=0.0</font>)</dt><dd><tt>Runs&nbsp;a&nbsp;single&nbsp;block,&nbsp;must&nbsp;have&nbsp;already&nbsp;called&nbsp;setSampling&nbsp;for&nbsp;proper<br>
+setup.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setAWGSimple"><strong>setAWGSimple</strong></a>(self, waveform, duration, offsetVoltage<font color="#909090">=None</font>, pkToPk<font color="#909090">=None</font>, indexMode<font color="#909090">='Single'</font>, shots<font color="#909090">=1</font>, triggerType<font color="#909090">='Rising'</font>, triggerSource<font color="#909090">='ScopeTrig'</font>)</dt><dd><tt>This&nbsp;function&nbsp;sets&nbsp;the&nbsp;AWG&nbsp;to&nbsp;output&nbsp;the&nbsp;given&nbsp;waveform&nbsp;(numpy&nbsp;array).<br>
+It&nbsp;takes&nbsp;in&nbsp;the&nbsp;total&nbsp;waveform&nbsp;duration.&nbsp;This&nbsp;means&nbsp;that&nbsp;it&nbsp;will&nbsp;compute<br>
+the&nbsp;phaseIncrement&nbsp;itself.&nbsp;If&nbsp;you&nbsp;require&nbsp;more&nbsp;control&nbsp;of&nbsp;the&nbsp;timestep<br>
+increment,&nbsp;you&nbsp;should&nbsp;use&nbsp;setSigGenAritrarySimpleDelaPhase&nbsp;instead<br>
+&nbsp;<br>
+&nbsp;<br>
+If&nbsp;pkToPk&nbsp;and&nbsp;offset&nbsp;Voltage&nbsp;are&nbsp;both&nbsp;set&nbsp;to&nbsp;0,&nbsp;then&nbsp;the&nbsp;waveform&nbsp;is<br>
+interpreted&nbsp;as&nbsp;voltage&nbsp;values.<br>
+&nbsp;<br>
+pkToPk&nbsp;=&nbsp;np.max(waveform)&nbsp;-&nbsp;np.min(waveform)<br>
+offset&nbsp;=&nbsp;(np.max(waveform)&nbsp;+&nbsp;np.min(waveform))&nbsp;/&nbsp;2<br>
+&nbsp;<br>
+This&nbsp;should&nbsp;in&nbsp;theory&nbsp;minimize&nbsp;the&nbsp;quantization&nbsp;error&nbsp;in&nbsp;the&nbsp;ADC<br>
+&nbsp;<br>
+else,&nbsp;the&nbsp;waveform&nbsp;shoudl&nbsp;be&nbsp;a&nbsp;numpy&nbsp;int16&nbsp;type&nbsp;array&nbsp;with&nbsp;the&nbsp;containing<br>
+waveform<br>
+&nbsp;<br>
+As&nbsp;it&nbsp;turns&nbsp;out,&nbsp;their&nbsp;programming&nbsp;guide&nbsp;is&nbsp;wrong.&nbsp;The&nbsp;int16&nbsp;array&nbsp;should<br>
+contain&nbsp;numbers&nbsp;from&nbsp;0x0000&nbsp;to&nbsp;0x0FFF&nbsp;(12&nbsp;bit&nbsp;unsigned&nbsp;numbers).<br>
+0x000&nbsp;corresponds&nbsp;to&nbsp;the&nbsp;lowest&nbsp;value&nbsp;of&nbsp;the&nbsp;AWG&nbsp;(offset&nbsp;-&nbsp;pkToPk/2)<br>
+while<br>
+0xFFF&nbsp;corresponds&nbsp;to&nbsp;the&nbsp;highest&nbsp;value&nbsp;of&nbsp;the&nbsp;AWG&nbsp;(ofset&nbsp;+&nbsp;pkToPk/2)<br>
+&nbsp;<br>
+&nbsp;<br>
+For&nbsp;the&nbsp;Quad&nbsp;mode,&nbsp;if&nbsp;offset&nbsp;voltage&nbsp;is&nbsp;not&nbsp;provided,&nbsp;then&nbsp;waveform[0]<br>
+is&nbsp;assumed&nbsp;to&nbsp;be&nbsp;the&nbsp;offset<br>
+&nbsp;<br>
+Returns:&nbsp;The&nbsp;actual&nbsp;duration&nbsp;of&nbsp;the&nbsp;waveform</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setAWGSimpleDeltaPhase"><strong>setAWGSimpleDeltaPhase</strong></a>(self, waveform, deltaPhase, offsetVoltage<font color="#909090">=None</font>, pkToPk<font color="#909090">=None</font>, indexMode<font color="#909090">='Single'</font>, shots<font color="#909090">=1</font>, triggerType<font color="#909090">='Rising'</font>, triggerSource<font color="#909090">='ScopeTrig'</font>)</dt><dd><tt>This&nbsp;is&nbsp;function&nbsp;provides&nbsp;a&nbsp;little&nbsp;more&nbsp;control&nbsp;than<br>
+setAWGSimple&nbsp;in&nbsp;the&nbsp;sense&nbsp;that&nbsp;you&nbsp;are&nbsp;able&nbsp;to&nbsp;specify&nbsp;deltaPhase<br>
+directly.&nbsp;It&nbsp;should&nbsp;only&nbsp;be&nbsp;used&nbsp;when&nbsp;deltaPhase&nbsp;becomes&nbsp;very&nbsp;large.<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;actual&nbsp;time&nbsp;duration&nbsp;of&nbsp;the&nbsp;waveform<br>
+&nbsp;<br>
+Warning.&nbsp;Ideally,&nbsp;you&nbsp;would&nbsp;want&nbsp;this&nbsp;to&nbsp;be&nbsp;a&nbsp;power&nbsp;of&nbsp;2&nbsp;that&nbsp;way&nbsp;each<br>
+sample&nbsp;is&nbsp;given&nbsp;out&nbsp;at&nbsp;exactly&nbsp;the&nbsp;same&nbsp;difference&nbsp;in&nbsp;time&nbsp;otherwise,<br>
+if&nbsp;you&nbsp;give&nbsp;it&nbsp;something&nbsp;closer&nbsp;to&nbsp;.75&nbsp;you&nbsp;would&nbsp;obtain<br>
+&nbsp;<br>
+&nbsp;T&nbsp;&nbsp;|&nbsp;phase&nbsp;accumulator&nbsp;value&nbsp;|&nbsp;sample<br>
+&nbsp;0&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
+&nbsp;5&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.75&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
+10&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1<br>
+15&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.25&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2<br>
+20&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3<br>
+25&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.75&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3<br>
+&nbsp;<br>
+notice&nbsp;how&nbsp;sample&nbsp;0&nbsp;and&nbsp;3&nbsp;were&nbsp;played&nbsp;twice&nbsp;&nbsp;while&nbsp;others&nbsp;were&nbsp;only<br>
+played&nbsp;once.<br>
+This&nbsp;is&nbsp;why&nbsp;this&nbsp;low&nbsp;level&nbsp;function&nbsp;is&nbsp;exposed&nbsp;to&nbsp;the&nbsp;user&nbsp;so&nbsp;that&nbsp;he<br>
+can&nbsp;control&nbsp;these&nbsp;edge&nbsp;cases<br>
+&nbsp;<br>
+I&nbsp;would&nbsp;suggest&nbsp;using&nbsp;something&nbsp;like&nbsp;this:&nbsp;if&nbsp;you&nbsp;care&nbsp;about&nbsp;obtaining<br>
+evenly&nbsp;spaced&nbsp;samples&nbsp;at&nbsp;the&nbsp;expense&nbsp;of&nbsp;the&nbsp;precise&nbsp;duration&nbsp;of&nbsp;the&nbsp;your<br>
+waveform<br>
+To&nbsp;find&nbsp;the&nbsp;next&nbsp;highest&nbsp;power&nbsp;of&nbsp;2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;always&nbsp;a&nbsp;smaller&nbsp;sampling&nbsp;interval&nbsp;than&nbsp;the&nbsp;one&nbsp;you&nbsp;asked&nbsp;for<br>
+math.pow(2,&nbsp;math.ceil(math.log(deltaPhase,&nbsp;2)))<br>
+&nbsp;<br>
+To&nbsp;find&nbsp;the&nbsp;next&nbsp;smaller&nbsp;power&nbsp;of&nbsp;2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;always&nbsp;a&nbsp;larger&nbsp;sampling&nbsp;interval&nbsp;than&nbsp;the&nbsp;one&nbsp;you&nbsp;asked&nbsp;for<br>
+math.pow(2,&nbsp;math.floor(math.log(deltaPhase,&nbsp;2)))<br>
+&nbsp;<br>
+To&nbsp;find&nbsp;the&nbsp;nearest&nbsp;power&nbsp;of&nbsp;2<br>
+math.pow(2,&nbsp;int(math.log(deltaPhase,&nbsp;2),&nbsp;+&nbsp;0.5))</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setChannel"><strong>setChannel</strong></a>(self, channel<font color="#909090">='A'</font>, coupling<font color="#909090">='AC'</font>, VRange<font color="#909090">=2.0</font>, VOffset<font color="#909090">=0.0</font>, enabled<font color="#909090">=True</font>, BWLimited<font color="#909090">=False</font>, probeAttenuation<font color="#909090">=1.0</font>)</dt><dd><tt>Set&nbsp;up&nbsp;a&nbsp;specific&nbsp;channel.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setResolution"><strong>setResolution</strong></a>(self, resolution)</dt><dd><tt>For&nbsp;5000-series&nbsp;scopes&nbsp;ONLY,&nbsp;sets&nbsp;the&nbsp;resolution.&nbsp;Error&nbsp;on&nbsp;other&nbsp;devices.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setSamplingFrequency"><strong>setSamplingFrequency</strong></a>(self, sampleFreq, noSamples, oversample<font color="#909090">=0</font>, segmentIndex<font color="#909090">=0</font>)</dt><dd><tt>Returns&nbsp;(actualSampleFreq,&nbsp;maxSamples)</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setSamplingInterval"><strong>setSamplingInterval</strong></a>(self, sampleInterval, duration, oversample<font color="#909090">=0</font>, segmentIndex<font color="#909090">=0</font>)</dt><dd><tt>Returns&nbsp;(actualSampleInterval,&nbsp;noSamples,&nbsp;maxSamples)</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setSigGenBuiltInSimple"><strong>setSigGenBuiltInSimple</strong></a>(self, offsetVoltage<font color="#909090">=0</font>, pkToPk<font color="#909090">=2</font>, waveType<font color="#909090">='Sine'</font>, frequency<font color="#909090">=1000000.0</font>, shots<font color="#909090">=1</font>, triggerType<font color="#909090">='Rising'</font>, triggerSource<font color="#909090">='None'</font>)</dt><dd><tt>This&nbsp;allows&nbsp;you&nbsp;to&nbsp;use&nbsp;the&nbsp;built&nbsp;in&nbsp;function&nbsp;generator's&nbsp;in&nbsp;a&nbsp;more<br>
+straightforward&nbsp;way.<br>
+&nbsp;<br>
+Not&nbsp;all&nbsp;the&nbsp;options&nbsp;are&nbsp;exposed&nbsp;making&nbsp;it&nbsp;easier&nbsp;to&nbsp;use&nbsp;for&nbsp;the&nbsp;simple<br>
+things.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-setSimpleTrigger"><strong>setSimpleTrigger</strong></a>(self, trigSrc, threshold_V<font color="#909090">=0</font>, direction<font color="#909090">='Rising'</font>, delay<font color="#909090">=0</font>, timeout_ms<font color="#909090">=100</font>, enabled<font color="#909090">=True</font>)</dt><dd><tt>Simple&nbsp;Trigger&nbsp;setup.<br>
+&nbsp;<br>
+trigSrc&nbsp;can&nbsp;be&nbsp;either&nbsp;a&nbsp;number&nbsp;corresponding&nbsp;to&nbsp;the&nbsp;low&nbsp;level<br>
+specifications&nbsp;of&nbsp;the&nbsp;scope&nbsp;or&nbsp;a&nbsp;string&nbsp;such&nbsp;as&nbsp;'A'&nbsp;or&nbsp;'AUX'<br>
+&nbsp;<br>
+Currently&nbsp;AUX&nbsp;is&nbsp;not&nbsp;supported<br>
+&nbsp;<br>
+Support&nbsp;for&nbsp;offset&nbsp;is&nbsp;currently&nbsp;untested</tt></dd></dl>
+
+<dl><dt><a name="PSBase-stop"><strong>stop</strong></a>(self)</dt><dd><tt>Let&nbsp;the&nbsp;Picoscope&nbsp;know&nbsp;that&nbsp;you&nbsp;are&nbsp;done&nbsp;acquiring&nbsp;data<br>
+for&nbsp;the&nbsp;time&nbsp;being.</tt></dd></dl>
+
+<dl><dt><a name="PSBase-waitReady"><strong>waitReady</strong></a>(self)</dt><dd><tt>Block&nbsp;until&nbsp;the&nbsp;scope&nbsp;is&nbsp;ready.</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>CHANNELS</strong> = {'A': 0, 'B': 1}</dl>
+
+<dl><dt><strong>CHANNEL_COUPLINGS</strong> = {'AC': 0, 'DC': 1, 'DC50': 2}</dl>
+
+<dl><dt><strong>CHANNEL_RANGE</strong> = [{'apivalue': 1, 'rangeStr': '20 mV', 'rangeV': 0.02}, {'apivalue': 2, 'rangeStr': '50 mV', 'rangeV': 0.05}, {'apivalue': 3, 'rangeStr': '100 mV', 'rangeV': 0.1}, {'apivalue': 4, 'rangeStr': '200 mV', 'rangeV': 0.2}, {'apivalue': 5, 'rangeStr': '500 mV', 'rangeV': 0.5}, {'apivalue': 6, 'rangeStr': '1 V', 'rangeV': 1.0}, {'apivalue': 7, 'rangeStr': '2 V', 'rangeV': 2.0}, {'apivalue': 8, 'rangeStr': '5 V', 'rangeV': 5.0}]</dl>
+
+<dl><dt><strong>ERROR_CODES</strong> = [[0, 'PICO_OK', 'The PicoScope XXXX is functioning correctly.'], [1, 'PICO_MAX_UNITS_OPENED', 'An attempt has been made to open more than PSXXXX_MAX_UNITS.'], [2, 'PICO_MEMORY_FAIL', 'Not enough memory could be allocated on the host machine.'], [3, 'PICO_NOT_FOUND', 'No PicoScope XXXX could be found.'], [4, 'PICO_FW_FAIL', 'Unable to download firmware.'], [5, 'PICO_OPEN_OPERATION_IN_PROGRESS'], [6, 'PICO_OPERATION_FAILED'], [7, 'PICO_NOT_RESPONDING', 'The PicoScope XXXX is not responding to commands from the PC.'], [8, 'PICO_CONFIG_FAIL', 'The configuration information in the PicoScope XXXX has become corrupt or is missing.'], [9, 'PICO_KERNEL_DRIVER_TOO_OLD', 'The picopp.sys file is too old to be used with the device driver.'], [10, 'PICO_EEPROM_CORRUPT', 'The EEPROM has become corrupt, so the device will use a default setting.'], [11, 'PICO_OS_NOT_SUPPORTED', 'The operating system on the PC is not supported by this driver.'], [12, 'PICO_INVALID_HANDLE', 'There is no device with the handle value passed.'], [13, 'PICO_INVALID_PARAMETER', 'A parameter value is not valid.'], [14, 'PICO_INVALID_TIMEBASE', 'The timebase is not supported or is invalid.'], [15, 'PICO_INVALID_VOLTAGE_RANGE', 'The voltage range is not supported or is invalid.'], [16, 'PICO_INVALID_CHANNEL', 'The channel number is not valid on this device or no channels have been set.'], [17, 'PICO_INVALID_TRIGGER_CHANNEL', 'The channel set for a trigger is not available on this device.'], [18, 'PICO_INVALID_CONDITION_CHANNEL', 'The channel set for a condition is not available on this device.'], [19, 'PICO_NO_SIGNAL_GENERATOR', 'The device does not have a signal generator.'], ...]</dl>
+
+<dl><dt><strong>EXT_MAX_VALUE</strong> = 32767</dl>
+
+<dl><dt><strong>EXT_MIN_VALUE</strong> = -32767</dl>
+
+<dl><dt><strong>EXT_RANGE_VOLTS</strong> = 20</dl>
+
+<dl><dt><strong>LIBNAME</strong> = 'ps6000'</dl>
+
+<dl><dt><strong>MAX_VALUE</strong> = 32764</dl>
+
+<dl><dt><strong>MIN_VALUE</strong> = -32764</dl>
+
+<dl><dt><strong>NUM_CHANNELS</strong> = 2</dl>
+
+<dl><dt><strong>THRESHOLD_TYPE</strong> = {'Above': 0, 'Below': 1, 'Falling': 3, 'RiseOrFall': 4, 'Rising': 2}</dl>
+
+<dl><dt><strong>UNIT_INFO_TYPES</strong> = {'AnalogueHardwareVersion': 8, 'BatchAndSerial': 4, 'CalDate': 5, 'DigitalHardwareVersion': 7, 'DriverVersion': 0, 'HardwareVersion': 2, 'KernelVersion': 6, 'PicoFirmwareVersion1': 9, 'PicoFirmwareVersion2': 10, 'USBVersion': 1, ...}</dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>__author__</strong> = "Colin O'Flynn, Mark Harfouche"<br>
+<strong>__license__</strong> = 'FreeBSD'<br>
+<strong>division</strong> = _Feature((2, 2, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 8192)</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#7799ee">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Author</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#7799ee"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Colin&nbsp;O'Flynn,&nbsp;Mark&nbsp;Harfouche</td></tr></table>
+</body></html>
