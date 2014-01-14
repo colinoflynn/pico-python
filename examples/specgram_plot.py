@@ -31,7 +31,6 @@ def examplePS6000():
     
     print "Attempting to open..."
     ps = ps6000.PS6000()
-    ps.open()    
 
     #Example of simple capture
     res = ps.setSamplingFrequency(250E6, 4096)

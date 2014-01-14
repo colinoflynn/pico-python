@@ -105,7 +105,7 @@ class PS6000(PSBase):
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
-    def __init__(self):
+    def __init__(self, serialNumber=None, connect=True):
         super(PS6000, self).__init__()
 
         """Load DLL etc"""
@@ -115,6 +115,9 @@ class PS6000(PSBase):
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
+            
+        if connect is True:
+            self.open(serialNumber)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()

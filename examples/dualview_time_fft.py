@@ -9,7 +9,6 @@ from picoscope import ps6000
 
 def setupScope():
     ps = ps6000.PS6000()
-    ps.open()    
 
     #Example of simple capture
     res = ps.setSamplingFrequency(500E6, 4096)

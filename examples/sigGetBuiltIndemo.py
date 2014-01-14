@@ -28,7 +28,6 @@ if __name__ == "__main__":
 
     # see page 13 of the manual to understand how to work this beast
     ps = ps6000.PS6000()
-    ps.open()
 
     print(ps.getAllUnitInfo())
 

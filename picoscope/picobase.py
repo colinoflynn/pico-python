@@ -113,7 +113,7 @@ class PSBase(object):
                        "PicoFirmwareVersion1"   : 0x9,
                        "PicoFirmwareVersion2"   : 0xA}
 
-    def __init__(self):
+    def __init__(self, serialNumber=None, connect=True):
         # Should be defined in child
         self.lib = None
         self.handle = None
@@ -126,6 +126,9 @@ class PSBase(object):
         self.CHRange = [None] * self.NUM_CHANNELS
         self.CHOffset = [None] * self.NUM_CHANNELS
         self.ProbeAttenuation = [None] * self.NUM_CHANNELS
+        
+        #due to needing to first load the lib, the potential
+        #call to open is done in the low-level __init__
 
     def getUnitInfo(self, info):
         """ returns a string containing the requested information """
