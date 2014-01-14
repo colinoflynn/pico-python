@@ -42,27 +42,20 @@ __license__ = "FreeBSD"
 
 import inspect
 import time
-import warnings
+#import warnings
 
 import numpy as np
 
-from ctypes import c_short
-
-class CaseInsensitiveDict(dict):
-    def __setitem__(self, key, value):
-        super(CaseInsensitiveDict, self).__setitem__(key.lower(), value)
-
-    def __getitem__(self, key):
-        return super(CaseInsensitiveDict, self).__getitem__(key.lower())
 
 class PSBase(object):
+
     """
     This class defines a general interface for Picoscope oscilloscopes.
 
     This  class should not be called directly since it relies on lower level
     functions to communicate with the actual devices.
-    """
 
+    """
 
     ###You must reimplement this in device specific classes
 
@@ -76,24 +69,20 @@ class PSBase(object):
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 20
 
-    CHANNEL_RANGE = [{"rangeV":20E-3, "apivalue":1, "rangeStr":"20 mV"},
-                     {"rangeV":50E-3, "apivalue":2, "rangeStr":"50 mV"},
-                     {"rangeV":100E-3, "apivalue":3, "rangeStr":"100 mV"},
-                     {"rangeV":200E-3, "apivalue":4, "rangeStr":"200 mV"},
-                     {"rangeV":500E-3, "apivalue":5, "rangeStr":"500 mV"},
-                     {"rangeV":1.0, "apivalue":6, "rangeStr":"1 V"},
-                     {"rangeV":2.0, "apivalue":7, "rangeStr":"2 V"},
-                     {"rangeV":5.0, "apivalue":8, "rangeStr":"5 V"},
+    CHANNEL_RANGE = [{"rangeV": 20E-3,  "apivalue": 1, "rangeStr": "20 mV"},
+                     {"rangeV": 50E-3,  "apivalue": 2, "rangeStr": "50 mV"},
+                     {"rangeV": 100E-3, "apivalue": 3, "rangeStr": "100 mV"},
+                     {"rangeV": 200E-3, "apivalue": 4, "rangeStr": "200 mV"},
+                     {"rangeV": 500E-3, "apivalue": 5, "rangeStr": "500 mV"},
+                     {"rangeV": 1.0,    "apivalue": 6, "rangeStr": "1 V"},
+                     {"rangeV": 2.0,    "apivalue": 7, "rangeStr": "2 V"},
+                     {"rangeV": 5.0,    "apivalue": 8, "rangeStr": "5 V"},
                      ]
 
     NUM_CHANNELS = 2
-    CHANNELS = {"A":0, "B":1}
+    CHANNELS = {"A": 0, "B": 1}
 
-    CHANNEL_COUPLINGS = {"DC50": 2, "DC":1, "AC":0}
-
-    # don't know if we really need this. Python should throw an
-    # error for us shouldn't it ?
-    #has_sig_gen = False
+    CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
     ###End of things you must reimplement (I think).
 
@@ -105,25 +94,24 @@ class PSBase(object):
     # SOFT_TRIG = SoftwareTrigger vs SoftTrig
 
     # For some reason this isn't working with me :S
-    #THRESHOLD_TYPE = CaseInsensitiveDict(
-    THRESHOLD_TYPE = {"Above":0,
-                      "Below":1,
-                      "Rising":2,
-                      "Falling":3,
-                      "RiseOrFall":4}
+    THRESHOLD_TYPE = {"Above": 0,
+                      "Below": 1,
+                      "Rising": 2,
+                      "Falling": 3,
+                      "RiseOrFall": 4}
 
     ### getUnitInfo parameter types
-    UNIT_INFO_TYPES = { "DriverVersion"          : 0x0,
-                        "USBVersion"             : 0x1,
-                        "HardwareVersion"        : 0x2,
-                        "VarianInfo"             : 0x3,
-                        "BatchAndSerial"         : 0x4,
-                        "CalDate"                : 0x5,
-                        "KernelVersion"          : 0x6,
-                        "DigitalHardwareVersion" : 0x7,
-                        "AnalogueHardwareVersion": 0x8,
-                        "PicoFirmwareVersion1"   : 0x9,
-                        "PicoFirmwareVersion2"   : 0xA}
+    UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
+                       "USBVersion"             : 0x1,
+                       "HardwareVersion"        : 0x2,
+                       "VarianInfo"             : 0x3,
+                       "BatchAndSerial"         : 0x4,
+                       "CalDate"                : 0x5,
+                       "KernelVersion"          : 0x6,
+                       "DigitalHardwareVersion" : 0x7,
+                       "AnalogueHardwareVersion": 0x8,
+                       "PicoFirmwareVersion1"   : 0x9,
+                       "PicoFirmwareVersion2"   : 0xA}
 
     def __init__(self):
         # Should be defined in child
@@ -144,16 +132,15 @@ class PSBase(object):
         if not isinstance(info, int):
             info = self.UNIT_INFO_TYPES[info]
         return self._lowLevelGetUnitInfo(info)
-    
+
     def getMaxValue(self):
-        """ Returns the maximum ADC value, used for scaling """
+        """ Return: the maximum ADC value, used for scaling ."""
+        # TODO: make this more consistent accross versions
+        # This was a "fix" when we started supported PS5000a
         return self.MAX_VALUE
 
     def getAllUnitInfo(self):
-        """
-        Returns a nice string containing the unit information in a human
-        readible way.
-        """
+        """ Retrun: String containing the unit information in a human readible way. """
         s = ""
         for key in sorted(self.UNIT_INFO_TYPES.keys(), key=self.UNIT_INFO_TYPES.get):
             s += key.ljust(30) + ": " + self.getUnitInfo(key) + "\n"
@@ -161,19 +148,9 @@ class PSBase(object):
         s = s[:-1]
         return s
 
-        #return  "Driver version   " + self.getUnitInfo("DRIVER_VERSION")  + "\n" + \
-                #"USB version      " + self.getUnitInfo("USB_VERSION")     + "\n" + \
-                #"Hardware version " + self.getUnitInfo("HARDWARE_VERSION")+ "\n" + \
-                #"Found Picoscope  " + self.getUnitInfo("VARIANT_INFO")    + "\n" + \
-                #"Serial number    " + self.getUnitInfo("BATCH_AND_SERIAL")+ "\n" + \
-                #"Calibrated on    " + self.getUnitInfo("CAL_DATE")        + "\n" + \
-                #"Kernel version   " + self.getUnitInfo("KERNEL_VERSION")  + "\n" + \
-                #"Digital version  " + self.getUnitInfo("DIGITAL_HARDWARE_VERSION") + "\n" + \
-                #"Analog version   " + self.getUnitInfo("ANALOGUE_HARDWARE_VERSION")
-
-
-    def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True, BWLimited=False, probeAttenuation=1.0):
-        """ Sets up a specific channel """
+    def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True,
+                   BWLimited=False, probeAttenuation=1.0):
+        """ Set up a specific channel. """
         if enabled:
             enabled = 1
         else:
@@ -203,13 +180,13 @@ class PSBase(object):
         else:
             BWLimited = 0
 
-        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI, VOffset/probeAttenuation, BWLimited)
+        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI,
+                                 VOffset / probeAttenuation, BWLimited)
 
         # if all was successful, save the parameters
         self.CHRange[chNum] = VRange
         self.CHOffset[chNum] = VOffset
         self.ProbeAttenuation[chNum] = probeAttenuation
-
 
     def runBlock(self, pretrig=0.0):
         """
@@ -220,15 +197,17 @@ class PSBase(object):
         # getting max samples is riddiculous. 1GS buffer means it will take so long
         nSamples = min(self.noSamples, self.maxSamples)
 
-        self._lowLevelRunBlock(int(nSamples*pretrig), int(nSamples*(1-pretrig)), self.timebase,
-                self.oversample, self.segmentIndex)
+        self._lowLevelRunBlock(int(nSamples * pretrig), int(nSamples * (1 - pretrig)),
+                               self.timebase, self.oversample, self.segmentIndex)
 
     def isReady(self):
-        """Check if scope done"""
+        """Check if scope done."""
         return self._lowLevelIsReady()
 
     def waitReady(self):
-        while(self.isReady() == False): time.sleep(0.01)
+        """ Block until the scope is ready. """
+        while not self.isReady():
+            time.sleep(0.01)
 
     def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
         """Returns (actualSampleInterval, noSamples, maxSamples)"""
@@ -240,10 +219,11 @@ class PSBase(object):
 
         noSamples = int(round(duration / timebase_dt))
 
-        (self.sampleInterval, self.maxSamples) = self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
+        (self.sampleInterval, self.maxSamples) = \
+            self._lowLevelGetTimebase(self.timebase, noSamples, oversample, segmentIndex)
 
         self.noSamples = noSamples
-        self.sampleRate = 1.0/self.sampleInterval
+        self.sampleRate = 1.0 / self.sampleInterval
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
@@ -255,7 +235,8 @@ class PSBase(object):
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
-    def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100, enabled=True):
+    def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100,
+                         enabled=True):
         """
         Simple Trigger setup.
 
@@ -270,7 +251,6 @@ class PSBase(object):
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
 
-
         direction = self.THRESHOLD_TYPE[direction]
 
         if trigSrc >= self.NUM_CHANNELS:
@@ -282,7 +262,8 @@ class PSBase(object):
         a2v = self.CHRange[trigSrc] / self.getMaxValue()
         threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
-        self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay, timeout_ms)
+        self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay,
+                                       timeout_ms)
 
 
     def flashLed(self, times=5, start=False, stop=False):
@@ -305,7 +286,8 @@ class PSBase(object):
 
         self._lowLevelFlashLed(times)
 
-    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0, returnOverflow=False, exceptOverflow=False):
+    def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0,
+                 returnOverflow=False, exceptOverflow=False):
         """
         getDataV returns the data as an array of voltage values
 
@@ -315,18 +297,20 @@ class PSBase(object):
         overflow is a flag that is true when the signal was either too large
                  or too small to be properly digitized
 
-        if exceptOverflow is true, an IOError exception is raised on overflow if returnOverflow is False. This allows you to detect overflows at
-        higher layers w/o complicated return trees. You cannot however read the 'good' data, you only get the exception information then.
+        if exceptOverflow is true, an IOError exception is raised on overflow if
+        returnOverflow is False. This allows you to detect overflows at
+        higher layers w/o complicated return trees. You cannot however read the '
+        good' data, you only get the exception information then.
         """
 
-        (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex, downSampleRatio, downSampleMode)
+        (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex,
+                                                               downSampleRatio, downSampleMode)
 
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
         a2v = self.CHRange[channel] / float(self.getMaxValue())
         dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
-
 
         if returnOverflow:
             return (dataV, overflow)
@@ -337,8 +321,6 @@ class PSBase(object):
 
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
         """
-        TODO: Figure out why this function is crashing :S.
-
         getDataRaw returns the data in the purest form.
         it returns a tuple containing:
         (data, numSamplesReturned, overflow)
@@ -359,7 +341,8 @@ class PSBase(object):
         data = np.empty(numSamples, dtype=np.int16)
         self._lowLevelSetDataBuffer(channel, data, downSampleMode)
 
-        (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex, downSampleRatio, downSampleMode)
+        (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex,
+                                                                 downSampleRatio, downSampleMode)
         #necessary or else the next call to getValues will try to fill this array
         # unless it is a call trying to read the same channel.
         self._lowLevelClearDataBuffer(channel)
@@ -367,7 +350,7 @@ class PSBase(object):
         return (data, numSamplesReturned, overflow)
 
     def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
-            shots=1, triggerType="Rising", triggerSource="None"):
+                               shots=1, triggerType="Rising", triggerSource="None"):
         """
         This allows you to use the built in function generator's in a more
         straightforward way.
@@ -383,9 +366,11 @@ class PSBase(object):
             triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
 
         self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
-                shots, triggerType, triggerSource)
+                                             shots, triggerType, triggerSource)
+
     def setAWGSimple(self, waveform, duration, offsetVoltage=None,
-            pkToPk=None, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
+                     pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",
+                     triggerSource="ScopeTrig"):
         """
         This function sets the AWG to output the given waveform (numpy array).
         It takes in the total waveform duration. This means that it will compute
@@ -416,12 +401,12 @@ class PSBase(object):
 
         Returns: The actual duration of the waveform
         """
-        sampling_interval = duration/len(waveform)
+        sampling_interval = duration / len(waveform)
 
         if not isinstance(indexMode, int):
             indexMode = self.AWG_INDEX_MODES[indexMode]
 
-        if   indexMode == self.AWG_INDEX_MODES["Single"]:
+        if indexMode == self.AWG_INDEX_MODES["Single"]:
             pass
         elif indexMode == self.AWG_INDEX_MODES["Dual"]:
             sampling_interval /= 2
@@ -431,11 +416,14 @@ class PSBase(object):
         deltaPhase = self.getAWGDeltaPhase(sampling_interval)
 
         actual_druation = self.setAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage,
-                pkToPk, indexMode, shots, triggerType, triggerSource)
+                                                      pkToPk, indexMode, shots, triggerType,
+                                                      triggerSource)
+
         return (actual_druation, deltaPhase)
 
     def setAWGSimpleDeltaPhase(self, waveform, deltaPhase, offsetVoltage=None,
-            pkToPk=None, indexMode="Single", shots=1, triggerType="Rising", triggerSource="ScopeTrig"):
+                               pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",
+                               triggerSource="ScopeTrig"):
         """
         This is function provides a little more control than
         setAWGSimple in the sense that you are able to specify deltaPhase
@@ -476,7 +464,7 @@ class PSBase(object):
         """
 
         """
-        This part of the code is written for the PS6403 (PS6403D if that matters)
+        This part of the code is written for the PS6403 (PS6403B if that matters)
         I don't really know a good way to differentiate between PS6403 versions
 
         It essentially does some autoscaling for the waveform so that it can be sent
@@ -523,21 +511,19 @@ class PSBase(object):
             # make a copy of the original data as to not clobber up the array
             waveform = waveform - offsetVoltage
             if pkToPk is None:
-                pkToPk = np.max(np.absolute(waveform))*2
-
-
+                pkToPk = np.max(np.absolute(waveform)) * 2
 
             # waveform should now be baised around 0
             # with
             #     max(waveform) = +pkToPk/2
             #     min(waveform) = -pkToPk/2
-
             waveform /= pkToPk
+
             # waveform should now be a number between -0.5 and +0.5
 
+            waveform += 0.5
             # and now the waveform is between 0 and 1
             # inclusively???
-            waveform += 0.5
 
             # now the waveform is properly quantized
             waveform *= (self.AWGMaxVal - self.AWGMinVal)
@@ -551,8 +537,8 @@ class PSBase(object):
             # funny floating point rounding errors
             waveform.clip(self.AWGMinVal, self.AWGMaxVal, out=waveform)
 
-        self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase,
-                offsetVoltage, pkToPk, indexMode, shots, triggerType, triggerSource)
+        self._lowLevelSetAWGSimpleDeltaPhase(waveform, deltaPhase, offsetVoltage, pkToPk,
+                                             indexMode, shots, triggerType, triggerSource)
 
         timeIncrement = self.getAWGTimeIncrement(deltaPhase)
         waveform_duration = timeIncrement * len(waveform)
@@ -580,9 +566,9 @@ class PSBase(object):
         The top 2**self.AWGBufferAddressWidth bits indicate which sample is
         being output by the DDS.
         """
-        samplingFrequency = 1/timeIncrement
+        samplingFrequency = 1 / timeIncrement
         deltaPhase = long(samplingFrequency / self.AWGDACFrequency *
-                2**(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth))
+                          2 ** (self.AWGPhaseAccumulatorSize - self.AWGBufferAddressWidth))
         return deltaPhase
 
     def getAWGTimeIncrement(self, deltaPhase):
@@ -592,8 +578,9 @@ class PSBase(object):
         You should use this function in conjunction with
         getAWGDeltaPhase to obtain the actual timestep of AWG.
         """
-        samplingFrequency = deltaPhase * self.AWGDACFrequency / 2 **(self.AWGPhaseAccumulatorSize-self.AWGBufferAddressWidth)
-        return 1/samplingFrequency
+        samplingFrequency = deltaPhase * self.AWGDACFrequency / \
+                            2 ** (self.AWGPhaseAccumulatorSize - self.AWGBufferAddressWidth)
+        return 1 / samplingFrequency
 
     def setResolution(self, resolution):
         """For 5000-series scopes ONLY, sets the resolution. Error on other devices."""
@@ -613,6 +600,7 @@ class PSBase(object):
         if not self.handle is None:
             self._lowLevelCloseUnit()
             self.handle = None
+
     def stop(self):
         """
         Let the Picoscope know that you are done acquiring data
@@ -635,7 +623,7 @@ class PSBase(object):
         else:
             ecName = self.errorNumToName(ec)
             ecDesc = self.errorNumToDesc(ec)
-            raise IOError('Error calling %s: %s (%s)'%(inspect.stack()[1][3], ecName, ecDesc))
+            raise IOError('Error calling %s: %s (%s)' % (inspect.stack()[1][3], ecName, ecDesc))
 
     def errorNumToName(self, num):
         """Convert error number to name"""
@@ -652,7 +640,8 @@ class PSBase(object):
                 except IndexError:
                     return ""
 
-    ###Error codes - copied from PS6000 programmers manual. I think they are fairly unviersal though, just ignore ref to 'PS6000'...
+    ###Error codes - copied from PS6000 programmers manual. I think they are fairly unviersal though,
+    # just ignore ref to 'PS6000'...
     #To get formatting correct do following copy-replace in Programmers Notepad
     #1. Copy/replace ' - ' with '", "'
     #2. Copy/replace '\r' with '"],\r' (enable slash expressions when doing this)
