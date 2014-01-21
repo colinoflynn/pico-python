@@ -261,12 +261,14 @@ class PSBase(object):
 
         if trigSrc >= self.NUM_CHANNELS:
             # The only unknown is how to convert the voltage to an AUX ADC count
-            raise NotImplementedError("We do not support AUX triggering yet...")
+            #raise NotImplementedError("We do not support AUX triggering yet...")            
+            threshold_adc = int( (threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
+            threshold_adc = min(threshold_adc, self.EXT_MAX_VALUE)
+        else:
+            a2v = self.CHRange[trigSrc] / self.getMaxValue()
+            threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
-        enabled = int(bool(enabled))
-
-        a2v = self.CHRange[trigSrc] / self.getMaxValue()
-        threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
+        enabled = int(bool(enabled))        
 
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay,
                                        timeout_ms)
