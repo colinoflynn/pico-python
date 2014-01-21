@@ -125,6 +125,8 @@ class PS5000a(PSBase):
     MIN_VALUE_8BIT = -32512
     MAX_VALUE_OTHER = 32767
     MIN_VALUE_OTHER = -32767
+    
+    EXT_RANGE_VOLTS = 5
 
     def __init__(self, serialNumber=None, connect=True):       
         """Load DLL etc"""
@@ -137,7 +139,7 @@ class PS5000a(PSBase):
             
         self.resolution = self.ADC_RESOLUTIONS["8"]
         
-        super(PS5000, self).__init__(serialNumber, connect)
+        super(PS5000a, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
