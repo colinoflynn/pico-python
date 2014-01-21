@@ -119,7 +119,7 @@ class PSBase(object):
         Be warned ALL CHANNELS are enabled by default. Thus if you
         need only a single channel turn off the unused ones, since
         it will restrict your sample rate.
-        """         
+        """
 
         # TODO: Make A class for each channel
         # that way the settings will make more sense
@@ -129,7 +129,7 @@ class PSBase(object):
         self.CHRange = [None] * self.NUM_CHANNELS
         self.CHOffset = [None] * self.NUM_CHANNELS
         self.ProbeAttenuation = [None] * self.NUM_CHANNELS
-        
+
         if connect is True:
             self.open(serialNumber)
 
@@ -194,7 +194,7 @@ class PSBase(object):
         self.CHOffset[chNum] = VOffset
         self.ProbeAttenuation[chNum] = probeAttenuation
 
-    def runBlock(self, pretrig=0.0):
+    def runBlock(self, pretrig=0.0, segmentIndex=0):
         """
         Runs a single block, must have already called setSampling for proper
         setup.
@@ -204,7 +204,7 @@ class PSBase(object):
         nSamples = min(self.noSamples, self.maxSamples)
 
         self._lowLevelRunBlock(int(nSamples * pretrig), int(nSamples * (1 - pretrig)),
-                               self.timebase, self.oversample, self.segmentIndex)
+                               self.timebase, self.oversample, segmentIndex)
 
     def isReady(self):
         """Check if scope done."""
@@ -218,7 +218,6 @@ class PSBase(object):
     def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
         """Returns (actualSampleInterval, noSamples, maxSamples)"""
         self.oversample = oversample
-        self.segmentIndex = segmentIndex
         self.timebase = self.getTimeBaseNum(sampleInterval)
 
         timebase_dt = self.getTimestepFromTimebase(self.timebase)
@@ -295,7 +294,7 @@ class PSBase(object):
         self._lowLevelFlashLed(times)
 
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0,
-                 returnOverflow=False, exceptOverflow=False):
+                 segmentIndex=0, returnOverflow=False, exceptOverflow=False):
         """
         getDataV returns the data as an array of voltage values
 
@@ -312,7 +311,8 @@ class PSBase(object):
         """
 
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex,
-                                                               downSampleRatio, downSampleMode)
+                                                               downSampleRatio, downSampleMode,
+                                                               segmentIndex)
 
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
@@ -327,7 +327,8 @@ class PSBase(object):
                 raise IOError("Overflow detected in data")
             return dataV
 
-    def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0):
+    def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1,
+                   downSampleMode=0, segmentIndex=0):
         """
         getDataRaw returns the data in the purest form.
         it returns a tuple containing:
@@ -347,13 +348,14 @@ class PSBase(object):
             numSamples = min(self.maxSamples, 4096)
 
         data = np.empty(numSamples, dtype=np.int16)
-        self._lowLevelSetDataBuffer(channel, data, downSampleMode)
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
 
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex,
-                                                                 downSampleRatio, downSampleMode)
+                                                                 downSampleRatio, downSampleMode,
+                                                                 segmentIndex)
         #necessary or else the next call to getValues will try to fill this array
         # unless it is a call trying to read the same channel.
-        self._lowLevelClearDataBuffer(channel)
+        self._lowLevelClearDataBuffer(channel, segmentIndex)
 
         return (data, numSamplesReturned, overflow)
 

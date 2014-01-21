@@ -113,7 +113,7 @@ class PS6000(PSBase):
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
-        
+
         super(PS6000, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
@@ -257,7 +257,7 @@ class PS6000(PSBase):
             c_int16(0))                          # extInThreshold
         self.checkResult(m)
 
-    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode):
+    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode, segmentIndex):
         """
         data should be a numpy array.
 
@@ -265,6 +265,7 @@ class PS6000(PSBase):
         when you are done with the data array
         or else subsequent calls to GetValue will still use the same array.
 
+        segmentIndex is unused, but required by other versions of the API (eg PS5000a)
         """
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
@@ -274,21 +275,21 @@ class PS6000(PSBase):
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel):
+    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
         """data should be a numpy array."""
         m = self.lib.ps6000SetDataBuffer(c_int16(self.handle), c_enum(channel),
                                          c_void_p(), c_uint32(0), c_enum(0))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
-                           downSampleMode):
+                           downSampleMode, segmentIndex):
         numSamplesReturned = c_uint32()
         numSamplesReturned.value = numSamples
         overflow = c_int16()
         m = self.lib.ps6000GetValues(
             c_int16(self.handle), c_uint32(startIndex),
             byref(numSamplesReturned), c_uint32(downSampleRatio),
-            c_enum(downSampleMode), c_uint32(self.segmentIndex),
+            c_enum(downSampleMode), c_uint32(segmentIndex),
             byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
