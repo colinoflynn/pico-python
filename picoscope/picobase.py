@@ -362,6 +362,8 @@ class PSBase(object):
         # unless it is a call trying to read the same channel.
         self._lowLevelClearDataBuffer(channel, segmentIndex)
 
+        overflow = bool(overflow)
+
         return (data, numSamplesReturned, overflow)
 
     def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
