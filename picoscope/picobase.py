@@ -130,6 +130,8 @@ class PSBase(object):
         self.CHOffset = [None] * self.NUM_CHANNELS
         self.ProbeAttenuation = [None] * self.NUM_CHANNELS
 
+        self.handle = None
+
         if connect is True:
             self.open(serialNumber)
 
@@ -167,7 +169,8 @@ class PSBase(object):
         else:
             chNum = channel
 
-        coupling = self.CHANNEL_COUPLINGS[coupling]
+        if not isinstance(coupling, int):
+            coupling = self.CHANNEL_COUPLINGS[coupling]        
 
         # I don't know if I like the fact that you are comparing floating points
         # I think this should just be a string, because then we know the user is
@@ -256,12 +259,14 @@ class PSBase(object):
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
 
-        direction = self.THRESHOLD_TYPE[direction]
+        if not isinstance(direction, int):
+            direction = self.THRESHOLD_TYPE[direction]
 
         if trigSrc >= self.NUM_CHANNELS:
             # The only unknown is how to convert the voltage to an AUX ADC count
             #raise NotImplementedError("We do not support AUX triggering yet...")            
             threshold_adc = int( (threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
+            #TODO fix this for negative
             threshold_adc = min(threshold_adc, self.EXT_MAX_VALUE)
         else:
             a2v = self.CHRange[trigSrc] / self.getMaxValue()
