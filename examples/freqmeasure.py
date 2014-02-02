@@ -9,16 +9,6 @@ from picoscope import ps5000a
 
 from matplotlib.mlab import find
 
-def fft(signal, freq):
-    FFT = abs(scipy.fft(signal))
-    FFTdb = 20*scipy.log10(FFT)
-    freqs = scipy.fftpack.fftfreq(len(signal), 1/freq)
-
-    FFTdb = FFTdb[2:len(freqs)/2]
-    freqs = freqs[2:len(freqs)/2]
-
-    return (freqs, FFTdb)
-
 class freqMeasure():
     def __init__(self):
         self.ps = ps5000a.PS5000a(connect=False)
@@ -72,7 +62,11 @@ if __name__ == "__main__":
     fm = freqMeasure()
     fm.openScope()
     
-    fm.armMeasure()
-    fm.measure()
-    
+    try:
+        while 1:
+            fm.armMeasure()
+            fm.measure()    
+    except KeyboardInterrupt:
+        pass
+        
     fm.closeScope()
