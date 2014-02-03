@@ -69,6 +69,8 @@ class PS6000(PSBase):
     NUM_CHANNELS = 4
     CHANNELS     =  {"A": 0, "B": 1, "C": 2, "D": 3,
                      "External": 4, "MaxChannels": 4, "TriggerAux": 5}
+    
+    EXT_RANGE_VOLTS = 1
 
     #has_sig_gen = True
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
