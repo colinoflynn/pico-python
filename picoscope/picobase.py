@@ -161,7 +161,39 @@ class PSBase(object):
 
     def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True,
                    BWLimited=False, probeAttenuation=1.0):
-        """ Set up a specific channel. """
+        """
+        Set up a specific channel.
+
+        The VOffset, is an offset that the scope will ADD to your signal.
+
+        If using a probe (or a sense resitor), the probeAttenuation value is used to find
+        the approriate channel range on the scope to use.
+
+        e.g. to use a 10x attenuation probe, you must supply the following parameters
+        ps.setChannel('A', "DC", 20.0, 5.0, True, False, 10.0)
+
+        The scope will then be set to use the +- 2V mode at the scope allowing you to measure
+        your signal from -25V to +15V.
+        After this point, you can set everything in terms of units as seen at the tip of the probe.
+        For example, you can set a trigger of 15V and it will trigger at the correct value.
+
+        When using a sense resistor, lets say R = 1.3 ohm, you obtain the relation:
+
+        V = IR, meaning that your probe as an attenuation of R compared to the current you are
+        trying to measure.
+
+        You should supply probeAttenuation = 1.3
+        The rest of your units should be specified in amps.
+
+        Unfortunately, you still have to supply a VRange that is very close to the allowed values.
+        This will change in furture version where we will find the next largest range to
+        accomodate the desired range.
+
+        If you want to use units of mA, supply a probe attenuation of 1.3E3.
+        Note, the authors recommend sticking to SI units because it makes it easier to guess
+        what units each parameter is in.
+
+        """
         if enabled:
             enabled = 1
         else:
@@ -173,13 +205,14 @@ class PSBase(object):
             chNum = channel
 
         if not isinstance(coupling, int):
-            coupling = self.CHANNEL_COUPLINGS[coupling]        
+            coupling = self.CHANNEL_COUPLINGS[coupling]
 
         # I don't know if I like the fact that you are comparing floating points
         # I think this should just be a string, because then we know the user is
         # in charge of properly formatting it
         try:
-            # more resilient VRange
+            # TODO: implement a "find next largest" accounding for roundoff errors
+            # as implemented, we are doing a "find exact" but it accounts for small roundoff errors
             VRangeAPI = (item for item in self.CHANNEL_RANGE if np.abs(item["rangeV"]-VRange/probeAttenuation)/item["rangeV"]<1E-4).next()
             VRangeAPI = VRangeAPI["apivalue"]
         except StopIteration:
@@ -266,34 +299,28 @@ class PSBase(object):
             direction = self.THRESHOLD_TYPE[direction]
 
         if trigSrc >= self.NUM_CHANNELS:
-            threshold_adc = int( (threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
+            threshold_adc = int((threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
 
+            # We should probably throw an error at this point instead of clipping
             threshold_adc = min(threshold_adc, self.EXT_MAX_VALUE)
             threshold_adc = max(threshold_adc, self.EXT_MIN_VALUE)
         else:
-            chRange = self.CHRange[trigSrc] *  self.ProbeAttenuation[trigSrc]
-            threshold_V = threshold_V / self.ProbeAttenuation[trigSrc]
+            a2v = self.CHRange[trigSrc] / self.getMaxValue()
+            threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
-            a2v = chRange / self.getMaxValue()
-            #TODO: Is this correct for offset?
-            threshold_adc = int(  (threshold_V + self.CHOffset[trigSrc]) / a2v  )
+            if threshold_adc > self.getMaxValue() or threshold_adc < self.getMinValue():
+                raise IOError("Trigger Level of %fV outside allowed range (%f, %f)"%(
+                    threshold_V, -self.CHRange[trigSrc]-self.CHOffset[trigSrc],
+                    self.CHRange[trigSrc]-self.CHOffset[trigSrc]))
 
-            if abs(threshold_V) > chRange:
-                #Yikes - that won't work
-                raise IOError("Trigger Level of %fV outside CHRange of %fV (assuming 1:%d probe)"%(threshold_V, chRange, self.ProbeAttenuation[trigSrc]))
-
-            threshold_adc = min(threshold_adc, self.getMaxValue())
-            threshold_adc = max(threshold_adc, self.getMinValue())
-
-        enabled = int(bool(enabled))        
+        enabled = int(bool(enabled))
 
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay,
                                        timeout_ms)
 
-
     def flashLed(self, times=5, start=False, stop=False):
         """
-        Flash the front panel LEDs
+        Flash the front panel LEDs.
 
         Use one of input arguments to specify how the Picoscope will flash the
         LED
