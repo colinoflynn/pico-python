@@ -147,6 +147,9 @@ class PSBase(object):
         # This was a "fix" when we started supported PS5000a
         return self.MAX_VALUE
 
+    def getMinValue(self):
+        return self.MIN_VALUE
+
     def getAllUnitInfo(self):
         """ Retrun: String containing the unit information in a human readible way. """
         s = ""
@@ -263,14 +266,24 @@ class PSBase(object):
             direction = self.THRESHOLD_TYPE[direction]
 
         if trigSrc >= self.NUM_CHANNELS:
-            # The only unknown is how to convert the voltage to an AUX ADC count
-            #raise NotImplementedError("We do not support AUX triggering yet...")            
             threshold_adc = int( (threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
-            #TODO fix this for negative
+
             threshold_adc = min(threshold_adc, self.EXT_MAX_VALUE)
+            threshold_adc = max(threshold_adc, self.EXT_MIN_VALUE)
         else:
-            a2v = self.CHRange[trigSrc] / self.getMaxValue()
-            threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
+            chRange = self.CHRange[trigSrc] *  self.ProbeAttenuation[trigSrc]
+            threshold_V = threshold_V / self.ProbeAttenuation[trigSrc]
+
+            a2v = chRange / self.getMaxValue()
+            #TODO: Is this correct for offset?
+            threshold_adc = int(  (threshold_V + self.CHOffset[trigSrc]) / a2v  )
+
+            if abs(threshold_V) > chRange:
+                #Yikes - that won't work
+                raise IOError("Trigger Level of %fV outside CHRange of %fV (assuming 1:%d probe)"%(threshold_V, chRange, self.ProbeAttenuation[trigSrc]))
+
+            threshold_adc = min(threshold_adc, self.getMaxValue())
+            threshold_adc = max(threshold_adc, self.getMinValue())
 
         enabled = int(bool(enabled))        
 
