@@ -287,8 +287,17 @@ class PSBase(object):
         trigSrc can be either a number corresponding to the low level
         specifications of the scope or a string such as 'A' or 'AUX'
 
-        Currently AUX is not supported
-
+        direction can be a text string such as "Rising" or "Falling",
+        or the value of the dict from self.THRESHOLD_TYPE[] corresponding
+        to your trigger type.
+        
+        delay is number of clock cycles to wait from trigger conditions met
+        until we actually trigger capture.
+        
+        timeout_ms is time to wait in mS from calling runBlock() or similar
+        (e.g. when trigger arms) for the trigger to occur. If no trigger
+        occurs it gives up & auto-triggers.
+                        
         Support for offset is currently untested
 
         """
