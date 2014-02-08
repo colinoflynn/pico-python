@@ -290,14 +290,14 @@ class PSBase(object):
         direction can be a text string such as "Rising" or "Falling",
         or the value of the dict from self.THRESHOLD_TYPE[] corresponding
         to your trigger type.
-        
+
         delay is number of clock cycles to wait from trigger conditions met
         until we actually trigger capture.
-        
+
         timeout_ms is time to wait in mS from calling runBlock() or similar
         (e.g. when trigger arms) for the trigger to occur. If no trigger
         occurs it gives up & auto-triggers.
-                        
+
         Support for offset is currently untested
 
         """
@@ -377,7 +377,7 @@ class PSBase(object):
         if returnOverflow:
             return (dataV, overflow)
         else:
-            if (overflow != 0) & (exceptOverflow):
+            if overflow and exceptOverflow:
                 raise IOError("Overflow detected in data")
             return dataV
 
@@ -411,7 +411,8 @@ class PSBase(object):
         # unless it is a call trying to read the same channel.
         self._lowLevelClearDataBuffer(channel, segmentIndex)
 
-        overflow = bool(overflow)
+        # overflow is a bitwise mask
+        overflow = bool(overflow & (1<<channel)))
 
         return (data, numSamplesReturned, overflow)
 
