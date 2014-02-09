@@ -137,13 +137,13 @@ class PSBase(object):
         return self._lowLevelGetUnitInfo(info)
 
     def getMaxValue(self):
-        """ Returns: the maximum ADC value, used for scaling. """
+        """ Return the maximum ADC value, used for scaling. """
         # TODO: make this more consistent accross versions
         # This was a "fix" when we started supported PS5000a
         return self.MAX_VALUE
 
     def getMinValue(self):
-        """ Retrun: the minimum ADC value, used for scaling as int. """
+        """ Return the minimum ADC value, used for scaling. """
         return self.MIN_VALUE
 
     def getAllUnitInfo(self):
@@ -662,6 +662,10 @@ class PSBase(object):
     def setResolution(self, resolution):
         """For 5000-series scopes ONLY, sets the resolution. Error on other devices."""
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
+
+    def enumerateUnits(self):
+        """ Enumerate connceted units. Return serial numbers as list of strings. """
+        return self._lowLevelEnumerateUnits()
 
     def open(self, serialNumber=None):
         """ Open the scope, if serialNumber is None just opens first one found. """

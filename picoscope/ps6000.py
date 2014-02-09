@@ -354,13 +354,13 @@ class PS6000(PSBase):
         # an extra character for the comma
         # and an extra one for the space after the comma?
         # the extra two also work for the null termination
-        serialLth = count.value * (8 + 2)
-        serials = create_string_buffer(serialLth + 1)
+        serialLth = c_int16(count.value * (8 + 2))
+        serials = create_string_buffer(serialLth.value + 1)
 
         m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
         self.checkResult(m)
 
-        serialList = str(serials).split(',')
+        serialList = str(serials.value).split(',')
 
         serialList = [x.strip() for x in serialList]
 
