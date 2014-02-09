@@ -50,7 +50,9 @@ if __name__ == "__main__":
                                                       offsetVoltage=0.0, indexMode="Dual",
                                                       triggerSource='None')
 
-    ps.setChannel('A', 'DC', 20.0, 0.0, enabled=True, BWLimited=False)
+    # the setChannel command will chose the next largest amplitude
+    channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)
+    print("Chosen channel range = %d" % channelRange)
     ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
 
     ps.runBlock()

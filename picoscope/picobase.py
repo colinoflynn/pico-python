@@ -236,6 +236,8 @@ class PSBase(object):
         self.CHOffset[chNum] = VOffset
         self.ProbeAttenuation[chNum] = probeAttenuation
 
+        return VRange
+
     def runBlock(self, pretrig=0.0, segmentIndex=0):
         """ Run a single block, must have already called setSampling for proper setup. """
 
