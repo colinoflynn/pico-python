@@ -69,10 +69,13 @@ class PS6000(PSBase):
     MAX_VALUE = 32764
     MIN_VALUE = -32764
 
+    #EXT/AUX seems to have an imput impedence of 66 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
-    EXT_RANGE_VOLTS = 20
+    EXT_RANGE_VOLTS = 1
 
+    # I don't think that the 50V range is allowed, but I left it there anyway
+    # The 10V and 20V ranges are only allowed in high impedence modes
     CHANNEL_RANGE = [{"rangeV": 20E-3,  "apivalue": 1, "rangeStr": "20 mV"},
                      {"rangeV": 50E-3,  "apivalue": 2, "rangeStr": "50 mV"},
                      {"rangeV": 100E-3, "apivalue": 3, "rangeStr": "100 mV"},
@@ -81,6 +84,9 @@ class PS6000(PSBase):
                      {"rangeV": 1.0,    "apivalue": 6, "rangeStr": "1 V"},
                      {"rangeV": 2.0,    "apivalue": 7, "rangeStr": "2 V"},
                      {"rangeV": 5.0,    "apivalue": 8, "rangeStr": "5 V"},
+                     {"rangeV": 10.0,   "apivalue": 9, "rangeStr": "10 V"},
+                     {"rangeV": 20.0,   "apivalue": 10, "rangeStr": "20 V"},
+                     {"rangeV": 50.0,   "apivalue": 11, "rangeStr": "50 V"},
                      ]
 
     NUM_CHANNELS = 4
@@ -89,7 +95,7 @@ class PS6000(PSBase):
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
-    EXT_RANGE_VOLTS = 1
+
 
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
@@ -129,7 +135,9 @@ class PS6000(PSBase):
         """ Load DLLs. """
         if platform.system() == 'Linux':
             from ctypes import cdll
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
+            # ok I don't know what is wrong with my installer, but I need to include
+            # .so.2
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")

@@ -213,12 +213,12 @@ class PSBase(object):
                     VRangeAPI = item
                     # break
                 # Don't know if this is necessary assuming that it will iterate in order
-                elif VRangeAPI["rangeV"] < item["rangeV"]:
+                elif VRangeAPI["rangeV"] > item["rangeV"]:
                     VRangeAPI = item
 
         if VRangeAPI is None:
             raise ValueError("Desired range %f is too large. Maximum range is %f." %
-                             (VRange. self.CHANNEL_RANGE[-1]["rangeV"] * probeAttenuation))
+                             (VRange, self.CHANNEL_RANGE[-1]["rangeV"] * probeAttenuation))
 
         # store the actually chosen range of the scope
         VRange = VRangeAPI["rangeV"] * probeAttenuation
@@ -228,7 +228,7 @@ class PSBase(object):
         else:
             BWLimited = 0
 
-        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI,
+        self._lowLevelSetChannel(chNum, enabled, coupling, VRangeAPI["apivalue"],
                                  VOffset / probeAttenuation, BWLimited)
 
         # if all was successful, save the parameters
@@ -305,6 +305,8 @@ class PSBase(object):
 
         Support for offset is currently untested
 
+        Note, the AUX port (or EXT) only has a range of +- 1V (at least in PS6000)
+
         """
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
@@ -315,7 +317,8 @@ class PSBase(object):
         if trigSrc >= self.NUM_CHANNELS:
             threshold_adc = int((threshold_V / self.EXT_RANGE_VOLTS) * self.EXT_MAX_VALUE)
 
-            # We should probably throw an error at this point instead of clipping
+            # The external port is typically used as a clock. So I don't think we should
+            # raise errors
             threshold_adc = min(threshold_adc, self.EXT_MAX_VALUE)
             threshold_adc = max(threshold_adc, self.EXT_MIN_VALUE)
         else:
@@ -323,7 +326,7 @@ class PSBase(object):
             threshold_adc = int((threshold_V + self.CHOffset[trigSrc]) / a2v)
 
             if threshold_adc > self.getMaxValue() or threshold_adc < self.getMinValue():
-                raise IOError("Trigger Level of %fV outside allowed range (%f, %f)"%(
+                raise IOError("Trigger Level of %fV outside allowed range (%f, %f)" % (
                     threshold_V, -self.CHRange[trigSrc] - self.CHOffset[trigSrc],
                     self.CHRange[trigSrc] - self.CHOffset[trigSrc]))
 
@@ -421,7 +424,7 @@ class PSBase(object):
         self._lowLevelClearDataBuffer(channel, segmentIndex)
 
         # overflow is a bitwise mask
-        overflow = bool(overflow & (1<<channel)))
+        overflow = bool(overflow & (1 << channel))
 
         return (data, numSamplesReturned, overflow)
 
