@@ -114,21 +114,16 @@ class PSBase(object):
                        "PicoFirmwareVersion2"   : 0xA}
 
     def __init__(self, serialNumber=None, connect=True):
-        """
-        Creates the class, and by default also connects to a scope.
-        Be warned ALL CHANNELS are enabled by default. Thus if you
-        need only a single channel turn off the unused ones, since
-        it will restrict your sample rate.
-        """
+        """ Create a picoscope class, and by default also connect to the scope. """
 
         # TODO: Make A class for each channel
         # that way the settings will make more sense
 
         # These do not correspond to API values, but rather to
         # the "true" voltage as seen at the oscilloscope probe
-        self.CHRange = [None] * self.NUM_CHANNELS
-        self.CHOffset = [None] * self.NUM_CHANNELS
-        self.ProbeAttenuation = [None] * self.NUM_CHANNELS
+        self.CHRange = [5.0] * self.NUM_CHANNELS
+        self.CHOffset = [0.0] * self.NUM_CHANNELS
+        self.ProbeAttenuation = [1.0] * self.NUM_CHANNELS
 
         self.handle = None
 
@@ -136,22 +131,23 @@ class PSBase(object):
             self.open(serialNumber)
 
     def getUnitInfo(self, info):
-        """ returns a string containing the requested information """
+        """ Return: A string containing the requested information. """
         if not isinstance(info, int):
             info = self.UNIT_INFO_TYPES[info]
         return self._lowLevelGetUnitInfo(info)
 
     def getMaxValue(self):
-        """ Return: the maximum ADC value, used for scaling ."""
+        """ Returns: the maximum ADC value, used for scaling. """
         # TODO: make this more consistent accross versions
         # This was a "fix" when we started supported PS5000a
         return self.MAX_VALUE
 
     def getMinValue(self):
+        """ Retrun: the minimum ADC value, used for scaling as int. """
         return self.MIN_VALUE
 
     def getAllUnitInfo(self):
-        """ Retrun: String containing the unit information in a human readible way. """
+        """ Return: human readible unit information as a string. """
         s = ""
         for key in sorted(self.UNIT_INFO_TYPES.keys(), key=self.UNIT_INFO_TYPES.get):
             s += key.ljust(30) + ": " + self.getUnitInfo(key) + "\n"
@@ -163,6 +159,8 @@ class PSBase(object):
                    BWLimited=False, probeAttenuation=1.0):
         """
         Set up a specific channel.
+
+        It finds the smallest range that is capable of accepting your signal.
 
         The VOffset, is an offset that the scope will ADD to your signal.
 
@@ -207,18 +205,23 @@ class PSBase(object):
         if not isinstance(coupling, int):
             coupling = self.CHANNEL_COUPLINGS[coupling]
 
-        # I don't know if I like the fact that you are comparing floating points
-        # I think this should just be a string, because then we know the user is
-        # in charge of properly formatting it
-        try:
-            # TODO: implement a "find next largest" accounding for roundoff errors
-            # as implemented, we are doing a "find exact" but it accounts for small roundoff errors
-            VRangeAPI = (item for item in self.CHANNEL_RANGE if np.abs(item["rangeV"]-VRange/probeAttenuation)/item["rangeV"]<1E-4).next()
-            VRangeAPI = VRangeAPI["apivalue"]
-        except StopIteration:
-            rstr = ""
-            for t in self.CHANNEL_RANGE: rstr += "%f (%s), "%(t["rangeV"]*probeAttenuation, t["rangeStr"])
-            raise ValueError("%f is invalid range. Valid ranges: %s"%(VRange, rstr))
+        # finds the next largest range accounting for small floating point errors
+        VRangeAPI = None
+        for item in self.CHANNEL_RANGE:
+            if item["rangeV"] - VRange / probeAttenuation > -1E-4:
+                if VRangeAPI is None:
+                    VRangeAPI = item
+                    # break
+                # Don't know if this is necessary assuming that it will iterate in order
+                elif VRangeAPI["rangeV"] < item["rangeV"]:
+                    VRangeAPI = item
+
+        if VRangeAPI is None:
+            raise ValueError("Desired range %f is too large. Maximum range is %f." %
+                             (VRange. self.CHANNEL_RANGE[-1]["rangeV"] * probeAttenuation))
+
+        # store the actually chosen range of the scope
+        VRange = VRangeAPI["rangeV"] * probeAttenuation
 
         if BWLimited:
             BWLimited = 1
@@ -234,10 +237,7 @@ class PSBase(object):
         self.ProbeAttenuation[chNum] = probeAttenuation
 
     def runBlock(self, pretrig=0.0, segmentIndex=0):
-        """
-        Runs a single block, must have already called setSampling for proper
-        setup.
-        """
+        """ Run a single block, must have already called setSampling for proper setup. """
 
         # getting max samples is riddiculous. 1GS buffer means it will take so long
         nSamples = min(self.noSamples, self.maxSamples)
@@ -246,7 +246,12 @@ class PSBase(object):
                                self.timebase, self.oversample, segmentIndex)
 
     def isReady(self):
-        """Check if scope done."""
+        """
+        Check if scope done.
+
+        Returns: bool.
+
+        """
         return self._lowLevelIsReady()
 
     def waitReady(self):
@@ -255,7 +260,7 @@ class PSBase(object):
             time.sleep(0.01)
 
     def setSamplingInterval(self, sampleInterval, duration, oversample=0, segmentIndex=0):
-        """Returns (actualSampleInterval, noSamples, maxSamples)"""
+        """ Return (actualSampleInterval, noSamples, maxSamples). """
         self.oversample = oversample
         self.timebase = self.getTimeBaseNum(sampleInterval)
 
@@ -271,7 +276,7 @@ class PSBase(object):
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
     def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0, segmentIndex=0):
-        """Returns (actualSampleFreq, maxSamples)"""
+        """ Return (actualSampleFreq, maxSamples). """
         # TODO: make me more like the functions above
         #       at least in terms of what I return
         sampleInterval = 1.0 / sampleFreq
@@ -310,8 +315,8 @@ class PSBase(object):
 
             if threshold_adc > self.getMaxValue() or threshold_adc < self.getMinValue():
                 raise IOError("Trigger Level of %fV outside allowed range (%f, %f)"%(
-                    threshold_V, -self.CHRange[trigSrc]-self.CHOffset[trigSrc],
-                    self.CHRange[trigSrc]-self.CHOffset[trigSrc]))
+                    threshold_V, -self.CHRange[trigSrc] - self.CHOffset[trigSrc],
+                    self.CHRange[trigSrc] - self.CHOffset[trigSrc]))
 
         enabled = int(bool(enabled))
 
@@ -330,6 +335,7 @@ class PSBase(object):
         stop  = If true, will stop any flashing.
 
         Note that calls to the RunStreaming or RunBlock will stop any flashing.
+
         """
         if start:
             times = -1
@@ -341,7 +347,7 @@ class PSBase(object):
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0,
                  segmentIndex=0, returnOverflow=False, exceptOverflow=False):
         """
-        getDataV returns the data as an array of voltage values
+        Return the data as an array of voltage values.
 
         it returns (dataV, overflow) if returnOverflow = True
         else, it returns returns dataV
@@ -353,6 +359,7 @@ class PSBase(object):
         returnOverflow is False. This allows you to detect overflows at
         higher layers w/o complicated return trees. You cannot however read the '
         good' data, you only get the exception information then.
+
         """
 
         (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex,
@@ -375,7 +382,8 @@ class PSBase(object):
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1,
                    downSampleMode=0, segmentIndex=0):
         """
-        getDataRaw returns the data in the purest form.
+        Return the data in the purest form.
+
         it returns a tuple containing:
         (data, numSamplesReturned, overflow)
         data is an array of size numSamples
@@ -383,6 +391,7 @@ class PSBase(object):
                 (I don't know when this would not be equal to numSamples)
         overflow is a flag that is true when the signal was either too large
                  or too small to be properly digitized
+
         """
 
         if not isinstance(channel, int):
@@ -409,11 +418,11 @@ class PSBase(object):
     def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
                                shots=1, triggerType="Rising", triggerSource="None"):
         """
-        This allows you to use the built in function generator's in a more
-        straightforward way.
+        Use the built in function generator's in a more straightforward way.
 
         Not all the options are exposed making it easier to use for the simple
         things.
+
         """
         if not isinstance(waveType, int):
             waveType = self.WAVE_TYPES[waveType]
@@ -429,34 +438,16 @@ class PSBase(object):
                      pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",
                      triggerSource="ScopeTrig"):
         """
-        This function sets the AWG to output the given waveform (numpy array).
-        It takes in the total waveform duration. This means that it will compute
-        the phaseIncrement itself. If you require more control of the timestep
-        increment, you should use setSigGenAritrarySimpleDelaPhase instead
+        Set the AWG to output your desired wavefrom.
+
+        If you require precise control of the timestep increment, you should use
+        setSigGenAritrarySimpleDelaPhase instead
 
 
-        If pkToPk and offset Voltage are both set to 0, then the waveform is
-        interpreted as voltage values.
-
-        pkToPk = np.max(waveform) - np.min(waveform)
-        offset = (np.max(waveform) + np.min(waveform)) / 2
-
-        This should in theory minimize the quantization error in the ADC
-
-        else, the waveform shoudl be a numpy int16 type array with the containing
-        waveform
-
-        As it turns out, their programming guide is wrong. The int16 array should
-        contain numbers from 0x0000 to 0x0FFF (12 bit unsigned numbers).
-        0x000 corresponds to the lowest value of the AWG (offset - pkToPk/2)
-        while
-        0xFFF corresponds to the highest value of the AWG (ofset + pkToPk/2)
-
-
-        For the Quad mode, if offset voltage is not provided, then waveform[0]
-        is assumed to be the offset
+        Check setSigGenAritrarySimpleDelaPhase for parameter explanation
 
         Returns: The actual duration of the waveform
+
         """
         sampling_interval = duration / len(waveform)
 
@@ -482,11 +473,26 @@ class PSBase(object):
                                pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",
                                triggerSource="ScopeTrig"):
         """
+        Specify deltaPhase between each sample instead of the total waveform duration.
+
+        Returns the actual time duration of the waveform
+
+        If pkToPk and offset Voltage are both set to None, then their values are computed as
+
+        pkToPk = np.max(waveform) - np.min(waveform)
+        offset = (np.max(waveform) + np.min(waveform)) / 2
+
+        This should in theory minimize the quantization error in the ADC.
+
+        else, the waveform shoudl be a numpy int16 type array with the containing
+        waveform
+
+        For the Quad mode, if offset voltage is not provided, then waveform[0]
+        is assumed to be the offset. In quad mode, the offset voltage is the point of symmetry
+
         This is function provides a little more control than
         setAWGSimple in the sense that you are able to specify deltaPhase
         directly. It should only be used when deltaPhase becomes very large.
-
-        Returns the actual time duration of the waveform
 
         Warning. Ideally, you would want this to be a power of 2 that way each
         sample is given out at exactly the same difference in time otherwise,
@@ -545,7 +551,7 @@ class PSBase(object):
             if offsetVoltage is None:
                 offsetVoltage = 0.0
             if pkToPk is None:
-                pkToPk = 2.0
+                pkToPk = 2.0  # TODO: make this a per scope function assuming 2.0 V AWG
         else:
             if indexMode == self.AWG_INDEX_MODES["Quad"]:
                 # Optimize for the Quad mode.
@@ -612,8 +618,7 @@ class PSBase(object):
 
     def getAWGDeltaPhase(self, timeIncrement):
         """
-        Returns the DeltaPhase integer used by the AWG to set the increment
-        between samples of the generated waveform.
+        Return the deltaPhase integer used by the AWG.
 
         This is useful when you are trying to generate very fast waveforms when
         you are getting close to the limits of your waveform generator.
@@ -622,6 +627,7 @@ class PSBase(object):
         deltaPhase every AWGDACInterval.
         The top 2**self.AWGBufferAddressWidth bits indicate which sample is
         being output by the DDS.
+
         """
         samplingFrequency = 1 / timeIncrement
         deltaPhase = long(samplingFrequency / self.AWGDACFrequency *
@@ -630,10 +636,11 @@ class PSBase(object):
 
     def getAWGTimeIncrement(self, deltaPhase):
         """
-        Returns the time between AWG samples given a certain deltaPhase
+        Return the time between AWG samples given a certain deltaPhase.
 
         You should use this function in conjunction with
         getAWGDeltaPhase to obtain the actual timestep of AWG.
+
         """
         samplingFrequency = deltaPhase * self.AWGDACFrequency / \
                             2 ** (self.AWGPhaseAccumulatorSize - self.AWGBufferAddressWidth)
@@ -644,32 +651,31 @@ class PSBase(object):
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
 
     def open(self, serialNumber=None):
-        """Open the scope, if serialNumber is None just opens first one found"""
+        """ Open the scope, if serialNumber is None just opens first one found. """
 
         self._lowLevelOpenUnit(serialNumber)
 
     def close(self):
         """
         Close the scope.
+
         You should call this yourself because the Python garbage collector
         might take some time.
+
         """
         if not self.handle is None:
             self._lowLevelCloseUnit()
             self.handle = None
 
     def stop(self):
-        """
-        Let the Picoscope know that you are done acquiring data
-        for the time being.
-        """
+        """ Stop scope acquisition. """
         self._lowLevelStop()
 
     def __del__(self):
         self.close()
 
     def checkResult(self, ec):
-        """Check result of function calls, raise exception if not 0"""
+        """ Check result of function calls, raise exception if not 0. """
         # NOTE: This will break some oscilloscopes that are powered by USB.
         # Some of the newer scopes, can actually be powered by USB and will return
         # a useful value. That should be given back to the user.
@@ -683,13 +689,13 @@ class PSBase(object):
             raise IOError('Error calling %s: %s (%s)' % (inspect.stack()[1][3], ecName, ecDesc))
 
     def errorNumToName(self, num):
-        """Convert error number to name"""
+        """ Return the name of the error as a string. """
         for t in self.ERROR_CODES:
             if t[0] == num:
                 return t[1]
 
     def errorNumToDesc(self, num):
-        """Convert error number to description"""
+        """ Return the description of the error as a string. """
         for t in self.ERROR_CODES:
             if t[0] == num:
                 try:
@@ -697,8 +703,7 @@ class PSBase(object):
                 except IndexError:
                     return ""
 
-    ###Error codes - copied from PS6000 programmers manual. I think they are fairly unviersal though,
-    # just ignore ref to 'PS6000'...
+    ###Error codes - copied from PS6000 programmers manual.
     #To get formatting correct do following copy-replace in Programmers Notepad
     #1. Copy/replace ' - ' with '", "'
     #2. Copy/replace '\r' with '"],\r' (enable slash expressions when doing this)
@@ -813,6 +818,4 @@ class PSBase(object):
         [0x11F , "PICO_NOT_SUPPORTED_BY_THIS_DEVICE", "A function has been called that is not supported by the current device variant."],
         [0x120 , "PICO_INVALID_DEVICE_RESOLUTION", "The device resolution is invalid (out of range)."],
         [0x121 , "PICO_INVALID_NUMBER_CHANNELS_FOR_RESOLUTION", "The number of channels which can be enabled is limited in 15 and 16-bit modes"],
-        [0x122 , "PICO_CHANNEL_DISABLED_DUE_TO_USB_POWERED", "USB Power not sufficient to power all channels."],
-        ]
-
+        [0x122 , "PICO_CHANNEL_DISABLED_DUE_TO_USB_POWERED", "USB Power not sufficient to power all channels."]]
