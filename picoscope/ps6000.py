@@ -54,7 +54,7 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int16, c_int32, c_uint32, c_void_p
+    c_int16, c_int32, c_uint32, c_uint64, c_void_p
 from ctypes import c_int32 as c_enum
 
 from picobase import PSBase
@@ -66,13 +66,31 @@ class PS6000(PSBase):
 
     LIBNAME = "ps6000"
 
+    MAX_VALUE = 32764
+    MIN_VALUE = -32764
+
+    EXT_MAX_VALUE = 32767
+    EXT_MIN_VALUE = -32767
+    EXT_RANGE_VOLTS = 20
+
+    CHANNEL_RANGE = [{"rangeV": 20E-3,  "apivalue": 1, "rangeStr": "20 mV"},
+                     {"rangeV": 50E-3,  "apivalue": 2, "rangeStr": "50 mV"},
+                     {"rangeV": 100E-3, "apivalue": 3, "rangeStr": "100 mV"},
+                     {"rangeV": 200E-3, "apivalue": 4, "rangeStr": "200 mV"},
+                     {"rangeV": 500E-3, "apivalue": 5, "rangeStr": "500 mV"},
+                     {"rangeV": 1.0,    "apivalue": 6, "rangeStr": "1 V"},
+                     {"rangeV": 2.0,    "apivalue": 7, "rangeStr": "2 V"},
+                     {"rangeV": 5.0,    "apivalue": 8, "rangeStr": "5 V"},
+                     ]
+
     NUM_CHANNELS = 4
-    CHANNELS     =  {"A": 0, "B": 1, "C": 2, "D": 3,
-                     "External": 4, "MaxChannels": 4, "TriggerAux": 5}
-    
+    CHANNELS     = {"A": 0, "B": 1, "C": 2, "D": 3,
+                    "External": 4, "MaxChannels": 4, "TriggerAux": 5}
+
+    CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
+
     EXT_RANGE_VOLTS = 1
 
-    #has_sig_gen = True
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
@@ -108,7 +126,7 @@ class PS6000(PSBase):
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
     def __init__(self, serialNumber=None, connect=True):
-        """Load DLL etc"""
+        """ Load DLLs. """
         if platform.system() == 'Linux':
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
@@ -168,7 +186,6 @@ class PS6000(PSBase):
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
                                   direction, delay, timeout_ms):
-        print direction
         m = self.lib.ps6000SetSimpleTrigger(
             c_int16(self.handle), c_int16(enabled),
             c_enum(trigsrc), c_int16(threshold_adc),
@@ -196,7 +213,7 @@ class PS6000(PSBase):
             return False
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """ returns (timeIntervalSeconds, maxSamples). """
+        """ return (timeIntervalSeconds, maxSamples). """
         maxSamples = c_int32()
         sampleRate = c_float()
 
@@ -209,24 +226,25 @@ class PS6000(PSBase):
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """Convert sample time in S to something to pass to API Cal."""
+        """ Return sample time in seconds to timebase as int for API calls. """
         maxSampleTime = (((2 ** 32 - 1) - 4) / 156250000)
 
         if sampleTimeS < 6.4E-9:
-            st = math.floor(math.log(sampleTimeS * 5E9, 2))
-            st = max(st, 0)
+            timebase = math.floor(math.log(sampleTimeS * 5E9, 2))
+            timebase = max(timebase, 0)
         else:
             #Otherwise in range 2^32-1
             if sampleTimeS > maxSampleTime:
                 sampleTimeS = maxSampleTime
 
-            st = math.floor((sampleTimeS * 156250000) + 4)
+            timebase = math.floor((sampleTimeS * 156250000) + 4)
 
         # is this cast needed?
-        st = int(st)
-        return st
+        timebase = int(timebase)
+        return timebase
 
     def getTimestepFromTimebase(self, timebase):
+        """ Return timebase to sampletime as seconds. """
         if timebase < 5:
             dt = 2. ** timebase / 5E9
         else:
@@ -269,6 +287,7 @@ class PS6000(PSBase):
         or else subsequent calls to GetValue will still use the same array.
 
         segmentIndex is unused, but required by other versions of the API (eg PS5000a)
+
         """
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
@@ -319,7 +338,7 @@ class PS6000(PSBase):
     #                                                                  #
     ####################################################################
 
-    def _lowLevelEnumerateUnits():
+    def _lowLevelEnumerateUnits(self):
         count = c_int16(0)
         m = self.lib.ps6000EnumerateUnits(byref(count), None, None)
         self.checkResult(m)
@@ -327,8 +346,8 @@ class PS6000(PSBase):
         # an extra character for the comma
         # and an extra one for the space after the comma?
         # the extra two also work for the null termination
-        sertialLth = count.value * (8 + 2)
-        serials = create_string_buffer(sertialLth + 1)
+        serialLth = count.value * (8 + 2)
+        serials = create_string_buffer(serialLth + 1)
 
         m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
         self.checkResult(m)
@@ -362,8 +381,8 @@ class PS6000(PSBase):
 
         return maxDownSampleRatio.value
 
-    def _lowLevelGetNoOfCaptures():
-        nCaptures = c_utin32()
+    def _lowLevelGetNoOfCaptures(self):
+        nCaptures = c_uint32()
 
         m = self.lib.ps6000GetNoOfCaptures(c_int16(self.handle), byref(nCaptures))
         self.checkResult(m)
@@ -392,7 +411,7 @@ class PS6000(PSBase):
             return time.value * 1E0
 
     def _lowLevelMemorySegments(self, nSegments):
-        nMaxSamples = c_utin32()
+        nMaxSamples = c_uint32()
 
         m = self.lib.ps6000MemorySegments(c_int16(self.handle),
                                           c_uint32(nSegments), byref(nMaxSamples))
