@@ -100,7 +100,6 @@ class PS6000(PSBase):
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
-
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,

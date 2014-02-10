@@ -55,8 +55,8 @@ if __name__ == "__main__":
     channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)
     print("Chosen channel range = %d" % channelRange)
 
-    ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
     #ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
+    ps.setSimpleTrigger('TriggerAux', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
 
     ps.runBlock()
     ps.waitReady()

@@ -361,8 +361,23 @@ class PSBase(object):
 
         self._lowLevelFlashLed(times)
 
+    def rawToV(self, channel, dataRaw, dataV=None):
+        """ Convert the raw data to voltage units. Return as numpy array. """
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+
+        if dataV is None:
+            dataV = np.empty(dataRaw.size)
+
+        a2v = self.CHRange[channel] / float(self.getMaxValue())
+        np.multiply(dataRaw, a2v, dataV)
+        np.subtract(dataV, self.CHOffset[channel], dataV)
+
+        return dataV
+
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0,
-                 segmentIndex=0, returnOverflow=False, exceptOverflow=False):
+                 segmentIndex=0, returnOverflow=False, exceptOverflow=False,
+                 dataV=None, dataRaw=None):
         """
         Return the data as an array of voltage values.
 
@@ -379,15 +394,16 @@ class PSBase(object):
 
         """
 
-        (data, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex,
-                                                               downSampleRatio, downSampleMode,
-                                                               segmentIndex)
+        (dataRaw, numSamplesReturned, overflow) = self.getDataRaw(channel, numSamples, startIndex,
+                                                                  downSampleRatio, downSampleMode,
+                                                                  segmentIndex, dataRaw)
 
-        if not isinstance(channel, int):
-            channel = self.CHANNELS[channel]
-
-        a2v = self.CHRange[channel] / float(self.getMaxValue())
-        dataV = data[:numSamplesReturned] * a2v - self.CHOffset[channel]
+        if dataV is None:
+            dataV = self.rawToV(channel, dataRaw)
+            dataV = dataV[:numSamplesReturned]
+        else:
+            self.rawToV(channel, dataRaw, dataV)
+            dataV[numSamplesReturned:] = np.nan
 
         if returnOverflow:
             return (dataV, overflow)
@@ -397,7 +413,7 @@ class PSBase(object):
             return dataV
 
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0, downSampleRatio=1,
-                   downSampleMode=0, segmentIndex=0):
+                   downSampleMode=0, segmentIndex=0, data=None):
         """
         Return the data in the purest form.
 
@@ -418,7 +434,16 @@ class PSBase(object):
             # maxSamples is probably huge, 1Gig Sample can be HUGE....
             numSamples = min(self.maxSamples, 4096)
 
-        data = np.empty(numSamples, dtype=np.int16)
+        if data is None:
+            data = np.empty(numSamples, dtype=np.int16)
+        else:
+            if data.dtype != np.int16:
+                raise TypeError('Provided array must be int16')
+            if data.size < numSamples:
+                raise ValueError('Provided array must be at least as big as numSamples.')
+            if data.flags['CARRAY'] is False:
+                raise TypeError('Provided array must be c_contiguous, aligned and writeable.')
+
         self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
 
         (numSamplesReturned, overflow) = self._lowLevelGetValues(numSamples, startIndex,
