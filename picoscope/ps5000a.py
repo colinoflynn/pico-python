@@ -59,10 +59,10 @@ from ctypes import byref, POINTER, create_string_buffer, c_float, \
     c_int16, c_int32, c_uint32, c_void_p
 from ctypes import c_int32 as c_enum
 
-from picobase import PSBase
+from picobase import _PicoscopeBase
 
 
-class PS5000a(PSBase):
+class PS5000a(_PicoscopeBase):
     """The following are low-level functions for the PS5000"""
 
     LIBNAME = "ps5000a"

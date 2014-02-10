@@ -50,7 +50,7 @@ import time
 import numpy as np
 
 
-class PSBase(object):
+class _PicoscopeBase(object):
 
     """
     This class defines a general interface for Picoscope oscilloscopes.
@@ -164,6 +164,7 @@ class PSBase(object):
         Set up a specific channel.
 
         It finds the smallest range that is capable of accepting your signal.
+        Return actual range of the scope as double.
 
         The VOffset, is an offset that the scope will ADD to your signal.
 
@@ -437,10 +438,12 @@ class PSBase(object):
         if data is None:
             data = np.empty(numSamples, dtype=np.int16)
         else:
+
             if data.dtype != np.int16:
                 raise TypeError('Provided array must be int16')
             if data.size < numSamples:
                 raise ValueError('Provided array must be at least as big as numSamples.')
+            # see http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.flags.html
             if data.flags['CARRAY'] is False:
                 raise TypeError('Provided array must be c_contiguous, aligned and writeable.')
 

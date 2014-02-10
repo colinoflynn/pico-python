@@ -62,10 +62,10 @@ from ctypes import byref, POINTER, create_string_buffer, c_float, \
     c_int16, c_int32, c_uint32, c_uint64, c_void_p
 from ctypes import c_int32 as c_enum
 
-from picoscope.picobase import PSBase
+from picoscope.picobase import _PicoscopeBase
 
 
-class PS6000(PSBase):
+class PS6000(_PicoscopeBase):
 
     """The following are low-level functions for the PS6000."""
 
