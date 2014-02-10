@@ -158,6 +158,34 @@ class PS6000(_PicoscopeBase):
         self.checkResult(m)
         self.handle = c_handle.value
 
+    def _lowLevelOpenUnitAsync(self, sn):
+        c_status = c_int16()
+        if sn is not None:
+            serialNullTermStr = create_string_buffer(sn)
+        else:
+            serialNullTermStr = None
+
+        # Passing None is the same as passing NULL
+        m = self.lib.ps6000OpenUnitAsync(byref(c_status), serialNullTermStr)
+        self.checkResult(m)
+
+        return c_status.value
+
+    def _lowLevelOpenUnitProgress(self):
+        complete = c_int16()
+        progressPercent = c_int16()
+        handle = c_int16()
+
+        m = self.lib.ps6000OpenUnitProgress(byref(handle), byref(progressPercent), byref(complete))
+        self.checkResult(m)
+
+        if complete.value != 0:
+            self.handle = handle.value
+
+        # if we only wanted to return one value, we could do somethign like
+        # progressPercent = progressPercent * (1 - 0.1 * complete)
+        return (progressPercent.value, complete.value)
+
     def _lowLevelCloseUnit(self):
         m = self.lib.ps6000CloseUnit(c_int16(self.handle))
         self.checkResult(m)
@@ -431,31 +459,6 @@ class PS6000(_PicoscopeBase):
         self.checkResult(m)
 
         return nMaxSamples.value
-
-    def _lowLevelOpenUnitAsync(self, sn):
-        c_status = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
-        else:
-            serialNullTermStr = None
-
-        # Passing None is the same as passing NULL
-        m = self.lib.ps6000OpenUnitAsync(byref(c_status), serialNullTermStr)
-        self.checkResult(m)
-
-        return c_status.value
-
-    def _lowLevelOpenUnitProgress(self):
-        complete = c_int16()
-        progressPercent = c_int16()
-        handle = c_int16()
-
-        m = self.lib.ps6000OpenUnitProgress(byref(handle), byref(progressPercent), byref(complete))
-        self.checkResult(m)
-
-        # if we only wanted to return one value, we could do somethign like
-        # progressPercent = progressPercent * (1 - 0.1 * complete)
-        return (progressPercent, complete)
 
     def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin, downSampleRatioMode):
         bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))

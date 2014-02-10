@@ -711,6 +711,14 @@ class _PicoscopeBase(object):
 
         self._lowLevelOpenUnit(serialNumber)
 
+    def openUnitAsync(self, serialNumber=None):
+        """ Open the scope asynchronously. """
+        self._lowLevelOpenUnitAsync(serialNumber)
+
+    def openUnitProgress(self):
+        """ Return a tuple (progress, completed). """
+        return self._lowLevelOpenUnitProgress()
+
     def close(self):
         """
         Close the scope.
