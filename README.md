@@ -26,6 +26,13 @@ python setup.py install
 Currently the code is changing frequently. Thus you may wish to use the git clone + develop option to
 keep up with new changes.
 
+
+Similar Projects
+------------------------------
+PicoPy uses Cython to interface with a PicoScope 3000A
+https://github.com/hgomersall/PicoPy
+
+
 Authors, Copyright, and Thanks
 ------------------------------
 pico-python is Copyright (C) 2013 By:
