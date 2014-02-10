@@ -190,6 +190,26 @@ class PS6000(_PicoscopeBase):
         m = self.lib.ps6000CloseUnit(c_int16(self.handle))
         self.checkResult(m)
 
+    def _lowLevelEnumerateUnits(self):
+        count = c_int16(0)
+        m = self.lib.ps6000EnumerateUnits(byref(count), None, None)
+        self.checkResult(m)
+        # a serial number is rouhgly 8 characters
+        # an extra character for the comma
+        # and an extra one for the space after the comma?
+        # the extra two also work for the null termination
+        serialLth = c_int16(count.value * (8 + 2))
+        serials = create_string_buffer(serialLth.value + 1)
+
+        m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
+        self.checkResult(m)
+
+        serialList = str(serials.value.decode('utf-8')).split(',')
+
+        serialList = [x.strip() for x in serialList]
+
+        return serialList
+
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
                             BWLimited):
         m = self.lib.ps6000SetChannel(c_int16(self.handle), c_enum(chNum),
@@ -378,27 +398,6 @@ class PS6000(_PicoscopeBase):
     # Untested functions below                                         #
     #                                                                  #
     ####################################################################
-
-    def _lowLevelEnumerateUnits(self):
-        count = c_int16(0)
-        m = self.lib.ps6000EnumerateUnits(byref(count), None, None)
-        self.checkResult(m)
-        # a serial number is rouhgly 8 characters
-        # an extra character for the comma
-        # and an extra one for the space after the comma?
-        # the extra two also work for the null termination
-        serialLth = c_int16(count.value * (8 + 2))
-        serials = create_string_buffer(serialLth.value + 1)
-
-        m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
-        self.checkResult(m)
-
-        serialList = str(serials.value.decode('utf-8')).split(',')
-
-        serialList = [x.strip() for x in serialList]
-
-        return serialList
-
     def _lowLevelGetAnalogueOffset(self, range, coupling):
         # TODO, populate properties with this function
         maximumVoltage = c_float()
@@ -438,18 +437,20 @@ class PS6000(_PicoscopeBase):
                                                   byref(timeUnits), c_uint32(segmentIndex))
         self.checkResult(m)
 
-        if timeUnits == 0:    # PS6000_FS
+        if timeUnits.value == 0:    # PS6000_FS
             return time.value * 1E-15
-        elif timeUnits == 1:  # PS6000_PS
+        elif timeUnits.value == 1:  # PS6000_PS
             return time.value * 1E-12
-        elif timeUnits == 2:  # PS6000_NS
+        elif timeUnits.value == 2:  # PS6000_NS
             return time.value * 1E-9
-        elif timeUnits == 3:  # PS6000_US
+        elif timeUnits.value == 3:  # PS6000_US
             return time.value * 1E-6
-        elif timeUnits == 4:  # PS6000_MS
+        elif timeUnits.value == 4:  # PS6000_MS
             return time.value * 1E-3
-        elif timeUnits == 5:  # PS6000_S
+        elif timeUnits.value == 5:  # PS6000_S
             return time.value * 1E0
+        else:
+            raise TypeError("Unknown timeUnits %d" % timeUnits.value)
 
     def _lowLevelMemorySegments(self, nSegments):
         nMaxSamples = c_uint32()

@@ -14,6 +14,9 @@ see http://www.picotech.com/support/topic12969.html
 
 """
 from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import time
 from picoscope import ps6000
@@ -55,8 +58,8 @@ if __name__ == "__main__":
     channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)
     print("Chosen channel range = %d" % channelRange)
 
-    #ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
-    ps.setSimpleTrigger('TriggerAux', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
+    ps.setSimpleTrigger('A', 1.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
+    #ps.setSimpleTrigger('TriggerAux', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
 
     ps.runBlock()
     ps.waitReady()
