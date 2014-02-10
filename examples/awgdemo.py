@@ -28,6 +28,7 @@ if __name__ == "__main__":
     # see page 13 of the manual to understand how to work this beast
     ps = ps6000.PS6000()
 
+    print("Found the following picoscope:")
     print(ps.getAllUnitInfo())
 
     waveform_desired_duration = 1E-3
@@ -53,12 +54,14 @@ if __name__ == "__main__":
     # the setChannel command will chose the next largest amplitude
     channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)
     print("Chosen channel range = %d" % channelRange)
+
     ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
+    #ps.setSimpleTrigger('A', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
 
     ps.runBlock()
     ps.waitReady()
     print("Waiting for awg to settle.")
-    time.sleep(1.0)
+    time.sleep(2.0)
     ps.runBlock()
     ps.waitReady()
     print("Done waiting for trigger")

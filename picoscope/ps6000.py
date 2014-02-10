@@ -41,7 +41,12 @@ by PSBase.
 
 """
 
+# 3.0 compatibility
+# see http://docs.python.org/2/library/__future__.html
 from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import math
 
@@ -57,7 +62,7 @@ from ctypes import byref, POINTER, create_string_buffer, c_float, \
     c_int16, c_int32, c_uint32, c_uint64, c_void_p
 from ctypes import c_int32 as c_enum
 
-from picobase import PSBase
+from picoscope.picobase import PSBase
 
 
 class PS6000(PSBase):
@@ -69,7 +74,7 @@ class PS6000(PSBase):
     MAX_VALUE = 32764
     MIN_VALUE = -32764
 
-    #EXT/AUX seems to have an imput impedence of 66 ohm (PS6403B)
+    #EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 1
@@ -94,7 +99,6 @@ class PS6000(PSBase):
                     "External": 4, "MaxChannels": 4, "TriggerAux": 5}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
-
 
 
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
@@ -186,7 +190,9 @@ class PS6000(PSBase):
                                            byref(requiredSize), c_enum(info))
             self.checkResult(m)
 
-        return s.value
+        # should this bee ascii instead?
+        # I think they are equivalent...
+        return s.value.decode('utf-8')
 
     def _lowLevelFlashLed(self, times):
         m = self.lib.ps6000FlashLed(c_int16(self.handle), c_int16(times))
@@ -360,7 +366,7 @@ class PS6000(PSBase):
         m = self.lib.ps6000EnumerateUnits(byref(count), serials, byref(serialLth))
         self.checkResult(m)
 
-        serialList = str(serials.value).split(',')
+        serialList = str(serials.value.decode('utf-8')).split(',')
 
         serialList = [x.strip() for x in serialList]
 

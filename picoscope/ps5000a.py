@@ -41,6 +41,9 @@ by PSBase.
 """
 
 from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import math
 
@@ -125,7 +128,7 @@ class PS5000a(PSBase):
     MIN_VALUE_8BIT = -32512
     MAX_VALUE_OTHER = 32767
     MIN_VALUE_OTHER = -32767
-    
+
     EXT_RANGE_VOLTS = 5
 
     def __init__(self, serialNumber=None, connect=True):
@@ -182,7 +185,9 @@ class PS5000a(PSBase):
                                            byref(requiredSize), c_enum(info))
             self.checkResult(m)
 
-        return s.value
+        # should this bee ascii instead?
+        # I think they are equivalent...
+        return s.value.decode('utf-8')
 
     def _lowLevelFlashLed(self, times):
         m = self.lib.ps5000aFlashLed(c_int16(self.handle), c_int16(times))

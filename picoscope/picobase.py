@@ -36,6 +36,9 @@
 """This is the base class for PicoScope instruments."""
 
 from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 
 __author__ = "Colin O'Flynn, Mark Harfouche"
 __license__ = "FreeBSD"
@@ -439,6 +442,12 @@ class PSBase(object):
         things.
 
         """
+
+        # I put this here, because the python idiom None is very
+        # close to the "None" string we expect
+        if triggerSource is None:
+            triggerSource = "None"
+
         if not isinstance(waveType, int):
             waveType = self.WAVE_TYPES[waveType]
         if not isinstance(triggerType, int):
@@ -645,7 +654,7 @@ class PSBase(object):
 
         """
         samplingFrequency = 1 / timeIncrement
-        deltaPhase = long(samplingFrequency / self.AWGDACFrequency *
+        deltaPhase = int(samplingFrequency / self.AWGDACFrequency *
                           2 ** (self.AWGPhaseAccumulatorSize - self.AWGBufferAddressWidth))
         return deltaPhase
 
