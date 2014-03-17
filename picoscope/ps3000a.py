@@ -1,4 +1,4 @@
-# This is the instrument-specific file for the PS3000 series of instruments.
+# This is the instrument-specific file for the PS3000a series of instruments.
 #
 # pico-python is Copyright (c) 2013-2014 By:
 # Colin O'Flynn <coflynn@newae.com>
@@ -62,10 +62,10 @@ from ctypes import c_int32 as c_enum
 from picoscope.picobase import _PicoscopeBase
 
 
-class PS3000(_PicoscopeBase):
-    """The following are low-level functions for the PS3000"""
+class PS3000a(_PicoscopeBase):
+    """The following are low-level functions for the PS3000a"""
 
-    LIBNAME = "ps3000"
+    LIBNAME = "ps3000a"
 
     NUM_CHANNELS = 4
     CHANNELS     =  {"A": 0, "B": 1, "C": 2, "D": 3,
@@ -142,7 +142,7 @@ class PS3000(_PicoscopeBase):
 
         self.resolution = self.ADC_RESOLUTIONS["8"]
 
-        super(PS3000, self).__init__(serialNumber, connect)
+        super(PS3000a, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
@@ -151,30 +151,30 @@ class PS3000(_PicoscopeBase):
         else:
             serialNullTermStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps3000_open_unit(byref(c_handle), serialNullTermStr, self.resolution)
+        m = self.lib.ps3000aOpenUnit(byref(c_handle), byref(serialNullTermStr))
         self.checkResult(m)
         self.handle = c_handle.value
 
     def _lowLevelCloseUnit(self):
-        m = self.lib.ps3000_close_unit(c_int16(self.handle))
+        m = self.lib.ps3000aCloseUnit(c_int16(self.handle))
         self.checkResult(m)
 
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
                             BWLimited):
-        m = self.lib.ps3000_set_channel(c_int16(self.handle), c_enum(chNum),
+        m = self.lib.ps3000aSetChannel(c_int16(self.handle), c_enum(chNum),
                                       c_int16(enabled), c_enum(coupling),
                                       c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
 
     def _lowLevelStop(self):
-        m = self.lib.ps3000_stop(c_int16(self.handle))
+        m = self.lib.ps3000Stop(c_int16(self.handle))
         self.checkResult(m)
 
     def _lowLevelGetUnitInfo(self, info):
         s = create_string_buffer(256)
         requiredSize = c_int16(0)
 
-        m = self.lib.ps3000_get_unit_info(c_int16(self.handle), byref(s),
+        m = self.lib.ps3000aGetUnitInfo(c_int16(self.handle), byref(s),
                                        c_int16(len(s)), byref(requiredSize),
                                        c_enum(info))
         self.checkResult(m)
@@ -190,32 +190,32 @@ class PS3000(_PicoscopeBase):
         return s.value.decode('utf-8')
 
     def _lowLevelFlashLed(self, times):
-        m = self.lib.ps3000_flash_led(c_int16(self.handle), c_int16(times))
+        m = self.lib.ps3000aFlashLed(c_int16(self.handle), c_int16(times))
         self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
-                                  direction, timeout_ms, auto):
+                                  direction, delay, auto):
         m = self.lib.ps3000_set_simple_trigger(
             c_int16(self.handle), c_int16(enabled),
             c_enum(trigsrc), c_int16(threshold_adc),
-            c_enum(direction), c_uint32(timeout_ms), c_int16(auto))
+            c_enum(direction), c_uint32(delay), c_int16(auto))
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
                           timebase, oversample, segmentIndex):
         #NOT: Oversample is NOT used!
         timeIndisposedMs = c_int32()
-        m = self.lib.ps3000_run_block(
+        m = self.lib.ps3000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
-            byref(timeIndisposedMs), c_uint32(segmentIndex),
+            c_int16(oversample), byref(timeIndisposedMs), c_uint16(segmentIndex),
             c_void_p(), c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
 
     def _lowLevelIsReady(self):
         ready = c_int16()
-        m = self.lib.ps3000_is_ready(c_int16(self.handle), byref(ready))
+        m = self.lib.ps3000aIsReady(c_int16(self.handle), byref(ready))
         self.checkResult(m)
         if ready.value:
             return True
@@ -227,12 +227,13 @@ class PS3000(_PicoscopeBase):
         maxSamples = c_int32()
         sampleRate = c_float()
 
-        m = self.lib.ps3000_get_timebase(c_int16(self.handle), c_uint32(tb),
+        m = self.lib.ps3000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
                                         c_uint32(noSamples), byref(sampleRate),
-                                       byref(maxSamples), c_uint32(segmentIndex))
+                                        c_int16(oversample), byref(maxSamples), 
+                                        c_uint32(segmentIndex))
         self.checkResult(m)
 
-        return (sampleRate.value / 1.0E9, maxSamples.value)
+        return (sampleRate.value, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
         """Convert sample time in S to something to pass to API Call"""
