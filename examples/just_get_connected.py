@@ -31,14 +31,14 @@ print "Scope handle:", handle.value
 try:
 	# flash led
 	print "\n\nFlashing LED...\n\n"
-	start = c_short(3)
+	start = c_short(10)
 	lib.ps3000aFlashLed(handle, start)
 	time.sleep(5)
 except:
 	print "led wouldn't flash"
 	pass
 # close unit
-print "/n/nClosing scope.../n/n"
+print "\n\nClosing scope...\n\n"
 m = lib.ps3000aCloseUnit(handle)
 if m == 0:
 	print "Unit", serial_num, "shut down."
