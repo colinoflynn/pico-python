@@ -2,8 +2,13 @@
 
 from ctypes import *
 import time
+import platform
 
-lib = windll.LoadLibrary("ps3000a.dll")
+if platform.system() == "Windows":
+	lib = windll.LoadLibrary("ps3000a.dll")
+elif platform.system() == "Linux":
+	lib = cdll.LoadLibrary("libps3000a.so")
+
 
 # Enumerating units
 print "Enumerating units...\n\n"
