@@ -56,7 +56,7 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int16, c_int32, c_uint32, c_void_p
+    c_int16, c_int32, c_uint16, c_uint32, c_void_p
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -195,7 +195,7 @@ class PS3000a(_PicoscopeBase):
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
                                   direction, delay, auto):
-        m = self.lib.ps3000_set_simple_trigger(
+        m = self.lib.ps3000aSetSimpleTrigger(
             c_int16(self.handle), c_int16(enabled),
             c_enum(trigsrc), c_int16(threshold_adc),
             c_enum(direction), c_uint32(delay), c_int16(auto))
@@ -324,36 +324,36 @@ class PS3000a(_PicoscopeBase):
             c_int16(0))                          # extInThreshold
         self.checkResult(m)
 
-    # def _lowLevelSetDataBuffer(self, channel, data, downSampleMode, segmentIndex):
-    #     """
-    #     data should be a numpy array
+    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode, segmentIndex):
+        """
+        data should be a numpy array
 
-    #     Be sure to call _lowLevelClearDataBuffer
-    #     when you are done with the data array
-    #     or else subsequent calls to GetValue will still use the same array.
-    #     """
-    #     dataPtr = data.ctypes.data_as(POINTER(c_int16))
-    #     numSamples = len(data)
+        Be sure to call _lowLevelClearDataBuffer
+        when you are done with the data array
+        or else subsequent calls to GetValue will still use the same array.
+        """
+        dataPtr = data.ctypes.data_as(POINTER(c_int16))
+        numSamples = len(data)
 
-    #     m = self.lib.ps3000SetDataBuffer(c_int16(self.handle), c_enum(channel),
-    #                                      dataPtr, c_int32(numSamples),
-    #                                      c_uint32(segmentIndex),
-    #                                      c_enum(downSampleMode))
-    #     self.checkResult(m)
+        m = self.lib.ps3000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
+                                         dataPtr, c_int32(numSamples),
+                                         c_uint32(segmentIndex),
+                                         c_enum(downSampleMode))
+        self.checkResult(m)
 
-    # def _lowLevelClearDataBuffer(self, channel, segmentIndex):
-    #     """ data should be a numpy array"""
-    #     m = self.lib.ps3000SetDataBuffer(c_int16(self.handle), c_enum(channel),
-    #                                      c_void_p(), c_uint32(0), c_uint32(segmentIndex),
-    #                                       c_enum(0))
-    #     self.checkResult(m)
+    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+        """ data should be a numpy array"""
+        m = self.lib.ps3000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
+                                         c_void_p(), c_uint32(0), c_uint32(segmentIndex),
+                                          c_enum(0))
+        self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
                            downSampleMode, segmentIndex):
         numSamplesReturned = c_uint32()
         numSamplesReturned.value = numSamples
         overflow = c_int16()
-        m = self.lib.ps3000_get_values(
+        m = self.lib.ps3000aGetValues(
             c_int16(self.handle), c_uint32(startIndex),
             byref(numSamplesReturned), c_uint32(downSampleRatio),
             c_enum(downSampleMode), c_uint32(segmentIndex),
