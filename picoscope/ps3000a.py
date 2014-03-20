@@ -218,7 +218,7 @@ class PS3000a(_PicoscopeBase):
         m = self.lib.ps3000aGetMaxSegments(c_int16(self.handle),
             byref(maxSegments))
         self.checkResult(m)
-        return maxSegments
+        return maxSegments.value
 
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
@@ -327,6 +327,19 @@ class PS3000a(_PicoscopeBase):
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
+    def _lowLevelSetMultipleDataBuffers(self, channel, data, downSampleMode):
+        max_segments = self._lowLevelGetMaxSegments()
+        if data.shape[0] < max_segments:
+            raise ValueError("data array has fewer rows than current number of memory segments")
+        if data.shape[1] < self.maxSamples:
+            raise ValueError("data array has fewer columns than maxSamples")
+
+        for i in range(max_segments):
+            m = ps._lowLevelSetDataBuffer(channel, data[i, :],
+                downSampleMode, i)
+            self.checkResult(m)
+
+
     def _lowLevelClearDataBuffer(self, channel, segmentIndex):
         """ data should be a numpy array"""
         m = self.lib.ps3000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
@@ -347,12 +360,19 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    # def _lowLevelGetValuesBulk(self, numSamples, startIndex, ):
-    #     numSamplesReturned = c_uint32()
-    #     numSamplesReturned.value = numSamples
-    #     overflow = c_int16()
+    # def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
+    #     downSampleRatio, downSampleMode, overflow):
 
+    #     m = self.lib.ps3000aGetValuesBulk(c_int16(self.handle),
+    #         byref(c_int16(numSamples)),
+    #         c_int16(fromSegment),
+    #         c_int16(toSegment),
+    #         c_int32(downSampleRatio),
+    #         c_int16(downSampleMode),
+    #         overflow.ctypes.data_as(POINTER(c_int16))
+    #         )
     #     self.checkResult(m)
+    #     return overflow, numSamples
 
     # def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
     #                                     frequency, shots, triggerType,
@@ -370,10 +390,3 @@ class PS3000a(_PicoscopeBase):
     #         c_enum(triggerType), c_enum(triggerSource),
     #         c_int16(0))
     #     self.checkResult(m)
-
-    def _lowLevelSetDeviceResolution(self, resolution):
-        self.resolution = resolution
-        m = self.lib.ps3000SetDeviceResolution(
-            c_int16(self.handle),
-            c_enum(resolution))
-        self.checkResult(m)
