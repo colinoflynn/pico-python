@@ -16,7 +16,9 @@ ps3000a = reload(ps3000a)
 SERIAL_NUM = 'AR911/011\x00'
 ps = ps3000a.PS3000a(SERIAL_NUM)
 
-output_file = open("test_block_file.dat", "wb")
+now = time.strftime("%Y%m%d_%H%M%S")
+filename = "sweep_" + now + ".swp"
+output_file = open(filename, "wb")
 
 c = 3e8
 
@@ -48,14 +50,14 @@ c = 3e8
 
 # rapid block mode
 
-ps.setChannel(channel="A", coupling="AC", VRange=200e-3)
+ps.setChannel(channel="A", coupling="DC", VRange=100e-3)
 
-n_captures = 2300 #int(600 * 1.4)
-sample_interval = 10 / 3e8
-sample_duration = 10e3 * 2 / 3e8
+n_captures = 2300 * 3 #int(600 * 1.4)
+sample_interval = 5 / 3e8
+sample_duration = 1e3 * 2 / 3e8
 
 ps.setSamplingInterval(sample_interval, sample_duration)
-ps.setSimpleTrigger("A")
+ps.setSimpleTrigger("A", threshold_V=20e-3)
 
 samples_per_segment = ps.memorySegments(n_captures)
 ps.setNoOfCaptures(n_captures)
@@ -105,8 +107,8 @@ print "Time to write data to disk: ", str(t4 - t3)
 output_file.close()
 
 plt.imshow(data[:, 0:ps.noSamples], aspect='auto', interpolation='none',
-	cmap=plt.cm.RdBu)
+	cmap=plt.cm.hot)
 plt.colorbar()
 plt.show()
 
-#ps.close()
+ps.close()
