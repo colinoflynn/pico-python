@@ -290,6 +290,13 @@ class _PicoscopeBase(object):
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
+    def setNoOfCaptures(self, noCaptures):
+        self._lowLevelSetNoOfCaptures(noCaptures)
+
+    def memorySegments(self, noSegments):
+        self._lowLevelMemorySegments(noSegments)
+        return self.maxSamples
+
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100,
                          enabled=True):
         """

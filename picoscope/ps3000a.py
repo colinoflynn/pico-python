@@ -201,6 +201,26 @@ class PS3000a(_PicoscopeBase):
             c_enum(direction), c_uint32(delay), c_int16(auto))
         self.checkResult(m)
 
+    def _lowLevelSetNoOfCaptures(self, numCaptures):
+        m = self.lib.ps3000aSetNoOfCaptures(c_int16(self.handle),
+            c_uint16(numCaptures))
+        self.checkResult(m)
+
+    def _lowLevelMemorySegments(self, numSegments):
+        maxSamples = c_int32()
+        m = self.lib.ps3000aMemorySegments(c_int16(self.handle),
+            c_uint16(numSegments), byref(maxSamples))
+        self.checkResult(m)
+        return maxSamples.value
+
+    def _lowLevelGetMaxSegments(self):
+        maxSegments = c_int16()
+        m = self.lib.ps3000aGetMaxSegments(c_int16(self.handle),
+            byref(maxSegments))
+        self.checkResult(m)
+        return maxSegments
+
+
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
                           timebase, oversample, segmentIndex):
         #NOT: Oversample is NOT used!
@@ -225,76 +245,42 @@ class PS3000a(_PicoscopeBase):
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ returns (timeIntervalSeconds, maxSamples) """
         maxSamples = c_int32()
-        sampleRate = c_float()
+        intervalNanoSec = c_float()
 
         m = self.lib.ps3000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
-                                        c_uint32(noSamples), byref(sampleRate),
+                                        c_uint32(noSamples), byref(intervalNanoSec),
                                         c_int16(oversample), byref(maxSamples), 
                                         c_uint32(segmentIndex))
         self.checkResult(m)
-
-        return (sampleRate.value, maxSamples.value)
+        # divide by 1e9 to return interval in seconds
+        return (intervalNanoSec.value * 1e-9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """Convert sample time in S to something to pass to API Call"""
-
-        if self.resolution == self.ADC_RESOLUTIONS["8"]:
-            maxSampleTime = (((2 ** 32 - 1) - 2) / 125000000)
-            if sampleTimeS < 8.0E-9:
-                st = math.floor(math.log(sampleTimeS * 1E9, 2))
-                st = max(st, 0)
-            else:
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-                st = math.floor((sampleTimeS * 125000000) + 2)
-
-        elif self.resolution == self.ADC_RESOLUTIONS["12"]:
-            maxSampleTime = (((2 ** 32 - 1) - 3) / 62500000)
-            if sampleTimeS < 16.0E-9:
-                st = math.floor(math.log(sampleTimeS * 5E8, 2)) + 1
-                st = max(st, 1)
-            else:
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-                st = math.floor((sampleTimeS * 62500000) + 3)
-
-        elif (self.resolution == self.ADC_RESOLUTIONS["14"]) or (self.resolution == self.ADC_RESOLUTIONS["15"]):
-            maxSampleTime = (((2 ** 32 - 1) - 2) / 125000000)
+        """
+        Convert sample time in S to something to pass to API Call
+        """
+        maxSampleTime = (((2 ** 32 - 1) - 2) / 125000000)
+        if sampleTimeS < 8.0E-9:
+            st = math.floor(math.log(sampleTimeS * 1E9, 2))
+            st = max(st, 0)
+        else:
             if sampleTimeS > maxSampleTime:
                 sampleTimeS = maxSampleTime
             st = math.floor((sampleTimeS * 125000000) + 2)
-            st = max(st, 3)
-
-        elif self.resolution == self.ADC_RESOLUTIONS["16"]:
-            maxSampleTime = (((2 ** 32 - 1) - 3) / 62500000)
-            if sampleTimeS > maxSampleTime:
-                sampleTimeS = maxSampleTime
-            st = math.floor((sampleTimeS * 62500000) + 3)
-            st = max(st, 3)
-
-        else:
-            raise ValueError("Invalid Resolution for Device?")
 
         # is this cast needed?
         st = int(st)
         return st
 
     def getTimestepFromTimebase(self, timebase):
-
-        if self.resolution == self.ADC_RESOLUTIONS["8"]:
-            if timebase < 3:
-                dt = 2. ** timebase / 1.0E9
-            else:
-                dt = (timebase - 2.0) / 125000000.
-        elif self.resolution == self.ADC_RESOLUTIONS["12"]:
-            if timebase < 4:
-                dt = 2. ** (timebase-1) / 5.0E8
-            else:
-                dt = (timebase - 3.0) / 62500000.
-        elif (self.resolution == self.ADC_RESOLUTIONS["14"]) or (self.resolution == self.ADC_RESOLUTIONS["15"]):
+        '''
+        Takes API timestep code (an integer from 0-32) and returns
+        the sampling interval it indicates, in seconds.
+        '''
+        if timebase < 3:
+            dt = 2. ** timebase / 1.0E9
+        else:
             dt = (timebase - 2.0) / 125000000.
-        elif self.resolution == self.ADC_RESOLUTIONS["16"]:
-            dt = (timebase - 3.0) / 62500000.
         return dt
 
     def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
@@ -360,6 +346,13 @@ class PS3000a(_PicoscopeBase):
             byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
+
+    # def _lowLevelGetValuesBulk(self, numSamples, startIndex, ):
+    #     numSamplesReturned = c_uint32()
+    #     numSamplesReturned.value = numSamples
+    #     overflow = c_int16()
+
+    #     self.checkResult(m)
 
     # def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
     #                                     frequency, shots, triggerType,
