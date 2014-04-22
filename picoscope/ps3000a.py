@@ -360,19 +360,19 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    # def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
-    #     downSampleRatio, downSampleMode, overflow):
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
+        downSampleRatio, downSampleMode, overflow):
 
-    #     m = self.lib.ps3000aGetValuesBulk(c_int16(self.handle),
-    #         byref(c_int16(numSamples)),
-    #         c_int16(fromSegment),
-    #         c_int16(toSegment),
-    #         c_int32(downSampleRatio),
-    #         c_int16(downSampleMode),
-    #         overflow.ctypes.data_as(POINTER(c_int16))
-    #         )
-    #     self.checkResult(m)
-    #     return overflow, numSamples
+        m = self.lib.ps3000aGetValuesBulk(c_int16(self.handle),
+            byref(c_int16(numSamples)),
+            c_int16(fromSegment),
+            c_int16(toSegment),
+            c_int32(downSampleRatio),
+            c_int16(downSampleMode),
+            overflow.ctypes.data_as(POINTER(c_int16))
+            )
+        self.checkResult(m)
+        return overflow, numSamples
 
     # def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
     #                                     frequency, shots, triggerType,

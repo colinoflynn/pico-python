@@ -474,34 +474,34 @@ class _PicoscopeBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    # def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
-    #     toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
-    #     '''
-    #     Get data recorded in block mode.
-    #     '''
-    #     if not isinstance(channel, int):
-    #         channel = self.CHANNELS[channel]
-    #     if toSegment is None:
-    #         toSegment = self.noSegments - 1
-    #     if numSamples == 0:
-    #         numSamples = min(self.maxSamples, self.noSamples)
+    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
+        toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
+        '''
+        Get data recorded in block mode.
+        '''
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+        if toSegment is None:
+            toSegment = self.noSegments - 1
+        if numSamples == 0:
+            numSamples = min(self.maxSamples, self.noSamples)
 
-    #     numSegmentsToCopy = toSegment - fromSegment
-    #     if data is None:
-    #         data = np.zeros((numSegmentsToCopy, numSamples))
+        numSegmentsToCopy = toSegment - fromSegment
+        if data is None:
+            data = np.zeros((numSegmentsToCopy, numSamples))
 
-    #     # set up each row in the data array as a buffer for one of
-    #     # the memory segments in the scope
-    #     for i, segment in enumerate(range(fromSegment, toSegment)):
-    #         self._lowLevelSetDataBuffer(channel, data[i, :], downSampleMode,
-    #             segment)
+        # set up each row in the data array as a buffer for one of
+        # the memory segments in the scope
+        for i, segment in enumerate(range(fromSegment, toSegment)):
+            self._lowLevelSetDataBuffer(channel, data[i, :], downSampleMode,
+                segment)
 
-    #     overflow = np.zeros(numSegmentsToCopy, dtype=np.int16)
+        overflow = np.zeros(numSegmentsToCopy, dtype=np.int16)
 
-    #     self._lowLevelGetValuesBulk(numSamples, fromSegment, toSegment,
-    #         downSampleRatio, downSampleMode, overflow)
+        self._lowLevelGetValuesBulk(numSamples, fromSegment, toSegment,
+            downSampleRatio, downSampleMode, overflow)
 
-    #     return (data, numSamples, overflow)
+        return (data, numSamples, overflow)
 
 
 
