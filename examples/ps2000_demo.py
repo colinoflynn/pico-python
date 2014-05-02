@@ -50,7 +50,7 @@ if __name__ == "__main__":
     print("Found the following picoscope:")
     print(ps.getAllUnitInfo())
 
-    waveform_desired_duration = 1E-3
+    waveform_desired_duration = 50E-6
     obs_duration = 3 * waveform_desired_duration
     sampling_interval = obs_duration / 4096
 
@@ -82,7 +82,9 @@ if __name__ == "__main__":
     ps.stop()
     ps.close()
 
-    plt.ion()
+    #Uncomment following for call to .show() to not block
+    #plt.ion()
+    
     plt.figure()
     plt.hold(True)
     plt.plot(dataTimeAxis, dataA, label="Clock")
