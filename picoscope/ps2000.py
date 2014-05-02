@@ -62,7 +62,7 @@ from ctypes import c_int32 as c_enum
 from picoscope.picobase import _PicoscopeBase
 
 
-class PS5000a(_PicoscopeBase):
+class PS2000(_PicoscopeBase):
     """The following are low-level functions for the PS2000"""
 
     LIBNAME = "ps2000"
@@ -93,9 +93,26 @@ class PS5000a(_PicoscopeBase):
 
     MAX_VALUE = 32767
     MIN_VALUE = -32767
+
+    MAX_TIMEBASES = 19
+    
+    UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
+                       "USBVersion"             : 0x1,
+                       "HardwareVersion"        : 0x2,
+                       "VarianInfo"             : 0x3,
+                       "BatchAndSerial"         : 0x4,
+                       "CalDate"                : 0x5,
+                       "ErrorCode"              : 0x6,
+                       "KernelVersion"          : 0x7}
     
     channelBuffersPtr = [c_void_p(), c_void_p()]
     channelBuffersLen = [0, 0]
+    
+    
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
+                            "GateHigh": 2, "GateLow": 3}
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
+                              "ExtIn": 3, "SoftTrig": 4, "TriggerRaw": 5}
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
@@ -106,7 +123,7 @@ class PS5000a(_PicoscopeBase):
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
 
-        super(PS2000a, self).__init__(serialNumber, connect)
+        super(PS2000, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
@@ -115,11 +132,10 @@ class PS5000a(_PicoscopeBase):
 
         m = self.lib.ps2000_open_unit()
         
-        if m.value < 0:
+        if m < 0:
             raise IOError("Failed to Find PS2000 Unit. Should you be using PS2000a driver?")        
         
-        self.handle = m.value
-        
+        self.handle = m        
         self.suggested_time_units = self.TIME_UNITS["NS"]
 
     def _lowLevelCloseUnit(self):
@@ -153,11 +169,11 @@ class PS5000a(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
-                                  direction, timeout_ms, auto):
+                                  direction, delay, timeout_ms):      
         
-        #TODO: Fix 'delay' which is where trigger occurs in block
+        #TODO: Fix 'auto' which is where trigger occurs in block. Delay is not used
         
-        m = self.lib.ps_set_trigger(
+        m = self.lib.ps2000_set_trigger(
             c_int16(self.handle), c_enum(trigsrc), c_int16(threshold_adc),
             c_enum(direction), c_int16(0), c_int16(timeout_ms))
         self.checkResult(m)
@@ -181,9 +197,9 @@ class PS5000a(_PicoscopeBase):
     def _lowLevelIsReady(self):
         ready = c_int16()
         ready = self.lib.ps2000_ready(c_int16(self.handle))        
-        if ready.value > 0:
+        if ready > 0:
             return True
-        elif ready.value == 0:
+        elif ready == 0:
             return False
         else:
             raise IOError("ps2000_ready returned %d"%ready.value)
@@ -194,9 +210,10 @@ class PS5000a(_PicoscopeBase):
         time_interval = c_int32()
         time_units = c_int16()
 
-        m = self.lib.ps2000_get_timebase(c_int16(self.handle), c_uint16(tb),
+        m = self.lib.ps2000_get_timebase(c_int16(self.handle), c_int16(tb),
                                         c_uint32(noSamples), byref(time_interval),
-                                        byref(time_units), c_uint16(1), byref(maxSamples))
+                                        byref(time_units), c_int16(1), byref(maxSamples))
+        
         self.checkResult(m)
         
         self.suggested_time_units = time_units.value
@@ -214,10 +231,10 @@ class PS5000a(_PicoscopeBase):
         
         tb = 0
         while tb < self.MAX_TIMEBASES:
-            rv = self.lib.ps2000_get_timebase(c_int16(self.handle), c_uint16(tb),
+            rv = self.lib.ps2000_get_timebase(c_int16(self.handle), c_int16(tb),
                                         c_uint32(512), byref(time_interval),
-                                        c_void_p(), c_uint16(1),  c_void_p())            
-            if rv.value != 0:
+                                        c_void_p(), c_int16(1),  c_void_p())            
+            if rv != 0:
                 timebases[tb] = time_interval.value            
             
             tb += 1
@@ -227,7 +244,7 @@ class PS5000a(_PicoscopeBase):
         bestindx = 0
         for indx, val in enumerate(timebases):            
             if val is not None:
-                error = sampleTimenS - value                
+                error = sampleTimenS - val                
                 if abs(error) < besterror:
                     besterror = abs(error)
                     bestindx = indx
@@ -237,10 +254,10 @@ class PS5000a(_PicoscopeBase):
 
     def getTimestepFromTimebase(self, timebase):
         time_interval = c_int32()
-        rv = self.lib.ps2000_get_timebase(c_int16(self.handle), c_uint16(tb),
+        m = self.lib.ps2000_get_timebase(c_int16(self.handle), c_int16(timebase),
                                         c_uint32(512), byref(time_interval),
-                                        c_void_p(), c_uint16(1),  c_void_p())        
-        self.checkResult(rv)  
+                                        c_void_p(), c_int16(1),  c_void_p())        
+        self.checkResult(m)
         return (time_interval.value / 1.0E9)
         
   
@@ -270,10 +287,8 @@ class PS5000a(_PicoscopeBase):
             c_void_p(), c_void_p(),
             byref(overflow), c_int32(numSamples))
         
-        if rv.value == 0:
-            raise IOError("ps2000_get_values() call failed")
-                
-        return (rv.value, overflow.value)
+        self.checkResult(rv)                
+        return (rv, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
@@ -286,3 +301,11 @@ class PS5000a(_PicoscopeBase):
             c_float(frequency), c_float(frequency),
             c_float(0), c_float(0), c_enum(0), c_uint32(0))
         self.checkResult(m)
+
+    def checkResult(self, ec):
+        """ Check result of function calls, raise exception if not 0. """
+        # PS2000 differs from other drivers in that non-zero is good
+        if ec == 0:
+            raise IOError('Error calling %s' % (inspect.stack()[1][3]))
+
+        return 0
