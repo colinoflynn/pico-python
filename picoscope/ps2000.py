@@ -47,6 +47,8 @@ from __future__ import unicode_literals
 
 import math
 
+import inspect
+
 # to load the proper dll
 import platform
 
