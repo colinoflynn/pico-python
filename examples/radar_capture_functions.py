@@ -5,7 +5,7 @@ from ctypes import *
 import os
 
 # collect 20% more samples than nominally necessary
-SAMPLE_SAFETY_MARGIN = 1.2
+SAMPLE_SAFETY_MARGIN = 1.25
 LIGHTSPEED = 2.99e8
 
 
