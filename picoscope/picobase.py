@@ -290,6 +290,19 @@ class _PicoscopeBase(object):
         self.setSamplingInterval(sampleInterval, duration, oversample, segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
+    def setNoOfCaptures(self, noCaptures):
+        self._lowLevelSetNoOfCaptures(noCaptures)
+
+    def memorySegments(self, noSegments):
+        maxSamples = self._lowLevelMemorySegments(noSegments)
+        self.maxSamples = maxSamples
+        self.noSegments = noSegments
+        return self.maxSamples
+
+    def getMaxMemorySegments(self):
+        segments = self._lowLevelGetMaxSegments()
+        return segments
+
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising", delay=0, timeout_ms=100,
                          enabled=True):
         """
@@ -433,7 +446,7 @@ class _PicoscopeBase(object):
 
         if numSamples == 0:
             # maxSamples is probably huge, 1Gig Sample can be HUGE....
-            numSamples = min(self.maxSamples, 4096)
+            numSamples = min(self.maxSamples, self.noSamples)
 
         if data is None:
             data = np.empty(numSamples, dtype=np.int16)
@@ -460,6 +473,37 @@ class _PicoscopeBase(object):
         overflow = bool(overflow & (1 << channel))
 
         return (data, numSamplesReturned, overflow)
+
+    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
+        toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
+        '''
+        Get data recorded in block mode.
+        '''
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+        if toSegment is None:
+            toSegment = self.noSegments - 1
+        if numSamples == 0:
+            numSamples = min(self.maxSamples, self.noSamples)
+
+        numSegmentsToCopy = toSegment - fromSegment
+        if data is None:
+            data = np.zeros((numSegmentsToCopy, numSamples))
+
+        # set up each row in the data array as a buffer for one of
+        # the memory segments in the scope
+        for i, segment in enumerate(range(fromSegment, toSegment)):
+            self._lowLevelSetDataBuffer(channel, data[i, :], downSampleMode,
+                segment)
+
+        overflow = np.zeros(numSegmentsToCopy, dtype=np.int16)
+
+        self._lowLevelGetValuesBulk(numSamples, fromSegment, toSegment,
+            downSampleRatio, downSampleMode, overflow)
+
+        return (data, numSamples, overflow)
+
+
 
     def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
                                shots=1, triggerType="Rising", triggerSource="None"):
