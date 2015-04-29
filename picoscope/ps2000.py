@@ -72,6 +72,9 @@ class PS2000(_PicoscopeBase):
     NUM_CHANNELS = 2
     CHANNELS     =  {"A": 0, "B": 1, "MaxChannels": 2}
 
+    THRESHOLD_TYPE = {"Rising": 0,
+                      "Falling": 1}
+
     CHANNEL_RANGE = [
                      {"rangeV":20E-3, "apivalue":1, "rangeStr":"20 mV"},
                      {"rangeV":50E-3, "apivalue":2, "rangeStr":"50 mV"},
