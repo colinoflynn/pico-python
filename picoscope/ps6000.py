@@ -480,18 +480,21 @@ class PS6000(_PicoscopeBase):
     # These would be nice, but the user would have to provide us
     # with an array.
     # we would have to make sure that it is contiguous amonts other things
-    def _lowLevelGetValuesBulk(self, numSamples, fromSegmentIndex, toSegmentIndex,
-                               downSampleRatio, downSampleRatioMode):
+    def _lowLevelGetValuesBulk(self,
+                               numSamples, fromSegmentIndex, toSegmentIndex,
+                               downSampleRatio, downSampleRatioMode,
+                               overflow):
         noOfSamples = c_uint32(numSamples)
-        overflow = c_int16()
 
-        m = self.lib.ps6000GetvaluesBulk(
+        m = self.lib.ps6000GetValuesBulk(
             c_int16(self.handle),
+            byref(noOfSamples),
             c_uint32(fromSegmentIndex), c_uint32(toSegmentIndex),
             c_uint32(downSampleRatio), c_enum(downSampleRatioMode),
-            byref(overflow))
+            overflow.ctypes.data_as(POINTER(c_int16))
+            )
         self.checkResult(m)
-        return (noOfSamples.value, overflow.value)
+        return noOfSamples.value
 
     def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform, downSampleRatioMode):
         bufferPtr = buffer.ctypes.data_as(POINTER(c_int16))
