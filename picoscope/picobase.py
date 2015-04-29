@@ -486,17 +486,22 @@ class _PicoscopeBase(object):
         if numSamples == 0:
             numSamples = min(self.maxSamples, self.noSamples)
 
-        numSegmentsToCopy = toSegment - fromSegment
+        numSegmentsToCopy = toSegment - fromSegment + 1
         if data is None:
-            data = np.zeros((numSegmentsToCopy, numSamples))
+            data = np.ascontiguousarray(
+                np.zeros((numSegmentsToCopy, numSamples), dtype=np.int16)
+                )
 
         # set up each row in the data array as a buffer for one of
         # the memory segments in the scope
-        for i, segment in enumerate(range(fromSegment, toSegment)):
-            self._lowLevelSetDataBuffer(channel, data[i, :], downSampleMode,
-                segment)
-
-        overflow = np.zeros(numSegmentsToCopy, dtype=np.int16)
+        for i, segment in enumerate(range(fromSegment, toSegment+1)):
+            self._lowLevelSetDataBufferBulk(channel,
+                                            data[i],
+                                            segment,
+                                            downSampleMode)
+        overflow = np.ascontiguousarray(
+            np.zeros(numSegmentsToCopy, dtype=np.int16)
+            )
 
         self._lowLevelGetValuesBulk(numSamples, fromSegment, toSegment,
             downSampleRatio, downSampleMode, overflow)
