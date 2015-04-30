@@ -72,6 +72,9 @@ class PS2000(_PicoscopeBase):
     NUM_CHANNELS = 2
     CHANNELS     =  {"A": 0, "B": 1, "MaxChannels": 2}
 
+    THRESHOLD_TYPE = {"Rising": 0,
+                      "Falling": 1}
+
     CHANNEL_RANGE = [
                      {"rangeV":20E-3, "apivalue":1, "rangeStr":"20 mV"},
                      {"rangeV":50E-3, "apivalue":2, "rangeStr":"50 mV"},
@@ -177,7 +180,7 @@ class PS2000(_PicoscopeBase):
         
         m = self.lib.ps2000_set_trigger(
             c_int16(self.handle), c_enum(trigsrc), c_int16(threshold_adc),
-            c_enum(direction), c_int16(0), c_int16(timeout_ms))
+            c_enum(direction), c_int16(delay), c_int16(timeout_ms))
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
