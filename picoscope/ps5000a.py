@@ -165,6 +165,11 @@ class PS5000a(_PicoscopeBase):
                                       c_int16(enabled), c_enum(coupling),
                                       c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
+        if BWLimited:
+            m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(1))
+        else:
+            m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(0))
+        self.checkResult(m)
 
     def _lowLevelStop(self):
         m = self.lib.ps5000aStop(c_int16(self.handle))
