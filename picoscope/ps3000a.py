@@ -147,11 +147,11 @@ class PS3000a(_PicoscopeBase):
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
         if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
+            serialNullTermStr = byref(create_string_buffer(sn))
         else:
             serialNullTermStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps3000aOpenUnit(byref(c_handle), byref(serialNullTermStr))
+        m = self.lib.ps3000aOpenUnit(byref(c_handle), serialNullTermStr)
         self.checkResult(m)
         self.handle = c_handle.value
 
@@ -249,7 +249,7 @@ class PS3000a(_PicoscopeBase):
 
         m = self.lib.ps3000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
                                         c_uint32(noSamples), byref(intervalNanoSec),
-                                        c_int16(oversample), byref(maxSamples), 
+                                        c_int16(oversample), byref(maxSamples),
                                         c_uint32(segmentIndex))
         self.checkResult(m)
         # divide by 1e9 to return interval in seconds
