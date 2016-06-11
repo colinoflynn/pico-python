@@ -215,7 +215,7 @@ class PS6000(_PicoscopeBase):
         m = self.lib.ps6000SetChannel(c_int16(self.handle), c_enum(chNum),
                                       c_int16(enabled), c_enum(coupling),
                                       c_enum(VRange), c_float(VOffset),
-                                      c_enum(BWLimited))
+                                      c_enum(BWLimited)) # 2 for PS6404
         self.checkResult(m)
 
     def _lowLevelStop(self):
