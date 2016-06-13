@@ -227,8 +227,10 @@ class _PicoscopeBase(object):
         # store the actually chosen range of the scope
         VRange = VRangeAPI["rangeV"] * probeAttenuation
 
-        if BWLimited:
-            BWLimited = 1
+        if BWLimited == 2:
+            BWLimited = 2  # Bandwidth Limiter for PicoScope 6404
+        elif BWLimited == 1:
+            BWLimited = 1  # Bandwidth Limiter for PicoScope 6402/6403
         else:
             BWLimited = 0
 
