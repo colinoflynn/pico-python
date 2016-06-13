@@ -55,7 +55,7 @@ if __name__ == "__main__":
                                                       triggerSource='None')
 
     # the setChannel command will chose the next largest amplitude
-    channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)
+    channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)      # BWLimited = 1 for 6402/6403, 2 for 6404, 0 for all
     print("Chosen channel range = %d" % channelRange)
 
     ps.setSimpleTrigger('A', 1.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
