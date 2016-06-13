@@ -1,4 +1,4 @@
- pico-python is Copyright (c) 2013 By:
+ pico-python is Copyright (c) 2013-2016 By:
  Colin O'Flynn <coflynn@newae.com>
  Mark Harfouche <mark.harfouche@gmail.com>
  All rights reserved.

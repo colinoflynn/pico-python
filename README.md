@@ -15,8 +15,24 @@ System has support for:
 
 Note the 'A' series covers a different ground than the non-A series! Check the programming manuals posted at http://www.picotech.com/document/ for details.
 
-Installation Information
-------------------------------
+Getting DLLs
+------------
+
+You will require the PicoScope DLLs for this package to work. The easiest method is to install the latest PicoScope software
+or SDK from https://www.picotech.com/downloads .
+
+Installation Information from PyPI
+----------------------------------
+
+You can install the program with a simple:
+```
+pip install picoscope
+```
+
+You will require the DLLs (described above).
+
+Installation Information from GIT
+---------------------------------
 If you will be getting updated code from git, use git clone to put the directory
 somewhere. Then do the following to generate a link to your git directory:
 ```
@@ -27,9 +43,6 @@ If you want the normal installation (e.g. copies files to Python installation) u
 ```
 python setup.py install
 ```
-
-Currently the code is changing frequently. Thus you may wish to use the git clone + develop option to
-keep up with new changes.
 
 
 Similar Projects
