@@ -250,7 +250,8 @@ class _PicoscopeBase(object):
         # getting max samples is riddiculous. 1GS buffer means it will take so long
         nSamples = min(self.noSamples, self.maxSamples)
 
-        self._lowLevelRunBlock(int(nSamples * pretrig), int(nSamples * (1 - pretrig)),
+        self._lowLevelRunBlock(int(round(nSamples * pretrig)),          # to return the same No. Samples ( if pretrig != 0.0 ) I'm wrong ?
+                               int(round(nSamples * (1 - pretrig))),
                                self.timebase, self.oversample, segmentIndex)
 
     def isReady(self):
