@@ -10,8 +10,10 @@ around, but this one tries to improve on them via:
 System has support for:
  * PS6000
  * PS5000A Class (PicoScope 5242A/5243A/5244A/5442A/5443A/5444A/5242B/5244B/5442B/5443B/5444B)
+ * PS3000 Class (PicoScope 3204/3205/3206/3224/3424/3425)
  * PS3000A Class (PicoScope 3204A/3204B/3205A/3205B/3206A/3206B/3207A/3207B/3204/3205/3206/3404A/3404B/3405A/3405A/3406A/3406B)
  * PS2000 Class (PicoScope 2104/2105/2202/2203/2204/2205/2204A/2205A)
+ * PS2000A Class (PicoScope 2206/2206A/2206B/2207/2207A/2207B/2208/2208A/2208B/2205A MSO/2206B MSO/2207B MSO/2208B MSO/2405A/2406B/2407B/2408B)
 
 Note the 'A' series covers a different ground than the non-A series! Check the programming manuals posted at http://www.picotech.com/document/ for details.
 
