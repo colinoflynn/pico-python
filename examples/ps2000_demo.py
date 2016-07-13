@@ -9,7 +9,7 @@ It was tested with the PS2204A USB2.0 version
 The AWG is connected to Channel A.
 Nothing else is required.
 
-NOTE: Supports only the ps2000 DLL, NOT the PS2000a DLL.
+NOTE: Must change line below to use with "A" and "B" series PS2000 models
 
 See http://www.picotech.com/document/pdf/ps2000pg.en-10.pdf for PS2000 models:
 PicoScope 2104
@@ -25,6 +25,7 @@ See http://www.picotech.com/document/pdf/ps2000apg.en-6.pdf for PS2000A models:
 PicoScope 2205 MSO
 PicoScope 2206
 PicoScope 2206A
+PicoScope 2206B
 PicoScope 2207
 PicoScope 2207A
 PicoScope 2208
@@ -37,6 +38,7 @@ from __future__ import unicode_literals
 
 import time
 from picoscope import ps2000
+from picoscope import ps2000a
 import pylab as plt
 import numpy as np
 
@@ -46,6 +48,7 @@ if __name__ == "__main__":
     print("Attempting to open Picoscope 2000...")
 
     ps = ps2000.PS2000()
+    # ps = ps2000a.PS2000a()  # Uncomment this line to use with the 2000a/2000b series
 
     print("Found the following picoscope:")
     print(ps.getAllUnitInfo())
