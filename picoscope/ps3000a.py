@@ -290,6 +290,7 @@ class PS3000a(_PicoscopeBase):
 
         waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
+        m = self.lib.ps3000aSetSigGenArbitrary(
             c_int16(self.handle),
             c_uint32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
             c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
