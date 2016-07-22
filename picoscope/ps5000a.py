@@ -109,18 +109,9 @@ class PS5000a(_PicoscopeBase):
     # VARIANT_INFO and others show up as PS6403X where X = A,C or D
 
     AWGPhaseAccumulatorSize = 32
-    AWGBufferAddressWidth   = 14
-    AWGMaxSamples           = 2 ** AWGBufferAddressWidth
 
     AWGDACInterval          = 5E-9  # in seconds
     AWGDACFrequency         = 1 / AWGDACInterval
-
-    # Note this is NOT what is written in the Programming guide as of version
-    # 10_5_0_28
-    # This issue was acknowledged in this thread
-    # http://www.picotech.com/support/topic13217.html
-    AWGMaxVal               = 0x0FFF
-    AWGMinVal               = 0x0000
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
@@ -143,6 +134,37 @@ class PS5000a(_PicoscopeBase):
         self.resolution = self.ADC_RESOLUTIONS["8"]
 
         super(PS5000a, self).__init__(serialNumber, connect)
+
+        # B models have different AWG buffer sizes
+        # 5242B, 5442B: 2**14
+        # 5243B, 5443B: 2**15
+        # 5444B, 5244B: 3 * 2**14
+        # Model 5444B identifies itself properly in VariantInfo, I will assume
+        # the others do as well.
+        self.model = super(PS5000a, self).getUnitInfo('VarianInfo')
+        if self.model in ('5244B', '5444B'):
+            self.AWGBufferAddressWidth = math.log(3 * 2**14, 2)
+            self.AWGMaxVal = 32767
+            self.AWGMinVal = -32768
+            self.AWGMaxSamples = 49152
+        elif self.model in ('5243B', '5443B'):
+            self.AWGBufferAddressWidth = 15
+            self.AWGMaxVal = 32767
+            self.AWGMinVal = -32768
+            self.AWGMaxSamples = 2**self.AWGBufferAddressWidth
+        else:
+            # This is what the previous PS5000a used for all scopes.
+            # I am leaving it the same, although I think the AWGMaxVal and
+            # AWGMinVal issue was fixed and should be -32768 to 32767 for all
+            # 5000 models
+            self.AWGBufferAddressWidth = 14
+            # Note this is NOT what is written in the Programming guide as of
+            # version # 10_5_0_28
+            # This issue was acknowledged in this thread
+            # http://www.picotech.com/support/topic13217.html
+            self.AWGMaxVal = 0x0FFF
+            self.AWGMinVal = 0x0000
+            self.AWGMaxSamples = 2**self.AWGBufferAddressWidth
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
