@@ -357,6 +357,11 @@ class _PicoscopeBase(object):
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay,
                                        timeout_ms)
 
+
+    def getTriggerTimeOffset(self, segmentIndex = 0):
+        return self._lowLevelGetTriggerTimeOffset(segmentIndex)
+
+
     def flashLed(self, times=5, start=False, stop=False):
         """
         Flash the front panel LEDs.
