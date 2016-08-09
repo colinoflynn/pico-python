@@ -142,7 +142,9 @@ class PS5000a(_PicoscopeBase):
         else:
             serialNullTermStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps5000aOpenUnit(byref(c_handle), serialNullTermStr, self.resolution)
+        m = self.lib.ps5000aOpenUnit(byref(c_handle), serialNullTermStr, self.resolution)       
+        self.handle = c_handle.value
+
         # This will check if the power supply is not connected
         # and change the power supply accordingly
         # Personally (me = Mark), I don't like this
@@ -151,8 +153,9 @@ class PS5000a(_PicoscopeBase):
         # but I think this should do for now
         if m == 0x11A:
             m = self.changePowerSource(m)
+            
+        #Catch other errors
         self.checkResult(m)
-        self.handle = c_handle.value
 
         # B models have different AWG buffer sizes
         # 5242B, 5442B: 2**14
@@ -417,7 +420,7 @@ class PS5000a(_PicoscopeBase):
             c_enum(resolution))
         self.checkResult(m)
 
-    def _lowLevelChagnePowerSource(self, powerstate):
+    def _lowLevelChangePowerSource(self, powerstate):
         m = self.lib.ps5000aChangePowerSource(
                 c_int16(self.handle),
                 c_enum(powerstate))
