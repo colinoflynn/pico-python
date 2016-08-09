@@ -87,7 +87,7 @@ class _PicoscopeBase(object):
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
-    BW_LIMIT = {"Full": 0, "20MHZ": 1}
+    BW_LIMITS = {"Full": 0, "20MHZ": 1}
 
     ###End of things you must reimplement (I think).
 
@@ -161,7 +161,7 @@ class _PicoscopeBase(object):
         return s
 
     def setChannel(self, channel='A', coupling="AC", VRange=2.0, VOffset=0.0, enabled=True,
-                   BWLimited=False, probeAttenuation=1.0):
+                   BWLimited=0, probeAttenuation=1.0):
         """
         Set up a specific channel.
 
@@ -228,6 +228,9 @@ class _PicoscopeBase(object):
 
         # store the actually chosen range of the scope
         VRange = VRangeAPI["rangeV"] * probeAttenuation
+
+        if not isinstance(BWLimited, int):
+            BWLimited = self.BW_LIMITS[BWLimited]
 
         if BWLimited == 2:
             BWLimited = 2  # Bandwidth Limiter for PicoScope 6404
@@ -484,7 +487,7 @@ class _PicoscopeBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
+    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0,
         toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
         '''
         Get data recorded in block mode.
