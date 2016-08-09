@@ -104,7 +104,7 @@ class PS2000(_PicoscopeBase):
     UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
                        "USBVersion"             : 0x1,
                        "HardwareVersion"        : 0x2,
-                       "VarianInfo"             : 0x3,
+                       "VariantInfo"            : 0x3,
                        "BatchAndSerial"         : 0x4,
                        "CalDate"                : 0x5,
                        "ErrorCode"              : 0x6,
