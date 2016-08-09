@@ -135,13 +135,26 @@ class PS5000a(_PicoscopeBase):
 
         super(PS5000a, self).__init__(serialNumber, connect)
 
+    def _lowLevelOpenUnit(self, sn):
+        c_handle = c_int16()
+        if sn is not None:
+            serialNullTermStr = create_string_buffer(sn)
+        else:
+            serialNullTermStr = None
+        # Passing None is the same as passing NULL
+        m = self.lib.ps5000aOpenUnit(byref(c_handle), serialNullTermStr, self.resolution)
+        self.checkResult(m)
+        self.handle = c_handle.value
+        
         # B models have different AWG buffer sizes
         # 5242B, 5442B: 2**14
         # 5243B, 5443B: 2**15
         # 5444B, 5244B: 3 * 2**14
         # Model 5444B identifies itself properly in VariantInfo, I will assume
         # the others do as well.
-        self.model = super(PS5000a, self).getUnitInfo('VarianInfo')
+        
+        self.model = self.getUnitInfo('VariantInfo')
+        #print("Checking variant, found: " + str(self.model))
         if self.model in ('5244B', '5444B'):
             self.AWGBufferAddressWidth = math.log(3 * 2**14, 2)
             self.AWGMaxVal = 32767
@@ -166,17 +179,7 @@ class PS5000a(_PicoscopeBase):
             self.AWGMinVal = 0x0000
             self.AWGMaxSamples = 2**self.AWGBufferAddressWidth
 
-    def _lowLevelOpenUnit(self, sn):
-        c_handle = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
-        else:
-            serialNullTermStr = None
-        # Passing None is the same as passing NULL
-        m = self.lib.ps5000aOpenUnit(byref(c_handle), serialNullTermStr, self.resolution)
-        self.checkResult(m)
-        self.handle = c_handle.value
-
+        
     def _lowLevelCloseUnit(self):
         m = self.lib.ps5000aCloseUnit(c_int16(self.handle))
         self.checkResult(m)
