@@ -482,7 +482,7 @@ class _PicoscopeBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
+    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0,
         toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
         '''
         Get data recorded in block mode.
@@ -805,9 +805,10 @@ class _PicoscopeBase(object):
             return
 
         else:
+            #print("Error Num: 0x%x"%ec)
             ecName = self.errorNumToName(ec)
             ecDesc = self.errorNumToDesc(ec)
-            raise IOError('Error calling %s: %s (%s)' % (inspect.stack()[1][3], ecName, ecDesc))
+            raise IOError('Error calling %s: %s (%s)' % (str(inspect.stack()[1][3]), ecName, ecDesc))
 
     def errorNumToName(self, num):
         """ Return the name of the error as a string. """
@@ -823,6 +824,18 @@ class _PicoscopeBase(object):
                     return t[2]
                 except IndexError:
                     return ""
+
+    def changePowerSource(self, powerstate):
+        """ Change the powerstate of the scope. Valid only for PS54XXA/B? """
+        # I should probably make an enumerate table for these two cases, but htey are in fact just the
+        # error codes. Picoscope should have made it a separate enumerate themselves.
+        # I'll just keep this hack for now
+        if not isinstance(powerstate, int):
+            if powerstate == "PICO_POWER_SUPPLY_CONNECTED":
+                powerstate = 0x119
+            elif powerstate == "PICO_POWER_SUPPLY_NOT_CONNECTED":
+                powerstate = 0x11A
+        self._lowLevelChangePowerSource(powerstate)
 
     ###Error codes - copied from PS6000 programmers manual.
     #To get formatting correct do following copy-replace in Programmers Notepad
