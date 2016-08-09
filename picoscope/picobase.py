@@ -826,19 +826,15 @@ class _PicoscopeBase(object):
 
     def changePowerSource(self, powerstate):
         """ Change the powerstate of the scope. Valid only for PS54XXA/B? """
-        rv = powerstate
         # I should probably make an enumerate table for these two cases, but htey are in fact just the
         # error codes. Picoscope should have made it a separate enumerate themselves.
         # I'll just keep this hack for now
         if not isinstance(powerstate, int):
             if powerstate == "PICO_POWER_SUPPLY_CONNECTED":
                 powerstate = 0x119
-                rv = 0
             elif powerstate == "PICO_POWER_SUPPLY_NOT_CONNECTED":
                 powerstate = 0x11A
-                rv = 0
         self._lowLevelChangePowerSource(powerstate)
-        return rv
 
     ###Error codes - copied from PS6000 programmers manual.
     #To get formatting correct do following copy-replace in Programmers Notepad
