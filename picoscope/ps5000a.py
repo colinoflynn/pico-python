@@ -153,7 +153,7 @@ class PS5000a(_PicoscopeBase):
         # but I think this should do for now
         if m == 0x11A:
             self.changePowerSource(m)
-        else
+        else:
             #Catch other errors
             self.checkResult(m)
 

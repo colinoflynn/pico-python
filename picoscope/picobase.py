@@ -805,9 +805,10 @@ class _PicoscopeBase(object):
             return
 
         else:
+            #print("Error Num: 0x%x"%ec)
             ecName = self.errorNumToName(ec)
             ecDesc = self.errorNumToDesc(ec)
-            raise IOError('Error calling %s: %s (%s)' % (inspect.stack()[1][3], ecName, ecDesc))
+            raise IOError('Error calling %s: %s (%s)' % (str(inspect.stack()[1][3]), ecName, ecDesc))
 
     def errorNumToName(self, num):
         """ Return the name of the error as a string. """
