@@ -242,6 +242,10 @@ class PS4000(_PicoscopeBase):
         else:
             return False
 
+    def _lowLevelPingUnit(self):
+        """Not implemented for 4000-series according to manual"""
+        return None
+
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ return (timeIntervalSeconds, maxSamples). """
         maxSamples = c_int32()
