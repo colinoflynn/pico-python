@@ -244,11 +244,7 @@ class PS3000a(_PicoscopeBase):
 
     def _lowlevelPingUnit(self):
         m = self.lib.ps3000aPingUnit(c_int16(self.handle))
-        self.checkResult(m)
-        if m == 0:
-            return True
-        else:
-            return False
+        return m
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ returns (timeIntervalSeconds, maxSamples) """
