@@ -38,9 +38,9 @@ You will require the DLLs (described above).
 
 The easiest way to install the DLL's (shared libs) in Linux is to install picoscope from https://www.picotech.com/downloads.  Once you have the scope running you need to add your login account to the pico group in order to access the USB.  If you don't have permission to use the USB, the examples will crash when trying to open the scope.
 
-useradd -G pico <username>
+useradd -G pico *username*
 
-Finally, you need to log in again for the group change to pick up.  In a term window you can just 'su <username>'
+Finally, you need to log in again for the group change to pick up.  In a term window you can just 'su *username*'
 
 
 Installation Information from GIT
