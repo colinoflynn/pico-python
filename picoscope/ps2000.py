@@ -307,6 +307,22 @@ class PS2000(_PicoscopeBase):
             c_float(0), c_float(0), c_enum(0), c_uint32(0))
         self.checkResult(m)
 
+    def  _lowLevelSetSigGenBuiltIn(self, offsetVoltage, pkToPk, waveType, frequency, stopFreq, 
+                                   increment, dwellTime, shots, triggerType, triggerSource):
+
+        if stopFreq is None: 
+            stopFreq = frequency
+        m = self.lib.ps2000_set_sig_gen_built_in(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1000000)),
+            c_int32(int(pkToPk        * 1000000)),
+            c_int16(waveType),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(0), c_uint32(0))
+        self.checkResult(m)
+
+
+
     def checkResult(self, ec):
         """ Check result of function calls, raise exception if not 0. """
         # PS2000 differs from other drivers in that non-zero is good

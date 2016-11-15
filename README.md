@@ -1,5 +1,8 @@
 pico-python
 ===========
+Works on both Windows and Linux (Ubuntu 16.04 tested)  This fork adds the ability to do sweeps with the AWG.  
+If you're having trouble with Linux, read installation note below
+
 This is a Python 2.7+ library for the Pico Scope. It uses the provided DLL
 for actual communications with the instrument. There have been a few examples
 around, but this one tries to improve on them via:
@@ -32,6 +35,13 @@ pip install picoscope
 ```
 
 You will require the DLLs (described above).
+
+The easiest way to install the DLL's (shared libs) in Linux is to install picoscope from https://www.picotech.com/downloads.  Once you have the scope running you need to add your login account to the pico group in order to access the USB.  If you don't have permission to use the USB, the examples will crash when trying to open the scope.
+
+useradd -G pico <username>
+
+Finally, you need to log in again for the group change to pick up.  In a term window you can just 'su <username>'
+
 
 Installation Information from GIT
 ---------------------------------
