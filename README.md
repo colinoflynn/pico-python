@@ -57,11 +57,15 @@ Install pico-python using either method described above.
 
 Once you have the scope running you need to add your login account to the pico group in order to access the USB.  The example will crash if you don't have permission to use the USB.  This is true for use of the SDK, even if you're not using pico-python.
 
+```
 useradd -G pico *username*
+```
 
 Finally, you need to log in again for the group change to pick up:
 
+```
 su *username*
+```
 
 
 Similar Projects
