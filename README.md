@@ -1,14 +1,12 @@
 pico-python
 ===========
-Works on both Windows and Linux (Ubuntu 16.04 tested)  This fork adds the ability to do sweeps with the AWG.  
-If you're having trouble with Linux, read Linux installation note below.
-
 This is a Python 2.7+ library for the Pico Scope. It uses the provided DLL
 for actual communications with the instrument. There have been a few examples
 around, but this one tries to improve on them via:
   * Subclass instrument-specific stuff, so can support more families
   * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
   * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
+  * Supports both Windows and Linux
 
 System has support for:
  * PS6000
@@ -51,11 +49,11 @@ If you want the normal installation (e.g. copies files to Python installation) u
 python setup.py install
 ```
 
-Installation Information for LINUX
-----------------------------------
+Additional Installation Information for LINUX
+---------------------------------------------
 Install PicoScope as describe under Getting DLL's (above)
 
-Install pico-python.
+Install pico-python using either method described above.
 
 Once you have the scope running you need to add your login account to the pico group in order to access the USB.  The example will crash if you don't have permission to use the USB.  This is true for use of the SDK, even if you're not using pico-python.
 

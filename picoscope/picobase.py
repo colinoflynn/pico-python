@@ -524,33 +524,9 @@ class _PicoscopeBase(object):
 
 
 
-#    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
-#                               shots=1, triggerType="Rising", triggerSource="None"):
-#        """
-#        Use the built in function generator's in a more straightforward way.
-#
-#        Not all the options are exposed making it easier to use for the simple
-#        things.
-#
-#        """
-#
-#        # I put this here, because the python idiom None is very
-#        # close to the "None" string we expect
-#        if triggerSource is None:
-#            triggerSource = "None"
-#
-#        if not isinstance(waveType, int):
-#            waveType = self.WAVE_TYPES[waveType]
-#        if not isinstance(triggerType, int):
-#            triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
-#        if not isinstance(triggerSource, int):
-#            triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
-#
-#        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
-#                                             shots, triggerType, triggerSource)
-
-    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6, stopFreq=None, increment = 0, dwellTime=10e3,
-                         shots=1, triggerType="Rising", triggerSource="None"):
+    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", 
+                         shots=1, triggerType="Rising", triggerSource="None",
+                         frequency=1E6, stopFreq=None, increment = 0, dwellTime=10e3,):
 
         # I put this here, because the python idiom None is very
         # close to the "None" string we expect
