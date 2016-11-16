@@ -105,6 +105,8 @@ class PS6000(_PicoscopeBase):
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
                   "WhiteNoise": 9}
 
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
     SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
                             "GateHigh": 2, "GateLow": 3}
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
@@ -378,18 +380,23 @@ class PS6000(_PicoscopeBase):
         return (numSamplesReturned.value, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource):
+                                        frequency, shots, triggerType, 
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future
+
+        if stopFreq is None:
+            stopFreq = frequency
+
         m = self.lib.ps6000SetSigGenBuiltIn(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
-            c_float(frequency), c_float(frequency),
-            c_float(0), c_float(0), c_enum(0), c_enum(0),
-            c_uint32(shots), c_uint32(0),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
