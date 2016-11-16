@@ -49,13 +49,13 @@ If you want the normal installation (e.g. copies files to Python installation) u
 python setup.py install
 ```
 
-Additional Installation Information for LINUX
+Additional Installation Information for Linux
 ---------------------------------------------
-Install PicoScope as describe under Getting DLL's (above)
+Install the PicoScope Beta for Linux version of PicoScope as describe under Getting DLL's (above).  Currently this is the only way to install the shared libraries (SDK)
 
 Install pico-python using either method described above.
 
-Once you have the scope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the SDK in general, even if you're not using pico-python.
+Once you have PicoScope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the shared libraries in general, even if you're not using pico-python.
 
 ```
 useradd -G pico <username>
