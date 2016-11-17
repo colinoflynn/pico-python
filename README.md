@@ -85,3 +85,11 @@ See LICENSE.md for license terms.
 
 Inspired by Patrick Carle's code at http://www.picotech.com/support/topic11239.html
 which was adapted from http://www.picotech.com/support/topic4926.html
+
+Contributing
+------------------------------
+1. Fork.
+2. Make a new branch.
+3. Commit to your new branch.
+4. Add yourself to the authors/acknowledgements (whichever you find appropriate).
+5. Submit a pull request.
