@@ -6,6 +6,7 @@ around, but this one tries to improve on them via:
   * Subclass instrument-specific stuff, so can support more families
   * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
   * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
+  * Supports both Windows and Linux
 
 System has support for:
  * PS6000
@@ -33,6 +34,8 @@ pip install picoscope
 
 You will require the DLLs (described above).
 
+
+
 Installation Information from GIT
 ---------------------------------
 If you will be getting updated code from git, use git clone to put the directory
@@ -44,6 +47,24 @@ python setup.py develop
 If you want the normal installation (e.g. copies files to Python installation) use:
 ```
 python setup.py install
+```
+
+Additional Installation Information for Linux
+---------------------------------------------
+Install the PicoScope Beta for Linux version of PicoScope as describe under Getting DLL's (above).  Currently this is the only way to install the shared libraries (SDK)
+
+Install pico-python using either method described above.
+
+Once you have PicoScope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the shared libraries in general, even if you're not using pico-python.
+
+```
+useradd -G pico <username>
+```
+
+Finally, you need to log in again for the group change to pick up:
+
+```
+su <username>
 ```
 
 

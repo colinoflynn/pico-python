@@ -383,6 +383,19 @@ class _PicoscopeBase(object):
 
         self._lowLevelFlashLed(times)
 
+    def getScaleAndOffset(self,channel):
+        """ 
+        Return the scale and offset used to convert the raw waveform
+        
+        To use: first multiply by the scale, then subtract the offset
+
+        Returns a dictionary with keys scale and offset
+        """ 
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+        return {'scale': self.CHRange[channel] / float(self.getMaxValue()), 'offset': self.CHOffset[channel]}
+
+
     def rawToV(self, channel, dataRaw, dataV=None):
         """ Convert the raw data to voltage units. Return as numpy array. """
         if not isinstance(channel, int):
@@ -518,16 +531,25 @@ class _PicoscopeBase(object):
 
 
 
-    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
-                               shots=1, triggerType="Rising", triggerSource="None"):
-        """
-        Use the built in function generator's in a more straightforward way.
-
-        Not all the options are exposed making it easier to use for the simple
-        things.
+    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", 
+                         frequency=1E6, shots=1, triggerType="Rising", 
+                         triggerSource="None", stopFreq=None, increment = 10.0, 
+                         dwellTime=1E-3, sweepType="Up", numSweeps=0):
 
         """
+        This function generates simple signals using the built-in waveforms
+ 
+        Supported waveforms include: 
+           Sine, Square, Triangle, RampUp, RampDown, and DCVoltage
 
+        Some hardware also supports these additional waveforms:
+           Sinc, Gaussian, HalfSine, and WhiteNoise
+
+        To sweep the waveform, set the stopFrequency and optionally the
+        increment, dwellTime, sweepType and numSweeps.
+
+        Supported sweep types: Up, Down, UpDown, DownUp
+        """
         # I put this here, because the python idiom None is very
         # close to the "None" string we expect
         if triggerSource is None:
@@ -539,9 +561,16 @@ class _PicoscopeBase(object):
             triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
         if not isinstance(triggerSource, int):
             triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
+        if not isinstance(sweepType, int):
+            sweepType = self.SWEEP_TYPES[sweepType]
 
-        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
-                                             shots, triggerType, triggerSource)
+  
+        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType,
+                                             frequency, shots, triggerType,
+                                             triggerSource, stopFreq, increment, 
+                                             dwellTime, sweepType, numSweeps)
+ 
+
 
     def setAWGSimple(self, waveform, duration, offsetVoltage=None,
                      pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",

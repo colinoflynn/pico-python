@@ -93,6 +93,8 @@ class PS2000(_PicoscopeBase):
     #has_sig_gen = True
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4, "DCVoltage": 5}
+
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
     
     TIME_UNITS = {"FS":0, "PS":1, "NS":2, "US":3, "MS":4, "S":5}
 
@@ -295,17 +297,28 @@ class PS2000(_PicoscopeBase):
         self.checkResult(rv)                
         return (rv, overflow.value)
 
+
+
+
+
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
-                                        triggerSource):
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
+        if stopFreq is None: 
+            stopFreq = frequency
+
         m = self.lib.ps2000_set_sig_gen_built_in(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
-            c_float(frequency), c_float(frequency),
-            c_float(0), c_float(0), c_enum(0), c_uint32(0))
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), 
+            c_uint32(numSweeps))
         self.checkResult(m)
+
+
 
     def checkResult(self, ec):
         """ Check result of function calls, raise exception if not 0. """
