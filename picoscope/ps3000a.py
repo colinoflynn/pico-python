@@ -366,10 +366,10 @@ class PS3000a(_PicoscopeBase):
         downSampleRatio, downSampleMode, overflow):
 
         m = self.lib.ps3000aGetValuesBulk(c_int16(self.handle),
-            byref(c_int16(numSamples)),
-            c_int16(fromSegment),
-            c_int16(toSegment),
-            c_int32(downSampleRatio),
+            byref(c_uint32(numSamples)),
+            c_uint32(fromSegment),
+            c_uint32(toSegment),
+            c_uint32(downSampleRatio),
             c_int16(downSampleMode),
             overflow.ctypes.data_as(POINTER(c_int16))
             )
