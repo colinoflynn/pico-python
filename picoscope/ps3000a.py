@@ -230,7 +230,7 @@ class PS3000a(_PicoscopeBase):
         m = self.lib.ps3000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
-            c_int16(oversample), byref(timeIndisposedMs), c_uint16(segmentIndex),
+            c_int16(oversample), byref(timeIndisposedMs), c_uint32(segmentIndex),
             c_void_p(), c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
