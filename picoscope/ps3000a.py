@@ -329,6 +329,18 @@ class PS3000a(_PicoscopeBase):
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex, downSampleMode):
+        """
+        delegator for _lowLevelSetDataBuffer
+
+        In ps3000a, ps3000aSetDataBuffer combines the functionality of
+        psX000YSetDataBuffer and psX000YSetDataBufferBulk. Since the rapid block
+        functions in picoscope.py call the Bulk version, a delegator is needed.
+        Note that the order of segmentIndex and downSampleMode is reversed.
+        """
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
+
+
     def _lowLevelSetMultipleDataBuffers(self, channel, data, downSampleMode):
         max_segments = self._lowLevelGetMaxSegments()
         if data.shape[0] < max_segments:
