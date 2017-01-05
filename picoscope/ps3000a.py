@@ -408,3 +408,9 @@ class PS3000a(_PicoscopeBase):
     #         c_enum(triggerType), c_enum(triggerSource),
     #         c_int16(0))
     #     self.checkResult(m)
+
+    def _lowLevelChangePowerSource(self, powerstate):
+        m = self.lib.ps3000aChangePowerSource(
+                c_int16(self.handle),
+                c_enum(powerstate))
+        self.checkResult(m)
