@@ -182,7 +182,7 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
         if requiredSize.value > len(s):
             s = create_string_buffer(requiredSize.value + 1)
-            m = self.lib.ps3000_get_unit_info(c_int16(self.handle), byref(s),
+            m = self.lib.ps3000aGetUnitInfo(c_int16(self.handle), byref(s),
                                            c_int16(len(s)),
                                            byref(requiredSize), c_enum(info))
             self.checkResult(m)
