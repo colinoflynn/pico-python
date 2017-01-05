@@ -275,6 +275,10 @@ class PS6000(_PicoscopeBase):
         else:
             return False
 
+    def _lowLevelPingUnit(self):
+        """Not implemented for 6000-series?"""
+        return None
+
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ return (timeIntervalSeconds, maxSamples). """
         maxSamples = c_int32()

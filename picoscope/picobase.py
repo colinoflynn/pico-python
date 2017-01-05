@@ -792,6 +792,11 @@ class _PicoscopeBase(object):
         """ Enumerate connceted units. Return serial numbers as list of strings. """
         return self._lowLevelEnumerateUnits()
 
+    def ping(self):
+        """ Ping unit to check that the already opened device is still
+        connected to the USB port and communication is successful."""
+        return self._lowLevelPingUnit()
+
     def open(self, serialNumber=None):
         """ Open the scope, if serialNumber is None just opens first one found. """
 

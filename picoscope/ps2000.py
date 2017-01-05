@@ -211,6 +211,10 @@ class PS2000(_PicoscopeBase):
         else:
             raise IOError("ps2000_ready returned %d"%ready.value)
 
+    def _lowLevelPingUnit(self):
+        """Not implemented for 2000-series according to manual"""
+        return None
+
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """ returns (timeIntervalSeconds, maxSamples) """
         maxSamples = c_int32()
