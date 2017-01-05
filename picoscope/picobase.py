@@ -87,6 +87,8 @@ class _PicoscopeBase(object):
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
+    BW_LIMIT = {"Full": 0, "20MHZ": 1}
+
     ###End of things you must reimplement (I think).
 
     # If we don't get this CaseInsentiveDict working, I would prefer to stick
