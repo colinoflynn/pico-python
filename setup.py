@@ -23,5 +23,5 @@ setup(
 
                  # What does your project relate to?
                  keywords = 'picoscope peripherals hardware oscilloscope ATE',
-    install_requires = []
+    install_requires = ['numpy']
 )
