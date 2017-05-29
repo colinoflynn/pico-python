@@ -154,8 +154,20 @@ class PS3000a(_PicoscopeBase):
             serialNullTermStr = None
         # Passing None is the same as passing NULL
         m = self.lib.ps3000aOpenUnit(byref(c_handle), serialNullTermStr)
-        self.checkResult(m)
         self.handle = c_handle.value
+
+        # copied over from ps5000a:
+        # This will check if the power supply is not connected
+        # and change the power supply accordingly
+        # Personally (me = Mark), I don't like this
+        # since the user should address this immediately, and we
+        # shouldn't let this go as a soft error
+        # but I think this should do for now
+        if m == 0x11A:
+            self.changePowerSource("PICO_POWER_SUPPLY_NOT_CONNECTED")
+        else:
+            #Catch other errors
+            self.checkResult(m)
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps3000aCloseUnit(c_int16(self.handle))
