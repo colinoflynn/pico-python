@@ -107,6 +107,13 @@ class PS4000a(_PicoscopeBase):
 
     SWEEP_TYPES = {"Up": 0, "Down": 1, "UpDown": 2, "DownUp": 3}
 
+    TIME_UNITS = {"femtoseconds": 0,
+                  "picoseconds": 1,
+                  "nanoseconds": 2,
+                  "microseconds":3,
+                  "milliseconds":4,
+                  "seconds":5}
+
     def __init__(self, serialNumber=None, connect=True):
         """ Load DLLs. """
         self.handle = None
@@ -300,11 +307,10 @@ class PS4000a(_PicoscopeBase):
         segmentIndex is unused, but required by other versions of the API (eg PS5000a)
 
         """
-        dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
 
         m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
-                                         dataPtr, c_uint32(numSamples),
+                                          byref(data), c_uint32(numSamples),
                                           c_uint32(segmentIndex), c_uint32(downSampleMode))
         self.checkResult(m)
 
@@ -522,8 +528,12 @@ class PS4000a(_PicoscopeBase):
         pass
 
     # Streaming related functions
-    def _lowLevelGetStreamingLatestValues():
-        pass
+    def _lowLevelGetStreamingLatestValues(self, lpPs4000Ready, pParameter = c_void_p()):
+        m = self.lib.ps4000aGetStreamingLatestValues(
+            c_uint16(self.handle),
+            lpPs4000Ready,
+            pParameter)
+        self.checkResult(m)
 
     def _lowLevelNoOfStreamingValues(self):
         noOfValues = c_uint32()
@@ -533,8 +543,21 @@ class PS4000a(_PicoscopeBase):
 
         return noOfValues.value
 
-    def _lowLevelRunStreaming():
-        pass
+    def _lowLevelRunStreaming(self, sampleInterval, sampleIntervalTimeUnits, maxPreTriggerSamples,
+                              maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode,
+                              overviewBufferSize):
+        m = self.lib.ps4000aRunStreaming(
+            c_int16(self.handle),
+            byref(c_uint32(sampleInterval)),
+            c_enum(sampleIntervalTimeUnits),
+            c_uint32(maxPreTriggerSamples),
+            c_uint32(maxPostTriggerSamples),
+            c_int16(autoStop),
+            c_uint32(downSampleRatio),
+            c_enum(downSampleRatioMode),
+            c_uint32(overviewBufferSize))
+
+        self.checkResult(m)
 
     def _lowLevelStreamingReady():
         pass
