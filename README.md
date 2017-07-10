@@ -66,7 +66,15 @@ Finally, you need to log in again for the group change to pick up:
 ```
 su <username>
 ```
-
+Additional Installation Information for Mac OSX
+---------------------------------------------
+You either want to add this everytime before you start python or ipython, but I think it is best to add this line to 
+`.bash_profile` (or the Mac Equivalent ????).
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
+```
+See [Issue 80](https://github.com/colinoflynn/pico-python/issues/80#issuecomment-314149552) for more information on how this was found.
+Unfortunately, I don't have a Mac so I can't test this for myself. Feel free to create an Issue so that we can update these instructions.
 
 Similar Projects
 ------------------------------
