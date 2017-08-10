@@ -121,8 +121,8 @@ class PS3000a(_PicoscopeBase):
     # 10_5_0_28
     # This issue was acknowledged in this thread
     # http://www.picotech.com/support/topic13217.html
-    AWGMaxVal               = 0x0FFF
-    AWGMinVal               = 0x0000
+    AWGMaxVal               = 32767
+    AWGMinVal               = -32767
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
