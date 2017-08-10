@@ -73,8 +73,17 @@ You either want to add this everytime before you start python or ipython, but I 
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
 ```
+
 See [Issue 80](https://github.com/colinoflynn/pico-python/issues/80#issuecomment-314149552) for more information on how this was found.
 Unfortunately, I don't have a Mac so I can't test this for myself. Feel free to create an Issue so that we can update these instructions.
+
+You should also add yourself to the pico group so that your user has access to the picoscope as a USB device
+```bash
+# Create the new pico group :
+sudo dseditgroup -o create pico
+# Add the current user to the pico group :
+sudo dseditgroup -o edit -a $USER -t user pico
+```
 
 Similar Projects
 ------------------------------
