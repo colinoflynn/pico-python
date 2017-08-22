@@ -393,7 +393,7 @@ class PS2000a(_PicoscopeBase):
             byref(timeUpper),
             byref(timeLower),
             byref(timeUnits),
-            c_uint16(segmentIndex),
+            c_uint32(segmentIndex),
             )
         self.checkResult(m)
 
