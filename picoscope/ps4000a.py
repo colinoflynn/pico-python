@@ -123,12 +123,12 @@ class PS4000a(_PicoscopeBase):
             # ok I don't know what is wrong with my installer, but I need to include
             # .so.2
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
-        elif platform.system() == 'Darwin' :
+        elif platform.system() == 'Darwin':
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
-            self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
+            self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
 
         super(PS4000a, self).__init__(serialNumber, connect)
 
