@@ -6,6 +6,7 @@ around, but this one tries to improve on them via:
   * Subclass instrument-specific stuff, so can support more families
   * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
   * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
+  * Supports both Windows and Linux
 
 System has support for:
  * PS6000
@@ -33,6 +34,8 @@ pip install picoscope
 
 You will require the DLLs (described above).
 
+
+
 Installation Information from GIT
 ---------------------------------
 If you will be getting updated code from git, use git clone to put the directory
@@ -46,6 +49,41 @@ If you want the normal installation (e.g. copies files to Python installation) u
 python setup.py install
 ```
 
+Additional Installation Information for Linux
+---------------------------------------------
+Install the PicoScope Beta for Linux version of PicoScope as describe under Getting DLL's (above).  Currently this is the only way to install the shared libraries (SDK)
+
+Install pico-python using either method described above.
+
+Once you have PicoScope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the shared libraries in general, even if you're not using pico-python.
+
+```
+useradd -G pico <username>
+```
+
+Finally, you need to log in again for the group change to pick up:
+
+```
+su <username>
+```
+Additional Installation Information for Mac OSX
+---------------------------------------------
+You either want to add this everytime before you start python or ipython, but I think it is best to add this line to 
+`.bash_profile` (or the Mac Equivalent ????).
+```bash
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
+```
+
+See [Issue 80](https://github.com/colinoflynn/pico-python/issues/80#issuecomment-314149552) for more information on how this was found.
+Unfortunately, I don't have a Mac so I can't test this for myself. Feel free to create an Issue so that we can update these instructions.
+
+You should also add yourself to the pico group so that your user has access to the picoscope as a USB device
+```bash
+# Create the new pico group :
+sudo dseditgroup -o create pico
+# Add the current user to the pico group :
+sudo dseditgroup -o edit -a $USER -t user pico
+```
 
 Similar Projects
 ------------------------------
@@ -64,3 +102,11 @@ See LICENSE.md for license terms.
 
 Inspired by Patrick Carle's code at http://www.picotech.com/support/topic11239.html
 which was adapted from http://www.picotech.com/support/topic4926.html
+
+Contributing
+------------------------------
+1. Fork.
+2. Make a new branch.
+3. Commit to your new branch.
+4. Add yourself to the authors/acknowledgements (whichever you find appropriate).
+5. Submit a pull request.

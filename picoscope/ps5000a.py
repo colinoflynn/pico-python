@@ -95,6 +95,9 @@ class PS5000a(_PicoscopeBase):
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
                   "WhiteNoise": 9}
 
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
+
     SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
                             "GateHigh": 2, "GateLow": 3}
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
@@ -109,18 +112,9 @@ class PS5000a(_PicoscopeBase):
     # VARIANT_INFO and others show up as PS6403X where X = A,C or D
 
     AWGPhaseAccumulatorSize = 32
-    AWGBufferAddressWidth   = 14
-    AWGMaxSamples           = 2 ** AWGBufferAddressWidth
 
     AWGDACInterval          = 5E-9  # in seconds
     AWGDACFrequency         = 1 / AWGDACInterval
-
-    # Note this is NOT what is written in the Programming guide as of version
-    # 10_5_0_28
-    # This issue was acknowledged in this thread
-    # http://www.picotech.com/support/topic13217.html
-    AWGMaxVal               = 0x0FFF
-    AWGMinVal               = 0x0000
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
@@ -133,9 +127,12 @@ class PS5000a(_PicoscopeBase):
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' :
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
+        elif platform.system() == 'Darwin' :
+            from ctypes import cdll
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
@@ -152,8 +149,53 @@ class PS5000a(_PicoscopeBase):
             serialNullTermStr = None
         # Passing None is the same as passing NULL
         m = self.lib.ps5000aOpenUnit(byref(c_handle), serialNullTermStr, self.resolution)
-        self.checkResult(m)
         self.handle = c_handle.value
+
+        # This will check if the power supply is not connected
+        # and change the power supply accordingly
+        # Personally (me = Mark), I don't like this
+        # since the user should address this immediately, and we
+        # shouldn't let this go as a soft error
+        # but I think this should do for now
+        if m == 0x11A:
+            self.changePowerSource(m)
+        else:
+            #Catch other errors
+            self.checkResult(m)
+
+        # B models have different AWG buffer sizes
+        # 5242B, 5442B: 2**14
+        # 5243B, 5443B: 2**15
+        # 5444B, 5244B: 3 * 2**14
+        # Model 5444B identifies itself properly in VariantInfo, I will assume
+        # the others do as well.
+
+        self.model = self.getUnitInfo('VariantInfo')
+        #print("Checking variant, found: " + str(self.model))
+        if self.model in ('5244B', '5444B'):
+            self.AWGBufferAddressWidth = math.log(3 * 2**14, 2)
+            self.AWGMaxVal = 32767
+            self.AWGMinVal = -32768
+            self.AWGMaxSamples = 49152
+        elif self.model in ('5243B', '5443B'):
+            self.AWGBufferAddressWidth = 15
+            self.AWGMaxVal = 32767
+            self.AWGMinVal = -32768
+            self.AWGMaxSamples = 2**self.AWGBufferAddressWidth
+        else:
+            # This is what the previous PS5000a used for all scopes.
+            # I am leaving it the same, although I think the AWGMaxVal and
+            # AWGMinVal issue was fixed and should be -32768 to 32767 for all
+            # 5000 models
+            self.AWGBufferAddressWidth = 14
+            # Note this is NOT what is written in the Programming guide as of
+            # version # 10_5_0_28
+            # This issue was acknowledged in this thread
+            # http://www.picotech.com/support/topic13217.html
+            self.AWGMaxVal = 0x0FFF
+            self.AWGMinVal = 0x0000
+            self.AWGMaxSamples = 2**self.AWGBufferAddressWidth
+
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps5000aCloseUnit(c_int16(self.handle))
@@ -361,18 +403,23 @@ class PS5000a(_PicoscopeBase):
         return (numSamplesReturned.value, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource):
+                                        frequency, shots, triggerType, 
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future
+
+        if stopFreq is None:
+            stopFreq = frequency
+
         m = self.lib.ps5000aSetSigGenBuiltIn(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
-            c_float(frequency), c_float(frequency),
-            c_float(0), c_float(0), c_enum(0), c_enum(0),
-            c_uint32(shots), c_uint32(0),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
@@ -382,4 +429,10 @@ class PS5000a(_PicoscopeBase):
         m = self.lib.ps5000aSetDeviceResolution(
             c_int16(self.handle),
             c_enum(resolution))
+        self.checkResult(m)
+
+    def _lowLevelChangePowerSource(self, powerstate):
+        m = self.lib.ps5000aChangePowerSource(
+                c_int16(self.handle),
+                c_enum(powerstate))
         self.checkResult(m)

@@ -107,7 +107,7 @@ class _PicoscopeBase(object):
     UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
                        "USBVersion"             : 0x1,
                        "HardwareVersion"        : 0x2,
-                       "VarianInfo"             : 0x3,
+                       "VariantInfo"             : 0x3,
                        "BatchAndSerial"         : 0x4,
                        "CalDate"                : 0x5,
                        "KernelVersion"          : 0x6,
@@ -357,6 +357,11 @@ class _PicoscopeBase(object):
         self._lowLevelSetSimpleTrigger(enabled, trigSrc, threshold_adc, direction, delay,
                                        timeout_ms)
 
+
+    def getTriggerTimeOffset(self, segmentIndex = 0):
+        return self._lowLevelGetTriggerTimeOffset(segmentIndex)
+
+
     def flashLed(self, times=5, start=False, stop=False):
         """
         Flash the front panel LEDs.
@@ -377,6 +382,19 @@ class _PicoscopeBase(object):
             times = 0
 
         self._lowLevelFlashLed(times)
+
+    def getScaleAndOffset(self,channel):
+        """ 
+        Return the scale and offset used to convert the raw waveform
+        
+        To use: first multiply by the scale, then subtract the offset
+
+        Returns a dictionary with keys scale and offset
+        """ 
+        if not isinstance(channel, int):
+            channel = self.CHANNELS[channel]
+        return {'scale': self.CHRange[channel] / float(self.getMaxValue()), 'offset': self.CHOffset[channel]}
+
 
     def rawToV(self, channel, dataRaw, dataV=None):
         """ Convert the raw data to voltage units. Return as numpy array. """
@@ -477,7 +495,7 @@ class _PicoscopeBase(object):
 
         return (data, numSamplesReturned, overflow)
 
-    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0, 
+    def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0,
         toSegment=None, downSampleRatio=1, downSampleMode=0, data=None):
         '''
         Get data recorded in block mode.
@@ -513,16 +531,25 @@ class _PicoscopeBase(object):
 
 
 
-    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", frequency=1E6,
-                               shots=1, triggerType="Rising", triggerSource="None"):
-        """
-        Use the built in function generator's in a more straightforward way.
-
-        Not all the options are exposed making it easier to use for the simple
-        things.
+    def setSigGenBuiltInSimple(self, offsetVoltage=0, pkToPk=2, waveType="Sine", 
+                         frequency=1E6, shots=1, triggerType="Rising", 
+                         triggerSource="None", stopFreq=None, increment = 10.0, 
+                         dwellTime=1E-3, sweepType="Up", numSweeps=0):
 
         """
+        This function generates simple signals using the built-in waveforms
+ 
+        Supported waveforms include: 
+           Sine, Square, Triangle, RampUp, RampDown, and DCVoltage
 
+        Some hardware also supports these additional waveforms:
+           Sinc, Gaussian, HalfSine, and WhiteNoise
+
+        To sweep the waveform, set the stopFrequency and optionally the
+        increment, dwellTime, sweepType and numSweeps.
+
+        Supported sweep types: Up, Down, UpDown, DownUp
+        """
         # I put this here, because the python idiom None is very
         # close to the "None" string we expect
         if triggerSource is None:
@@ -534,9 +561,16 @@ class _PicoscopeBase(object):
             triggerType = self.SIGGEN_TRIGGER_TYPES[triggerType]
         if not isinstance(triggerSource, int):
             triggerSource = self.SIGGEN_TRIGGER_SOURCES[triggerSource]
+        if not isinstance(sweepType, int):
+            sweepType = self.SWEEP_TYPES[sweepType]
 
-        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType, frequency,
-                                             shots, triggerType, triggerSource)
+  
+        self._lowLevelSetSigGenBuiltInSimple(offsetVoltage, pkToPk, waveType,
+                                             frequency, shots, triggerType,
+                                             triggerSource, stopFreq, increment, 
+                                             dwellTime, sweepType, numSweeps)
+ 
+
 
     def setAWGSimple(self, waveform, duration, offsetVoltage=None,
                      pkToPk=None, indexMode="Single", shots=1, triggerType="Rising",
@@ -800,9 +834,10 @@ class _PicoscopeBase(object):
             return
 
         else:
+            #print("Error Num: 0x%x"%ec)
             ecName = self.errorNumToName(ec)
             ecDesc = self.errorNumToDesc(ec)
-            raise IOError('Error calling %s: %s (%s)' % (inspect.stack()[1][3], ecName, ecDesc))
+            raise IOError('Error calling %s: %s (%s)' % (str(inspect.stack()[1][3]), ecName, ecDesc))
 
     def errorNumToName(self, num):
         """ Return the name of the error as a string. """
@@ -818,6 +853,18 @@ class _PicoscopeBase(object):
                     return t[2]
                 except IndexError:
                     return ""
+
+    def changePowerSource(self, powerstate):
+        """ Change the powerstate of the scope. Valid only for PS54XXA/B? """
+        # I should probably make an enumerate table for these two cases, but htey are in fact just the
+        # error codes. Picoscope should have made it a separate enumerate themselves.
+        # I'll just keep this hack for now
+        if not isinstance(powerstate, int):
+            if powerstate == "PICO_POWER_SUPPLY_CONNECTED":
+                powerstate = 0x119
+            elif powerstate == "PICO_POWER_SUPPLY_NOT_CONNECTED":
+                powerstate = 0x11A
+        self._lowLevelChangePowerSource(powerstate)
 
     ###Error codes - copied from PS6000 programmers manual.
     #To get formatting correct do following copy-replace in Programmers Notepad

@@ -101,15 +101,25 @@ class PS4000(_PicoscopeBase):
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
+    WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
+                  "RampUp": 3, "RampDown": 4,
+                  "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
+                  "WhiteNoise": 9}
+
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
+
     def __init__(self, serialNumber=None, connect=True):
         """ Load DLLs. """
         self.handle = None
-
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' :
             from ctypes import cdll
             # ok I don't know what is wrong with my installer, but I need to include
             # .so.2
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
+        elif platform.system() == 'Darwin' :
+            from ctypes import cdll
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
@@ -323,6 +333,27 @@ class PS4000(_PicoscopeBase):
     # Untested functions below                                         #
     #                                                                  #
     ####################################################################
+    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
+                                        frequency, shots, triggerType, 
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
+        if stopFreq is None:
+            stopFreq = frequency
+
+        m = self.lib.ps4000SetSigGenBuiltIn(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1000000)),
+            c_int32(int(pkToPk        * 1000000)),
+            c_int16(waveType),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
+            c_enum(triggerType), c_enum(triggerSource),
+            c_int16(0))
+        self.checkResult(m)
+
+
+
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
         maxDownSampleRatio = c_uint32()

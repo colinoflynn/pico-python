@@ -95,10 +95,16 @@ class PS2000a(_PicoscopeBase):
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
                   "WhiteNoise": 9}
 
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
     SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
                             "GateHigh": 2, "GateLow": 3}
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
                               "ExtIn": 3, "SoftTrig": 4, "TriggerRaw": 5}
+
+    # TIME_UNITS = {'PS2000A_FS':0,'PS2000A_PS':1,'PS2000A_NS':2,'PS2000A_US':3,'PS2000A_MS':4,'PS2000A_S':5,'PS2000A_MAX_TIME_UNITS':6}
+    TIME_UNITS = {0: 1e-15, 1: 1e-12, 2: 1e-9, 3:1e-6, 4:1e-3, 5:1e0}
+
 
     # This is actually different depending on the AB/CD models
     # I wonder how we could detect the difference between the oscilloscopes
@@ -133,9 +139,12 @@ class PS2000a(_PicoscopeBase):
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' :
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
+        elif platform.system() == 'Darwin' :
+            from ctypes import cdll
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
@@ -228,7 +237,7 @@ class PS2000a(_PicoscopeBase):
         m = self.lib.ps2000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
-            c_int16(oversample), byref(timeIndisposedMs), c_uint16(segmentIndex),
+            c_int16(oversample), byref(timeIndisposedMs), c_uint32(segmentIndex),
             c_void_p(), c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
@@ -360,6 +369,7 @@ class PS2000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
+
     def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
         downSampleRatio, downSampleMode, overflow):
 
@@ -374,19 +384,42 @@ class PS2000a(_PicoscopeBase):
         self.checkResult(m)
         return overflow, numSamples
 
+
+    def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
+        timeUpper = c_uint32()
+        timeLower = c_uint32()
+        timeUnits = c_int16()
+        m = self.lib.ps2000aGetTriggerTimeOffset(c_int16(self.handle),
+            byref(timeUpper),
+            byref(timeLower),
+            byref(timeUnits),
+            c_uint32(segmentIndex),
+            )
+        self.checkResult(m)
+
+        # timeUpper and timeLower are the upper 4 and lower 4 bytes of a 64-bit (8-byte) integer
+        # which is scaled by timeUnits to get the precise trigger location
+        return ((timeUpper.value << 32) + timeLower.value) * self.TIME_UNITS[timeUnits.value]
+
+
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource):
+                                        frequency, shots, triggerType, 
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future
+
+        if stopFreq is None:
+            stopFreq = frequency
+
         m = self.lib.ps2000aSetSigGenBuiltIn(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
-            c_float(frequency), c_float(frequency),
-            c_float(0), c_float(0), c_enum(0), c_enum(0),
-            c_uint32(shots), c_uint32(0),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)

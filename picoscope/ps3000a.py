@@ -95,6 +95,8 @@ class PS3000a(_PicoscopeBase):
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
                   "WhiteNoise": 9}
 
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
     SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
                             "GateHigh": 2, "GateLow": 3}
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
@@ -119,8 +121,8 @@ class PS3000a(_PicoscopeBase):
     # 10_5_0_28
     # This issue was acknowledged in this thread
     # http://www.picotech.com/support/topic13217.html
-    AWGMaxVal               = 0x0FFF
-    AWGMinVal               = 0x0000
+    AWGMaxVal               = 32767
+    AWGMinVal               = -32767
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
@@ -133,9 +135,12 @@ class PS3000a(_PicoscopeBase):
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' :
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
+        elif platform.system() == 'Darwin' :
+            from ctypes import cdll
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
@@ -152,8 +157,20 @@ class PS3000a(_PicoscopeBase):
             serialNullTermStr = None
         # Passing None is the same as passing NULL
         m = self.lib.ps3000aOpenUnit(byref(c_handle), serialNullTermStr)
-        self.checkResult(m)
         self.handle = c_handle.value
+
+        # copied over from ps5000a:
+        # This will check if the power supply is not connected
+        # and change the power supply accordingly
+        # Personally (me = Mark), I don't like this
+        # since the user should address this immediately, and we
+        # shouldn't let this go as a soft error
+        # but I think this should do for now
+        if m == 0x11A:
+            self.changePowerSource("PICO_POWER_SUPPLY_NOT_CONNECTED")
+        else:
+            #Catch other errors
+            self.checkResult(m)
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps3000aCloseUnit(c_int16(self.handle))
@@ -180,7 +197,7 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
         if requiredSize.value > len(s):
             s = create_string_buffer(requiredSize.value + 1)
-            m = self.lib.ps3000_get_unit_info(c_int16(self.handle), byref(s),
+            m = self.lib.ps3000aGetUnitInfo(c_int16(self.handle), byref(s),
                                            c_int16(len(s)),
                                            byref(requiredSize), c_enum(info))
             self.checkResult(m)
@@ -228,7 +245,7 @@ class PS3000a(_PicoscopeBase):
         m = self.lib.ps3000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
-            c_int16(oversample), byref(timeIndisposedMs), c_uint16(segmentIndex),
+            c_int16(oversample), byref(timeIndisposedMs), c_uint32(segmentIndex),
             c_void_p(), c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
@@ -327,6 +344,18 @@ class PS3000a(_PicoscopeBase):
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex, downSampleMode):
+        """
+        delegator for _lowLevelSetDataBuffer
+
+        In ps3000a, ps3000aSetDataBuffer combines the functionality of
+        psX000YSetDataBuffer and psX000YSetDataBufferBulk. Since the rapid block
+        functions in picoscope.py call the Bulk version, a delegator is needed.
+        Note that the order of segmentIndex and downSampleMode is reversed.
+        """
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
+
+
     def _lowLevelSetMultipleDataBuffers(self, channel, data, downSampleMode):
         max_segments = self._lowLevelGetMaxSegments()
         if data.shape[0] < max_segments:
@@ -364,10 +393,10 @@ class PS3000a(_PicoscopeBase):
         downSampleRatio, downSampleMode, overflow):
 
         m = self.lib.ps3000aGetValuesBulk(c_int16(self.handle),
-            byref(c_int16(numSamples)),
-            c_int16(fromSegment),
-            c_int16(toSegment),
-            c_int32(downSampleRatio),
+            byref(c_uint32(numSamples)),
+            c_uint32(fromSegment),
+            c_uint32(toSegment),
+            c_uint32(downSampleRatio),
             c_int16(downSampleMode),
             overflow.ctypes.data_as(POINTER(c_int16))
             )
@@ -375,18 +404,28 @@ class PS3000a(_PicoscopeBase):
         return overflow, numSamples
 
     # def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-    #                                     frequency, shots, triggerType,
-    #                                     triggerSource):
+    #                                     frequency, shots, triggerType, 
+    #                                     triggerSource, stopFreq, increment, 
+    #                                     dwellTime, sweepType, numSweeps):
     #     # TODO, I just noticed that V2 exists
     #     # Maybe change to V2 in the future
+    #     if stopFreq is None:
+    #         stopFreq = frequency
+    #
     #     m = self.lib.ps3000SetSigGenBuiltIn(
     #         c_int16(self.handle),
     #         c_int32(int(offsetVoltage * 1000000)),
     #         c_int32(int(pkToPk        * 1000000)),
     #         c_int16(waveType),
-    #         c_float(frequency), c_float(frequency),
-    #         c_float(0), c_float(0), c_enum(0), c_enum(0),
-    #         c_uint32(shots), c_uint32(0),
+    #         c_float(frequency), c_float(stopFreq),
+    #         c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+    #         c_uint32(shots), c_uint32(numSweeps),
     #         c_enum(triggerType), c_enum(triggerSource),
     #         c_int16(0))
     #     self.checkResult(m)
+
+    def _lowLevelChangePowerSource(self, powerstate):
+        m = self.lib.ps3000aChangePowerSource(
+                c_int16(self.handle),
+                c_enum(powerstate))
+        self.checkResult(m)

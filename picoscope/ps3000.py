@@ -94,6 +94,8 @@ class PS3000(_PicoscopeBase):
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4, "DCVoltage": 5}
     
+    SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
+
     TIME_UNITS = {"FS":0, "PS":1, "NS":2, "US":3, "MS":4, "S":5}
 
     MAX_VALUE = 32767
@@ -104,7 +106,7 @@ class PS3000(_PicoscopeBase):
     UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
                        "USBVersion"             : 0x1,
                        "HardwareVersion"        : 0x2,
-                       "VarianInfo"             : 0x3,
+                       "VariantInfo"            : 0x3,
                        "BatchAndSerial"         : 0x4,
                        "CalDate"                : 0x5,
                        "ErrorCode"              : 0x6,
@@ -121,9 +123,12 @@ class PS3000(_PicoscopeBase):
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' :
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
+        elif platform.system() == 'Darwin' :
+            from ctypes import cdll
+            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(self.LIBNAME + ".dll")
@@ -296,15 +301,20 @@ class PS3000(_PicoscopeBase):
         return (rv, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource):
+                                        frequency, shots, triggerType, 
+                                        triggerSource, stopFreq, increment, 
+                                        dwellTime, sweepType, numSweeps):
+        if stopFreq is None:
+            stopFreq = frequency
+ 
         m = self.lib.ps3000_set_sig_gen_built_in(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
-            c_float(frequency), c_float(frequency),
-            c_float(0), c_float(0), c_enum(0), c_uint32(0))
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), 
+            c_uint32(numSweeps))
         self.checkResult(m)
 
     def checkResult(self, ec):
