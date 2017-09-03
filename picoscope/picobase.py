@@ -396,15 +396,15 @@ class _PicoscopeBase(object):
         return {'scale': self.CHRange[channel] / float(self.getMaxValue()), 'offset': self.CHOffset[channel]}
 
 
-    def rawToV(self, channel, dataRaw, dataV=None):
+    def rawToV(self, channel, dataRaw, dataV=None, dtype=np.float64):
         """ Convert the raw data to voltage units. Return as numpy array. """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
         if dataV is None:
-            dataV = np.empty(dataRaw.size)
+            dataV = np.empty(dataRaw.size, dtype=dtype)
 
-        a2v = self.CHRange[channel] / float(self.getMaxValue())
+        a2v = self.CHRange[channel] / dtype(self.getMaxValue())
         np.multiply(dataRaw, a2v, dataV)
         np.subtract(dataV, self.CHOffset[channel], dataV)
 
@@ -412,7 +412,7 @@ class _PicoscopeBase(object):
 
     def getDataV(self, channel, numSamples=0, startIndex=0, downSampleRatio=1, downSampleMode=0,
                  segmentIndex=0, returnOverflow=False, exceptOverflow=False,
-                 dataV=None, dataRaw=None):
+                 dataV=None, dataRaw=None, dtype=np.float64):
         """
         Return the data as an array of voltage values.
 
@@ -434,10 +434,10 @@ class _PicoscopeBase(object):
                                                                   segmentIndex, dataRaw)
 
         if dataV is None:
-            dataV = self.rawToV(channel, dataRaw)
+            dataV = self.rawToV(channel, dataRaw, dtype=dtype)
             dataV = dataV[:numSamplesReturned]
         else:
-            self.rawToV(channel, dataRaw, dataV)
+            self.rawToV(channel, dataRaw, dataV, dtype=dtype)
             dataV[numSamplesReturned:] = np.nan
 
         if returnOverflow:
