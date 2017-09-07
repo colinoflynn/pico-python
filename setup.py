@@ -2,13 +2,13 @@ from setuptools import setup
 
 setup(
     name = 'picoscope',
-    version = '0.4',
+    version = '0.6',
     description = "Unofficial python wrapper for the PicoScope devices.",
     author = "Colin O'Flynn, Mark Harfouche",
     author_email = 'coflynn@newae.com, mark.harfouche@gmail.com',
     license = 'BSD',
     url = 'https://github.com/colinoflynn/pico-python/',
-    download_url='https://github.com/colinoflynn/picoscope/tarball/0.4',
+    download_url='https://github.com/colinoflynn/picoscope/tarball/0.6',
     packages = ['picoscope'],
     # See https://PyPI.python.org/PyPI?%3Aaction=list_classifiers
     classifiers = [
@@ -19,6 +19,7 @@ setup(
                      'Topic :: Scientific/Engineering',
                      'License :: OSI Approved :: BSD License',
                      'Programming Language :: Python :: 2.7',
+                     'Programming Language :: Python :: 3',
                  ],
 
                  # What does your project relate to?
