@@ -64,9 +64,7 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
-from picoscope.picobase import __author__
-from picoscope.picobase import __license__
-from picoscope.picobase import __version__
+from picoscope import __author__, __license__, __version__
 
 
 class PS6000(_PicoscopeBase):

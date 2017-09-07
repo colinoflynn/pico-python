@@ -1,3 +1,7 @@
+__author__ = "Colin O'Flynn, Mark Harfouche"
+__license__ = "FreeBSD"
+__version__ = 0.6
+
 __all__ = ["ps2000",
   "ps2000a",
   "ps3000",
