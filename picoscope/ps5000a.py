@@ -61,6 +61,9 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
+from picoscope.picobase import __author__
+from picoscope.picobase import __license__
+from picoscope.picobase import __version__
 
 class PS5000a(_PicoscopeBase):
     """The following are low-level functions for the PS5000"""
@@ -403,8 +406,8 @@ class PS5000a(_PicoscopeBase):
         return (numSamplesReturned.value, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType, 
-                                        triggerSource, stopFreq, increment, 
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
                                         dwellTime, sweepType, numSweeps):
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future

@@ -66,6 +66,9 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
+from picoscope.picobase import __author__
+from picoscope.picobase import __license__
+from picoscope.picobase import __version__
 
 class PS4000a(_PicoscopeBase):
     """The following are low-level functions for the PS4000A."""

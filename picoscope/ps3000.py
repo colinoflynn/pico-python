@@ -63,6 +63,9 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
+from picoscope.picobase import __author__
+from picoscope.picobase import __license__
+from picoscope.picobase import __version__
 
 class PS3000(_PicoscopeBase):
     """The following are low-level functions for the PS3000"""
@@ -93,7 +96,7 @@ class PS3000(_PicoscopeBase):
     #has_sig_gen = True
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4, "DCVoltage": 5}
-    
+
     SWEEP_TYPES = {"Up": 0, "Down":1, "UpDown":2, "DownUp":3}
 
     TIME_UNITS = {"FS":0, "PS":1, "NS":2, "US":3, "MS":4, "S":5}
@@ -102,7 +105,7 @@ class PS3000(_PicoscopeBase):
     MIN_VALUE = -32767
 
     MAX_TIMEBASES = 19
-    
+
     UNIT_INFO_TYPES = {"DriverVersion"          : 0x0,
                        "USBVersion"             : 0x1,
                        "HardwareVersion"        : 0x2,
@@ -111,11 +114,11 @@ class PS3000(_PicoscopeBase):
                        "CalDate"                : 0x5,
                        "ErrorCode"              : 0x6,
                        "KernelVersion"          : 0x7}
-    
+
     channelBuffersPtr = [c_void_p(), c_void_p()]
     channelBuffersLen = [0, 0]
-    
-    
+
+
     # SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
     #                         "GateHigh": 2, "GateLow": 3}
     # SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
@@ -141,11 +144,11 @@ class PS3000(_PicoscopeBase):
             raise ValueError("PS3000 Doesn't Support Open by Serial Number")
 
         m = self.lib.ps3000_open_unit()
-        
+
         if m < 0:
-            raise IOError("Failed to Find PS3000 Unit. Should you be using PS3000a driver?")        
-        
-        self.handle = m        
+            raise IOError("Failed to Find PS3000 Unit. Should you be using PS3000a driver?")
+
+        self.handle = m
         self.suggested_time_units = self.TIME_UNITS["NS"]
 
     def _lowLevelCloseUnit(self):
@@ -165,11 +168,11 @@ class PS3000(_PicoscopeBase):
 
     def _lowLevelGetUnitInfo(self, info):
         s = create_string_buffer(256)
-    
+
         m = self.lib.ps3000_get_unit_info(c_int16(self.handle), byref(s),
                                        c_int16(len(s)), c_enum(info))
         self.checkResult(m)
- 
+
         # should this bee ascii instead?
         # I think they are equivalent...
         return s.value.decode('utf-8')
@@ -179,10 +182,10 @@ class PS3000(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
-                                  direction, delay, timeout_ms):      
-        
+                                  direction, delay, timeout_ms):
+
         #TODO: Fix 'auto' which is where trigger occurs in block. Delay is not used
-        
+
         m = self.lib.ps3000_set_trigger(
             c_int16(self.handle), c_enum(trigsrc), c_int16(threshold_adc),
             c_enum(direction), c_int16(delay), c_int16(timeout_ms))
@@ -191,22 +194,22 @@ class PS3000(_PicoscopeBase):
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
                           timebase, oversample, segmentIndex):
         #NOT: Oversample is NOT used!
-        
+
         #TODO: Fix 'delay' which is where trigger occurs in block
         if numPreTrigSamples > 0:
             raise ValueError("numPreTrigSamples isn't supported on PS3000")
-        
+
         timeIndisposedMs = c_int32()
         m = self.lib.ps3000_run_block(
-            c_int16(self.handle), c_uint32(numPostTrigSamples), 
+            c_int16(self.handle), c_uint32(numPostTrigSamples),
             c_uint32(timebase), c_int16(1), byref(timeIndisposedMs))
-        
+
         self.checkResult(m)
         return timeIndisposedMs.value
 
     def _lowLevelIsReady(self):
         ready = c_int16()
-        ready = self.lib.ps3000_ready(c_int16(self.handle))        
+        ready = self.lib.ps3000_ready(c_int16(self.handle))
         if ready > 0:
             return True
         elif ready == 0:
@@ -223,66 +226,66 @@ class PS3000(_PicoscopeBase):
         m = self.lib.ps3000_get_timebase(c_int16(self.handle), c_int16(tb),
                                         c_uint32(noSamples), byref(time_interval),
                                         byref(time_units), c_int16(1), byref(maxSamples))
-        
+
         self.checkResult(m)
-        
+
         self.suggested_time_units = time_units.value
 
         return (time_interval.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
         """ps3000 doesn't seem to have published formula like other scopes"""
-        
+
         time_interval = c_int32()
         timebases = [None]*self.MAX_TIMEBASES
-        
+
         #Convert to nS
         sampleTimenS = sampleTimeS * 1E9
-        
+
         tb = 0
         while tb < self.MAX_TIMEBASES:
             rv = self.lib.ps3000_get_timebase(c_int16(self.handle), c_int16(tb),
                                         c_uint32(512), byref(time_interval),
-                                        c_void_p(), c_int16(1),  c_void_p())            
+                                        c_void_p(), c_int16(1),  c_void_p())
             if rv != 0:
-                timebases[tb] = time_interval.value            
-            
+                timebases[tb] = time_interval.value
+
             tb += 1
-            
+
         #Figure out closest option
         besterror = 1E99
         bestindx = 0
-        for indx, val in enumerate(timebases):            
+        for indx, val in enumerate(timebases):
             if val is not None:
-                error = sampleTimenS - val                
+                error = sampleTimenS - val
                 if abs(error) < besterror:
                     besterror = abs(error)
                     bestindx = indx
-            
+
         return bestindx
-        
+
 
     def getTimestepFromTimebase(self, timebase):
         time_interval = c_int32()
         m = self.lib.ps3000_get_timebase(c_int16(self.handle), c_int16(timebase),
                                         c_uint32(512), byref(time_interval),
-                                        c_void_p(), c_int16(1),  c_void_p())        
+                                        c_void_p(), c_int16(1),  c_void_p())
         self.checkResult(m)
         return (time_interval.value / 1.0E9)
-        
-  
+
+
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode, segmentIndex):
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
 
         self.channelBuffersPtr[channel] = dataPtr
-        self.channelBuffersLen[channel] = numSamples 
+        self.channelBuffersLen[channel] = numSamples
 
     def _lowLevelClearDataBuffer(self, channel, segmentIndex):
         self.channelBuffersPtr[channel] = c_void_p()
         self.channelBuffersLen[channel] = 0
 
-  
+
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
                            downSampleMode, segmentIndex):
 
@@ -293,27 +296,27 @@ class PS3000(_PicoscopeBase):
         rv = self.lib.ps3000_get_values(
             c_int16(self.handle),
             self.channelBuffersPtr[0],
-            self.channelBuffersPtr[1],            
+            self.channelBuffersPtr[1],
             c_void_p(), c_void_p(),
             byref(overflow), c_int32(numSamples))
-        
-        self.checkResult(rv)                
+
+        self.checkResult(rv)
         return (rv, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType, 
-                                        triggerSource, stopFreq, increment, 
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
                                         dwellTime, sweepType, numSweeps):
         if stopFreq is None:
             stopFreq = frequency
- 
+
         m = self.lib.ps3000_set_sig_gen_built_in(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk        * 1000000)),
             c_int16(waveType),
             c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime), c_enum(sweepType), 
+            c_float(increment), c_float(dwellTime), c_enum(sweepType),
             c_uint32(numSweeps))
         self.checkResult(m)
 

@@ -66,6 +66,10 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
+from picoscope.picobase import __author__
+from picoscope.picobase import __license__
+from picoscope.picobase import __version__
+
 
 class PS4000(_PicoscopeBase):
 
@@ -334,8 +338,8 @@ class PS4000(_PicoscopeBase):
     #                                                                  #
     ####################################################################
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType, 
-                                        triggerSource, stopFreq, increment, 
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
                                         dwellTime, sweepType, numSweeps):
         if stopFreq is None:
             stopFreq = frequency
@@ -385,7 +389,7 @@ class PS4000(_PicoscopeBase):
             byref(time),
             byref(timeUnits),
             c_uint16(segmentIndex))
-        
+
         self.checkResult(m)
 
         if timeUnits.value == 0:    # PS4000_FS
