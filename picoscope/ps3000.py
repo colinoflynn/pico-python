@@ -63,8 +63,6 @@ from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
 
-from picoscope import __author__, __license__, __version__
-
 class PS3000(_PicoscopeBase):
     """The following are low-level functions for the PS3000"""
 

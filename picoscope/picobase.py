@@ -40,16 +40,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-
-from picoscope import __author__, __license__, __version__
-
-__author__ = "Colin O'Flynn, Mark Harfouche"
-__license__ = "FreeBSD"
-__version__ = 0.6
-
 import inspect
 import time
-#import warnings
 
 import numpy as np
 
