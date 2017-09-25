@@ -974,7 +974,7 @@ class _PicoscopeBase(object):
         [0x11B , "PICO_POWER_SUPPLY_REQUEST_INVALID", "Incorrect power mode passed for current power source."],
         [0x11C , "PICO_POWER_SUPPLY_UNDERVOLTAGE", "The supply voltage from the USB source is too low."],
         [0x11D , "PICO_CAPTURING_DATA", "The device is currently busy capturing data."],
-        [0x11E , "PICO_USB3_0_DEVICE_NON_USB3_0_PORT", "You must connect the device to a USB 3.0 port, or call ps4000aChangePowerSource to switch the device into non-USB 3.0-power mode"]
+        [0x11E , "PICO_USB3_0_DEVICE_NON_USB3_0_PORT", "You must connect the device to a USB 3.0 port, or call ps4000aChangePowerSource to switch the device into non-USB 3.0-power mode"],
         [0x11F , "PICO_NOT_SUPPORTED_BY_THIS_DEVICE", "A function has been called that is not supported by the current device variant."],
         [0x120 , "PICO_INVALID_DEVICE_RESOLUTION", "The device resolution is invalid (out of range)."],
         [0x121 , "PICO_INVALID_NUMBER_CHANNELS_FOR_RESOLUTION", "The number of channels which can be enabled is limited in 15 and 16-bit modes"],
