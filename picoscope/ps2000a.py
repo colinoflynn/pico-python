@@ -46,6 +46,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
+import numpy as np
 
 # to load the proper dll
 import platform
@@ -163,6 +164,23 @@ class PS2000a(_PicoscopeBase):
         self.checkResult(m)
         self.handle = c_handle.value
 
+        # The scaling factor used in the timebase calculation varies based on
+        # the particular model. See section 2.8 (pg 27) of the 2000a programmers guide
+        self.model = self.getUnitInfo('VariantInfo')
+        if self.model in ('2205AMSO', '2206', '2206A', '2206B', '2405A'):
+            # 500 MS/s
+            self._timebase_to_timestep = lambda n: (2**n / 5e8) if n < 3 else ((n-2) / 625e5)
+            self._timestep_to_timebase = lambda t: math.log(t * 5e8, 2) if t < 16e-9 else ((t * 625e5) + 2)
+        elif self.model in ('2206BMSO', '2207', '2207A', '2207B', '2207BMSO', '2208', '2208A', '2208B', '2208BMSO', '2406B', '2407B', '2408B'):
+            # 1 GS/s
+            self._timebase_to_timestep = lambda n: (2**n / 1e9) if n < 3 else ((n-2) / 125e6)
+            self._timestep_to_timebase = lambda t: math.log(t * 1e9, 2) if t < 8e-9 else ((t * 125e6) + 2)
+        elif self.model == '2205MSO':
+            self._timebase_to_timestep = lambda n: (2**n / 2e8) if n < 1 else (n / 1e8)
+            self._timestep_to_timebase = lambda t: math.log(t * 2e8, 2) if t < 10e-9 else (t * 1e8)
+        else:
+            raise ValueError("Unrecognised variant {}".format(self.model))
+
     def _lowLevelCloseUnit(self):
         m = self.lib.ps2000aCloseUnit(c_int16(self.handle))
         self.checkResult(m)
@@ -267,29 +285,18 @@ class PS2000a(_PicoscopeBase):
         """
         Convert sample time in S to something to pass to API Call
         """
-        maxSampleTime = (((2 ** 32 - 1) - 2) / 125000000)
-        if sampleTimeS < 8.0E-9:
-            st = math.floor(math.log(sampleTimeS * 1E9, 2))
-            st = max(st, 0)
-        else:
-            if sampleTimeS > maxSampleTime:
-                sampleTimeS = maxSampleTime
-            st = math.floor((sampleTimeS * 125000000) + 2)
+
+        clipped = np.clip(math.floor(self._timestep_to_timebase(sampleTimeS)), 0, (2**32)-1)
 
         # is this cast needed?
-        st = int(st)
-        return st
+        return int(clipped)
 
     def getTimestepFromTimebase(self, timebase):
         '''
         Takes API timestep code (an integer from 0-32) and returns
         the sampling interval it indicates, in seconds.
         '''
-        if timebase < 3:
-            dt = 2. ** timebase / 1.0E9
-        else:
-            dt = (timebase - 2.0) / 125000000.
-        return dt
+        return self._timebase_to_timestep(timebase)
 
     def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
                                         offsetVoltage, pkToPk, indexMode,
