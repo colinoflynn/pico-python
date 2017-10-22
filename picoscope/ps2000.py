@@ -120,6 +120,15 @@ class PS2000(_PicoscopeBase):
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
                               "ExtIn": 3, "SoftTrig": 4, "TriggerRaw": 5}
 
+    AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
+
+    AWGPhaseAccumulatorSize = 32
+    AWGBufferAddressWidth   = 12
+    AWGMaxSamples           = 2 ** AWGBufferAddressWidth
+
+    AWGDACInterval          = 2.0833e-08
+    AWGDACFrequency         = 1 / AWGDACInterval
+    
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc"""
         if platform.system() == 'Linux':
