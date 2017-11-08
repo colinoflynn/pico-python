@@ -110,3 +110,25 @@ Contributing
 3. Commit to your new branch.
 4. Add yourself to the authors/acknowledgements (whichever you find appropriate).
 5. Submit a pull request.
+
+Developer notes
+------------------------------
+To update versions, make sure to update the version tag in a few locations
+1. `setup.py`
+    - `version = X.Y.Z`
+    - `download_url = [...]/X.Y.Z`
+2. `picoscope/__init__.py`
+    - `__version__ = X.Y.Z`
+
+Once the versions have been updated, commit and create a new tag with git
+```bash
+git commit
+git tag -a X.Y.Z -m "Short descripted message"
+```
+
+Push the tags to the repo
+```bash
+git push origin X.Y.Z
+```
+
+
