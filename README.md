@@ -131,4 +131,9 @@ Push the tags to the repo
 git push origin X.Y.Z
 ```
 
+or to push all tags
+```bash
+git push --tags
+```
+
 
