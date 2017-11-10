@@ -380,6 +380,12 @@ class PS5000a(_PicoscopeBase):
                                          c_uint32(segmentIndex),
                                          c_enum(downSampleMode))
         self.checkResult(m)
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex, downSampleMode):
+        """Just calls setDataBuffer with argument order changed, for compatibility with current picobase.py."""
+        self._lowLevelSetDataBuffer(channel,
+                                        data,
+                                        downSampleMode,
+                                        segmentIndex)
 
     def _lowLevelClearDataBuffer(self, channel, segmentIndex):
         """ data should be a numpy array"""
@@ -435,3 +441,52 @@ class PS5000a(_PicoscopeBase):
                 c_int16(self.handle),
                 c_enum(powerstate))
         self.checkResult(m)
+
+    #Morgan's additions
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment, downSampleRatio, downSampleMode, overflow):
+        """Copy data from several memory segments at once"""
+        overflowPoint=overflow.ctypes.data_as(POINTER(c_int16))
+        m = self.lib.ps5000aGetValuesBulk(c_int16(self.handle),
+            byref(c_int32(numSamples)),
+            c_int32(fromSegment),
+            c_int32(toSegment),
+            c_int32(downSampleRatio),
+            c_enum(downSampleMode),
+            overflowPoint
+            )
+        self.checkResult(m)
+
+    def _lowLevelSetNoOfCaptures(self, numCaptures):
+        m = self.lib.ps5000aSetNoOfCaptures(c_int16(self.handle),
+            c_uint32(numCaptures))
+        self.checkResult(m)
+
+    def _lowLevelMemorySegments(self, numSegments):
+        maxSamples = c_int32()
+        m = self.lib.ps5000aMemorySegments(c_int16(self.handle),
+            c_uint32(numSegments), byref(maxSamples))
+        self.checkResult(m)
+        return maxSamples.value
+
+    def _lowLevelGetValuesTriggerTimeOffsetBulk(self, fromSegment,toSegment):
+        """ Supposedly gets the trigger times for a bunch of segments acquired in block mode.
+        Can't get it to work yet, however.
+        """
+        nSegments=toSegment-fromSegment+1
+        #time = c_int64()
+        times = np.ascontiguousarray(
+            np.zeros(nSegments, dtype=np.int64)
+            )
+        timeUnits = np.ascontiguousarray(
+            np.zeros(nSegments, dtype=np.int32)
+            )
+
+        m = self.lib.ps5000aGetValuesTriggerTimeOffsetBulk64(c_int16(self.handle),
+            times.ctypes.data_as(POINTER(c_int64)),
+            timeUnits.ctypes.data_as(POINTER(c_enum)),
+            c_uint32(fromSegment),
+            c_uint32(toSegment)
+            )
+        self.checkResult(m)
+        #timeUnits=np.array([self.TIME_UNITS[tu] for tu in timeUnits])
+        return times, timeUnits
