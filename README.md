@@ -118,7 +118,7 @@ To update versions, make sure to update the version tag in a few locations
     - `version = X.Y.Z`
     - `download_url = [...]/X.Y.Z`
 2. `picoscope/__init__.py`
-    - `__version__ = X.Y.Z`
+    - `__version__ = "X.Y.Z"`
 
 Once the versions have been updated, commit and create a new tag with git
 ```bash
