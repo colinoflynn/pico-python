@@ -84,6 +84,18 @@ sudo dseditgroup -o create pico
 # Add the current user to the pico group :
 sudo dseditgroup -o edit -a $USER -t user pico
 ```
+Additional Instructions for installs using Anaconda/Conda
+---------------------------------------------------------
+Seems like Anaconda has an issue with ctypes. See the comment [here](https://github.com/pymedusa/Medusa/issues/1843#issuecomment-310126049) imdatacenters says to:
+> If you are using a special version of Python [like Anaconda] and you can't fix it.
+> Navigate to line 362 of lib/ctypes/init.py and change it to:
+> `self._handle = _dlopen(str(self._name), mode)`
+
+
+Driver woes
+-----------
+If you are having issues installing the driver, you can try to install the original drivers that came with your CD, then upgrading as mentionned in [Issue #103](https://github.com/colinoflynn/pico-python/issues/103). As always, try installing, then rebooting your computer. I would also suggest trying to run Picoscope's included graphical interface to ensure that your scope is working.
+
 
 Similar Projects
 ------------------------------
