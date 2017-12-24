@@ -286,7 +286,7 @@ class PS2000a(_PicoscopeBase):
         Convert sample time in S to something to pass to API Call
         """
 
-        clipped = np.clip(math.floor(self._timestep_to_timebase(sampleTimeS)), 0, (2**32)-1)
+        clipped = np.clip(math.floor(self._timestep_to_timebase(sampleTimeS)), 0, np.iinfo(np.int32).max)
 
         # is this cast needed?
         return int(clipped)
