@@ -121,12 +121,11 @@ class PS2000a(_PicoscopeBase):
     AWGDACInterval          = 5E-9  # in seconds
     AWGDACFrequency         = 1 / AWGDACInterval
 
-    # Note this is NOT what is written in the Programming guide as of version
-    # 10_5_0_28
-    # This issue was acknowledged in this thread
-    # http://www.picotech.com/support/topic13217.html
-    AWGMaxVal               = 0x0FFF
-    AWGMinVal               = 0x0000
+    # AWG scaling according to programming manual p.72
+    # Vout = 1uV * (pkToPk/2) * (sample_value / 32767) + offsetVoltage
+    # The API datatype is a (signed) short
+    AWGMaxVal               = 32767
+    AWGMinVal               = -32767
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
