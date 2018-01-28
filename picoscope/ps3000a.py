@@ -183,7 +183,7 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelStop(self):
-        m = self.lib.ps3000Stop(c_int16(self.handle))
+        m = self.lib.ps3000aStop(c_int16(self.handle))
         self.checkResult(m)
 
     def _lowLevelGetUnitInfo(self, info):
@@ -402,26 +402,26 @@ class PS3000a(_PicoscopeBase):
         self.checkResult(m)
         return overflow, numSamples
 
-    # def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-    #                                     frequency, shots, triggerType,
-    #                                     triggerSource, stopFreq, increment,
-    #                                     dwellTime, sweepType, numSweeps):
-    #     # TODO, I just noticed that V2 exists
-    #     # Maybe change to V2 in the future
-    #     if stopFreq is None:
-    #         stopFreq = frequency
-    #
-    #     m = self.lib.ps3000SetSigGenBuiltIn(
-    #         c_int16(self.handle),
-    #         c_int32(int(offsetVoltage * 1000000)),
-    #         c_int32(int(pkToPk        * 1000000)),
-    #         c_int16(waveType),
-    #         c_float(frequency), c_float(stopFreq),
-    #         c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
-    #         c_uint32(shots), c_uint32(numSweeps),
-    #         c_enum(triggerType), c_enum(triggerSource),
-    #         c_int16(0))
-    #     self.checkResult(m)
+    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
+                                        dwellTime, sweepType, numSweeps):
+        # TODO, I just noticed that V2 exists
+        # Maybe change to V2 in the future
+        if stopFreq is None:
+            stopFreq = frequency
+
+        m = self.lib.ps3000aSetSigGenBuiltIn(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1000000)),
+            c_int32(int(pkToPk        * 1000000)),
+            c_int16(waveType),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
+            c_enum(triggerType), c_enum(triggerSource),
+            c_int16(0))
+        self.checkResult(m)
 
     def _lowLevelChangePowerSource(self, powerstate):
         m = self.lib.ps3000aChangePowerSource(
