@@ -47,7 +47,6 @@ import numpy as np
 
 
 class _PicoscopeBase(object):
-
     """
     This class defines a general interface for Picoscope oscilloscopes.
 
@@ -56,7 +55,7 @@ class _PicoscopeBase(object):
 
     """
 
-    ###You must reimplement this in device specific classes
+    ### You must reimplement this in device specific classes
 
     # Do not include .dll or .so, these will be appended automatically
     LIBNAME = "ps6000"

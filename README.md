@@ -4,9 +4,9 @@ This is a Python 2.7+ library for the Pico Scope. It uses the provided DLL
 for actual communications with the instrument. There have been a few examples
 around, but this one tries to improve on them via:
   * Subclass instrument-specific stuff, so can support more families
-  * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
+  * Use exceptions to raise errors, and gives you nice English error messages (copied from PS Manual)
   * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
-  * Supports both Windows and Linux
+  * Supports both Windows and Linux and Mac
 
 System has support for:
  * PS6000
@@ -68,7 +68,7 @@ su <username>
 ```
 Additional Installation Information for Mac OSX
 ---------------------------------------------
-You either want to add this everytime before you start python or ipython, but I think it is best to add this line to 
+You either want to add this every time before you start python or IPython, but I think it is best to add this line to
 `.bash_profile` (or the Mac Equivalent ????).
 ```bash
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
@@ -108,7 +108,7 @@ Authors, Copyright, and Thanks
 pico-python is Copyright (C) 2013 By:
  * Colin O'Flynn <coflynn@newae.com>
  * Mark Harfouche <mark.harfouche@gmail.com>
- 
+
  All rights reserved.
 See LICENSE.md for license terms.
 
@@ -120,32 +120,25 @@ Contributing
 1. Fork.
 2. Make a new branch.
 3. Commit to your new branch.
-4. Add yourself to the authors/acknowledgements (whichever you find appropriate).
+4. Add yourself to the authors/acknowledgments (whichever you find appropriate).
 5. Submit a pull request.
 
 Developer notes
 ------------------------------
-To update versions, make sure to update the version tag in a few locations
-1. `setup.py`
-    - `version = X.Y.Z`
-    - `download_url = [...]/X.Y.Z`
-2. `picoscope/__init__.py`
-    - `__version__ = "X.Y.Z"`
+To update versions, change it in `picoscope/__init__.py`, `__version__ = "X.Y.Z"`
 
 Once the versions have been updated, commit and create a new tag with git
-```bash
+```
 git commit
-git tag -a X.Y.Z -m "Short descripted message"
+git tag -a X.Y.Z -m "Short descriptive message"
 ```
 
 Push the tags to the repo
-```bash
+```
 git push origin X.Y.Z
 ```
 
 or to push all tags
-```bash
+```
 git push --tags
 ```
-
-
