@@ -142,3 +142,5 @@ or to push all tags
 ```
 git push --tags
 ```
+
+New TAGS will be pushed to PyPi automatically by Travis.

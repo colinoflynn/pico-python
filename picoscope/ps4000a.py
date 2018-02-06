@@ -49,8 +49,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
-import os
-import pdb
 
 # to load the proper dll
 import platform
@@ -65,6 +63,7 @@ from ctypes import byref, POINTER, create_string_buffer, c_float, \
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
+
 
 class PS4000a(_PicoscopeBase):
     """The following are low-level functions for the PS4000A."""
@@ -95,7 +94,8 @@ class PS4000a(_PicoscopeBase):
                      ]
 
     NUM_CHANNELS = 8
-    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7,  "MaxChannels": 8}
+    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6,
+                "H": 7,  "MaxChannels": 8}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
@@ -109,18 +109,18 @@ class PS4000a(_PicoscopeBase):
     TIME_UNITS = {"femtoseconds": 0,
                   "picoseconds": 1,
                   "nanoseconds": 2,
-                  "microseconds":3,
-                  "milliseconds":4,
-                  "seconds":5}
+                  "microseconds": 3,
+                  "milliseconds": 4,
+                  "seconds": 5}
 
     def __init__(self, serialNumber=None, connect=True):
-        """ Load DLLs. """
+        """Load DLLs."""
         self.handle = None
 
-        if platform.system() == 'Linux' :
+        if platform.system() == 'Linux':
             from ctypes import cdll
-            # ok I don't know what is wrong with my installer, but I need to include
-            # .so.2
+            # ok I don't know what is wrong with my installer,
+            # but I need to include .so.2
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
         elif platform.system() == 'Darwin':
             from ctypes import cdll
@@ -160,7 +160,9 @@ class PS4000a(_PicoscopeBase):
         progressPercent = c_int16()
         handle = c_int16()
 
-        m = self.lib.ps4000aOpenUnitProgress(byref(handle), byref(progressPercent), byref(complete))
+        m = self.lib.ps4000aOpenUnitProgress(byref(handle),
+                                             byref(progressPercent),
+                                             byref(complete))
         self.checkResult(m)
 
         if complete.value != 0:
@@ -179,7 +181,8 @@ class PS4000a(_PicoscopeBase):
         serials = c_int8(0)
         serialLth = c_int16(0)
 
-        m = self.lib.ps4000aEnumerateUnits(byref(count), byref(serials), byref(serialLth))
+        m = self.lib.ps4000aEnumerateUnits(byref(count), byref(serials),
+                                           byref(serialLth))
         self.checkResult(m)
         # a serial number is rouhgly 8 characters
         # an extra character for the comma
@@ -188,7 +191,8 @@ class PS4000a(_PicoscopeBase):
         serialLth = c_int16(count.value * (8 + 2))
         serials = create_string_buffer(serialLth.value + 1)
 
-        m = self.lib.ps4000aEnumerateUnits(byref(count), serials, byref(serialLth))
+        m = self.lib.ps4000aEnumerateUnits(byref(count), serials,
+                                           byref(serialLth))
         self.checkResult(m)
 
         serialList = str(serials.value.decode('utf-8')).split(',')
@@ -200,8 +204,8 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
                             BWLimited):
         m = self.lib.ps4000aSetChannel(c_int16(self.handle), c_enum(chNum),
-                                      c_int16(enabled), c_enum(coupling),
-                                      c_enum(VRange), c_float(VOffset))
+                                       c_int16(enabled), c_enum(coupling),
+                                       c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
 
     def _lowLevelStop(self):
@@ -213,14 +217,14 @@ class PS4000a(_PicoscopeBase):
         requiredSize = c_int16(0)
 
         m = self.lib.ps4000aGetUnitInfo(c_int16(self.handle), byref(s),
-                                       c_int16(len(s)), byref(requiredSize),
-                                       c_enum(info))
+                                        c_int16(len(s)), byref(requiredSize),
+                                        c_enum(info))
         self.checkResult(m)
         if requiredSize.value > len(s):
             s = create_string_buffer(requiredSize.value + 1)
             m = self.lib.ps4000aGetUnitInfo(c_int16(self.handle), byref(s),
-                                           c_int16(len(s)),
-                                           byref(requiredSize), c_enum(info))
+                                            c_int16(len(s)),
+                                            byref(requiredSize), c_enum(info))
             self.checkResult(m)
 
         # should this bee ascii instead?
@@ -260,20 +264,20 @@ class PS4000a(_PicoscopeBase):
             return False
 
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """ return (timeIntervalSeconds, maxSamples). """
+        """Return (timeIntervalSeconds, maxSamples)."""
         maxSamples = c_int32()
         sampleRate = c_float()
 
         m = self.lib.ps4000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
-                                        c_int32(noSamples), byref(sampleRate),
-                                        byref(maxSamples), c_uint32(segmentIndex))
+                                         c_int32(noSamples), byref(sampleRate),
+                                         byref(maxSamples),
+                                         c_uint32(segmentIndex))
         self.checkResult(m)
 
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """ Return sample time in seconds to timebase as int for API calls. """
-
+        """Return sample time in seconds to timebase as int for API calls."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
         if sampleTimeS <= 12.5E-9:
@@ -291,35 +295,38 @@ class PS4000a(_PicoscopeBase):
         return timebase
 
     def getTimestepFromTimebase(self, timebase):
-        """ Return timebase to sampletime as seconds. """
+        """Return timebase to sampletime as seconds."""
         if timebase < 3:
             dt = 2. ** timebase / 8e7
         else:
             dt = (timebase - 1) / 2e7
         return dt
 
-    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode, segmentIndex):
-        """
-        data should be a numpy array.
+    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
+                               segmentIndex):
+        """Set the data buffer.
 
         Be sure to call _lowLevelClearDataBuffer
         when you are done with the data array
         or else subsequent calls to GetValue will still use the same array.
 
-        segmentIndex is unused, but required by other versions of the API (eg PS5000a)
-
+        segmentIndex is unused, but required by other versions of the API
+        (eg PS5000a)
         """
         numSamples = len(data)
 
-        m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
+        m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle),
+                                          c_enum(channel),
                                           byref(data), c_uint32(numSamples),
-                                          c_uint32(segmentIndex), c_uint32(downSampleMode))
+                                          c_uint32(segmentIndex),
+                                          c_uint32(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelClearDataBuffer(self, channel, segmentIndex):
-        """data should be a numpy array."""
-        m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle), c_enum(channel),
-                                         c_void_p(), c_uint32(0), c_uint32(0), c_enum(0))
+        m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle),
+                                          c_enum(channel),
+                                          c_void_p(), c_uint32(0), c_uint32(0),
+                                          c_enum(0))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
@@ -352,7 +359,8 @@ class PS4000a(_PicoscopeBase):
             c_int32(int(pkToPk * 1000000)),
             c_int16(waveType),
             c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_float(increment), c_float(dwellTime),
+            c_enum(sweepType), c_enum(0),
             c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
@@ -375,7 +383,8 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelGetNoOfCaptures(self):
         nCaptures = c_uint32()
 
-        m = self.lib.ps4000aGetNoOfCaptures(c_int16(self.handle), byref(nCaptures))
+        m = self.lib.ps4000aGetNoOfCaptures(c_int16(self.handle),
+                                            byref(nCaptures))
         self.checkResult(m)
 
         return nCaptures.value
@@ -411,13 +420,14 @@ class PS4000a(_PicoscopeBase):
         nMaxSamples = c_uint32()
 
         m = self.lib.ps4000aMemorySegments(c_int16(self.handle),
-                                          c_uint16(nSegments),
-                                          byref(nMaxSamples))
+                                           c_uint16(nSegments),
+                                           byref(nMaxSamples))
         self.checkResult(m)
 
         return nMaxSamples.value
 
-    def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin, downSampleRatioMode):
+    def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin,
+                                downSampleRatioMode):
         bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
         bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
         bufferLth = len(bufferMax)
@@ -460,7 +470,8 @@ class PS4000a(_PicoscopeBase):
         self.checkResult(m)
         return noOfSamples.value
 
-    def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform, downSampleRatioMode):
+    def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform,
+                                   downSampleRatioMode):
         bufferPtr = buffer.ctypes.data_as(POINTER(c_int16))
         bufferLth = len(buffer)
 
@@ -530,7 +541,8 @@ class PS4000a(_PicoscopeBase):
         pass
 
     # Streaming related functions
-    def _lowLevelGetStreamingLatestValues(self, lpPs4000Ready, pParameter = c_void_p()):
+    def _lowLevelGetStreamingLatestValues(self, lpPs4000Ready,
+                                          pParameter=c_void_p()):
         m = self.lib.ps4000aGetStreamingLatestValues(
             c_uint16(self.handle),
             lpPs4000Ready,
@@ -540,13 +552,15 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelNoOfStreamingValues(self):
         noOfValues = c_uint32()
 
-        m = self.lib.ps4000aNoOfStreamingValues(c_int16(self.handle), byref(noOfValues))
+        m = self.lib.ps4000aNoOfStreamingValues(c_int16(self.handle),
+                                                byref(noOfValues))
         self.checkResult(m)
 
         return noOfValues.value
 
-    def _lowLevelRunStreaming(self, sampleInterval, sampleIntervalTimeUnits, maxPreTriggerSamples,
-                              maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode,
+    def _lowLevelRunStreaming(self, sampleInterval, sampleIntervalTimeUnits,
+                              maxPreTriggerSamples, maxPostTriggerSamples,
+                              autoStop, downSampleRatio, downSampleRatioMode,
                               overviewBufferSize):
         m = self.lib.ps4000aRunStreaming(
             c_int16(self.handle),
