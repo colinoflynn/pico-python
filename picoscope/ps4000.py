@@ -74,6 +74,9 @@ class PS4000(_PicoscopeBase):
 
     MAX_VALUE = 32764
     MIN_VALUE = -32764
+    
+    AWGBufferAddressWidth   = 12
+    AWGMaxSamples           = 2 ** AWGBufferAddressWidth
 
     #EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
