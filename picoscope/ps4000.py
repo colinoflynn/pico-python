@@ -73,8 +73,24 @@ class PS4000(_PicoscopeBase):
     MAX_VALUE = 32764
     MIN_VALUE = -32764
     
+    # AWG stuff here:
+    AWGMaxSamples = 4096
+
+    AWGDACInterval          = 1/192000  # [s]
+    AWGDACFrequency         = 192000 # [Hz]
+    AWGPhaseAccumulatorSize = 32
+
+    AWGMaxVal               = 32767
+    AWGMinVal               = -32768
+  
+    AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
+
     AWGBufferAddressWidth   = 12
     AWGMaxSamples           = 2 ** AWGBufferAddressWidth
+
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1, "GateHigh": 2, "GateLow": 3}
+ 
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
 
     # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
@@ -329,10 +345,25 @@ class PS4000(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    ####################################################################
-    # Untested functions below                                         #
-    #                                                                  #
-    ####################################################################
+    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
+                                        dwellTime, sweepType, numSweeps):
+        if stopFreq is None:
+            stopFreq = frequency
+
+        m = self.lib.ps4000SetSigGenBuiltIn(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1000000)),
+            c_int32(int(pkToPk        * 1000000)),
+            c_int16(waveType),
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
+            c_uint32(shots), c_uint32(numSweeps),
+            c_enum(triggerType), c_enum(triggerSource),
+            c_int16(0))
+        self.checkResult(m)
+
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
@@ -352,6 +383,11 @@ class PS4000(_PicoscopeBase):
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
+
+    ####################################################################
+    # Untested functions below                                         #
+    #                                                                  #
+    ####################################################################
 
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
