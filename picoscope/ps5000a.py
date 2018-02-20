@@ -200,10 +200,32 @@ class PS5000a(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
-                            BWLimited):
+                            bandwidth):
         m = self.lib.ps5000aSetChannel(c_int16(self.handle), c_enum(chNum),
                                        c_int16(enabled), c_enum(coupling),
                                        c_enum(VRange), c_float(VOffset))
+        self.checkResult(m)
+
+        # The error this might through are
+        #    INVALID_HANDLE
+        #    INVALID_CHANNEL
+        #    INVALID_BANDWIDTH
+        # Invalid bandwidth is the only case that could go wrong. The others would be thrown above (assuming no race condition: i.e. unplugging the scope in between this call.
+        # I decided to keep the logic below to avoid a possible error
+        # picobase/SetChannel should be changed to the following
+        # Set the channel
+        # save the new channel settings
+        # check if ps5000a
+        # change the bandwidth separately
+        # changing the bandwidth would be it's own function (implemented below)
+        if bandwidth:
+            m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(1))
+        else:
+            m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(0))
+        self.checkResult(m)
+
+    def _lowLevelSetBandwidthFilter(self, channel, bandwidth)
+        m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(bandwidth))
         self.checkResult(m)
 
     def _lowLevelStop(self):
