@@ -345,23 +345,30 @@ class PS4000(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource, stopFreq, increment,
-                                        dwellTime, sweepType, numSweeps):
-        if stopFreq is None:
-            stopFreq = frequency
+    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
+                                        offsetVoltage, pkToPk, indexMode,
+                                        shots, triggerType, triggerSource):
+        """Waveform should be an array of shorts."""
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
-        m = self.lib.ps4000SetSigGenBuiltIn(
+        m = self.lib.ps4000SetSigGenArbitrary(
             c_int16(self.handle),
-            c_int32(int(offsetVoltage * 1000000)),
-            c_int32(int(pkToPk        * 1000000)),
-            c_int16(waveType),
-            c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime), c_enum(sweepType), c_enum(0),
-            c_uint32(shots), c_uint32(numSweeps),
-            c_enum(triggerType), c_enum(triggerSource),
-            c_int16(0))
+            c_uint32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
+            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
+            c_uint32(int(deltaPhase)),           # startDeltaPhase
+            c_uint32(int(deltaPhase)),           # stopDeltaPhase
+            c_uint32(0),                         # deltaPhaseIncrement
+            c_uint32(0),                         # dwellCount
+            waveformPtr,                         # arbitraryWaveform
+            c_int32(len(waveform)),              # arbitraryWaveformSize
+            c_enum(0),                           # sweepType for deltaPhase
+            c_enum(0),            # operation (adding random noise and whatnot)
+            c_enum(indexMode),                   # single, dual, quad
+            c_uint32(shots),
+            c_uint32(0),                         # sweeps
+            c_uint32(triggerType),
+            c_uint32(triggerSource),
+            c_int16(0))                          # extInThreshold
         self.checkResult(m)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
