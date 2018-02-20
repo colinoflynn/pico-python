@@ -73,8 +73,24 @@ class PS4000(_PicoscopeBase):
     MAX_VALUE = 32764
     MIN_VALUE = -32764
     
+    # AWG stuff here:
+    AWGMaxSamples = 4096
+
+    AWGDACInterval          = 1/192000  # [s]
+    AWGDACFrequency         = 192000 # [Hz]
+    AWGPhaseAccumulatorSize = 32
+
+    AWGMaxVal               = 32767
+    AWGMinVal               = -32768
+  
+    AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
+
     AWGBufferAddressWidth   = 12
     AWGMaxSamples           = 2 ** AWGBufferAddressWidth
+
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1, "GateHigh": 2, "GateLow": 3}
+ 
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
 
     # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
@@ -329,10 +345,32 @@ class PS4000(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
-    ####################################################################
-    # Untested functions below                                         #
-    #                                                                  #
-    ####################################################################
+    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
+                                        offsetVoltage, pkToPk, indexMode,
+                                        shots, triggerType, triggerSource):
+        """Waveform should be an array of shorts."""
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
+
+        m = self.lib.ps4000SetSigGenArbitrary(
+            c_int16(self.handle),
+            c_uint32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
+            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
+            c_uint32(int(deltaPhase)),           # startDeltaPhase
+            c_uint32(int(deltaPhase)),           # stopDeltaPhase
+            c_uint32(0),                         # deltaPhaseIncrement
+            c_uint32(0),                         # dwellCount
+            waveformPtr,                         # arbitraryWaveform
+            c_int32(len(waveform)),              # arbitraryWaveformSize
+            c_enum(0),                           # sweepType for deltaPhase
+            c_enum(0),            # operation (adding random noise and whatnot)
+            c_enum(indexMode),                   # single, dual, quad
+            c_uint32(shots),
+            c_uint32(0),                         # sweeps
+            c_uint32(triggerType),
+            c_uint32(triggerSource),
+            c_int16(0))                          # extInThreshold
+        self.checkResult(m)
+
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
@@ -352,6 +390,11 @@ class PS4000(_PicoscopeBase):
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
+
+    ####################################################################
+    # Untested functions below                                         #
+    #                                                                  #
+    ####################################################################
 
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
