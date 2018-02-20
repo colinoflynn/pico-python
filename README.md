@@ -4,8 +4,9 @@ This is a Python 2.7+ library for the Pico Scope. It uses the provided DLL
 for actual communications with the instrument. There have been a few examples
 around, but this one tries to improve on them via:
   * Subclass instrument-specific stuff, so can support more families
-  * Use exceptions to raise errors, and gives you nice english error messages (copied from PS Manual)
+  * Use exceptions to raise errors, and gives you nice English error messages (copied from PS Manual)
   * Provide higher-level functions (e.g. just setup timebase, function deals with instrument-specific limitations)
+  * Supports both Windows and Linux and Mac
 
 System has support for:
  * PS6000
@@ -33,6 +34,8 @@ pip install picoscope
 
 You will require the DLLs (described above).
 
+
+
 Installation Information from GIT
 ---------------------------------
 If you will be getting updated code from git, use git clone to put the directory
@@ -46,6 +49,53 @@ If you want the normal installation (e.g. copies files to Python installation) u
 python setup.py install
 ```
 
+Additional Installation Information for Linux
+---------------------------------------------
+Install the PicoScope Beta for Linux version of PicoScope as describe under Getting DLL's (above).  Currently this is the only way to install the shared libraries (SDK)
+
+Install pico-python using either method described above.
+
+Once you have PicoScope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the shared libraries in general, even if you're not using pico-python.
+
+```
+useradd -G pico <username>
+```
+
+Finally, you need to log in again for the group change to pick up:
+
+```
+su <username>
+```
+Additional Installation Information for Mac OSX
+---------------------------------------------
+You either want to add this every time before you start python or IPython, but I think it is best to add this line to
+`.bash_profile` (or the Mac Equivalent ????).
+```bash
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
+```
+
+See [Issue 80](https://github.com/colinoflynn/pico-python/issues/80#issuecomment-314149552) for more information on how this was found.
+Unfortunately, I don't have a Mac so I can't test this for myself. Feel free to create an Issue so that we can update these instructions.
+
+You should also add yourself to the pico group so that your user has access to the picoscope as a USB device
+```bash
+# Create the new pico group :
+sudo dseditgroup -o create pico
+# Add the current user to the pico group :
+sudo dseditgroup -o edit -a $USER -t user pico
+```
+Additional Instructions for installs using Anaconda/Conda
+---------------------------------------------------------
+Seems like Anaconda has an issue with ctypes. See the comment [here](https://github.com/pymedusa/Medusa/issues/1843#issuecomment-310126049) imdatacenters says to:
+> If you are using a special version of Python [like Anaconda] and you can't fix it.
+> Navigate to line 362 of lib/ctypes/init.py and change it to:
+> `self._handle = _dlopen(str(self._name), mode)`
+
+
+Driver woes
+-----------
+If you are having issues installing the driver, you can try to install the original drivers that came with your CD, then upgrading as mentionned in [Issue #103](https://github.com/colinoflynn/pico-python/issues/103). As always, try installing, then rebooting your computer. I would also suggest trying to run Picoscope's included graphical interface to ensure that your scope is working.
+
 
 Similar Projects
 ------------------------------
@@ -58,9 +108,39 @@ Authors, Copyright, and Thanks
 pico-python is Copyright (C) 2013 By:
  * Colin O'Flynn <coflynn@newae.com>
  * Mark Harfouche <mark.harfouche@gmail.com>
- 
+
  All rights reserved.
 See LICENSE.md for license terms.
 
 Inspired by Patrick Carle's code at http://www.picotech.com/support/topic11239.html
 which was adapted from http://www.picotech.com/support/topic4926.html
+
+Contributing
+------------------------------
+1. Fork.
+2. Make a new branch.
+3. Commit to your new branch.
+4. Add yourself to the authors/acknowledgments (whichever you find appropriate).
+5. Submit a pull request.
+
+Developer notes
+------------------------------
+To update versions, change it in `picoscope/__init__.py`, `__version__ = "X.Y.Z"`
+
+Once the versions have been updated, commit and create a new tag with git
+```
+git commit
+git tag -a X.Y.Z -m "Short descriptive message"
+```
+
+Push the tags to the repo
+```
+git push origin X.Y.Z
+```
+
+or to push all tags
+```
+git push --tags
+```
+
+New TAGS will be pushed to PyPi automatically by Travis.

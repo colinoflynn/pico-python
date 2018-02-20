@@ -22,7 +22,7 @@ class freqMeasure():
         self.ps.setChannel("D", enabled=False)
         res = self.ps.setSamplingFrequency(1000E6, 50000)
         self.sampleRate = res[0]
-        print "Sampling @ %f MHz, %d samples"%(res[0]/1E6, res[1])
+        print("Sampling @ %f MHz, %d samples"%(res[0]/1E6, res[1]))
         
         #Use external trigger to mark when we sample
         self.ps.setSimpleTrigger(trigSrc="External", threshold_V=0.150, timeout_ms=5000)
@@ -48,15 +48,15 @@ class freqMeasure():
         return fs / np.mean(np.diff(crossings))
         
     def measure(self):
-        print "Waiting for trigger"        
+        print("Waiting for trigger")
         while(self.ps.isReady() == False): time.sleep(0.01)
-        print "Sampling Done"
+        print("Sampling Done")
         data = self.ps.getDataV("A", 50000)
         
         data = data - np.mean(data)
         freq = self.freq_from_crossings(data)
         
-        print freq
+        print(freq)
                              
 if __name__ == "__main__":
     fm = freqMeasure()

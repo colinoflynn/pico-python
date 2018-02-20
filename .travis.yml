@@ -1,0 +1,11 @@
+language: python
+sudo: false
+dist: trusty
+script: echo Need to make tests
+deploy:
+  provider: pypi
+  user: hmaarrfk
+  password:
+    secure: Uf+EbrggHNRsDjyv1aDgCiGqd/ye+rFqW5FC7SBhfSYEYgAaj6awBYtgIlM9Fk+XXjdAUFUfRl4Ky6XK8yhQTMlwg8hCtMEiJoU86lZ3NlwO85ZqdI+xO2jNamr6YCrC3p1aFY0o65G/fnrlliRkGYPkPGyQHUn27A3ehQq2x6fH1lkL8lNjkWQbcl8Rjv1FkbScDqRSF+k7VwPRkPf/zKu2pKhfqXPyKEYS3SBurpcaP8JNpyTPA4v+3f3koF5wnY/oxmxTf3dpAGRS4RkIPRSUmLGno3K5RzFe8jdmn15b0qnagBqKwEftMKfc6jxGk9XzM4r47NAZ2tbRhJNUw7o9FZdB/9lax+fOy+yVlqqU2jRKzvIe9yGTjpjNGtXDb7mUk6KPqg/hHgHBcdvtLDSRIztsBWPtLHoW0jLnCoY68glz2DnWNaWpPFgK2ILCEi9REX972JIbZZlBQIHyBL11PwPqFEbW0DvtheOQqM3hA8S7929nVuuyPBRKqjEaECLyxQVxJpGnny+PKja01Wz1z3MoDywYXexvBvQ6fvEXnwsm0A+UQaGJHS0ND/SkOAXUQcnYQMWStmXHddTRRRiGEP8bzr+FaWJmHpcRU61RzBn/7SRV11bdM9bYGvBFaohqYNpyKW3jG3Z44G5+QA3d9IFCpGCC4XV2hzkvOvM=
+  on:
+    tags: true
