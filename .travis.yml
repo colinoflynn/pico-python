@@ -1,7 +1,14 @@
 language: python
-sudo: false
-dist: trusty
-script: echo Need to make tests
+cache: pip
+python:
+  - "2.7"
+  - "3.6"
+  - "3.7-dev"
+
+install: pip install flake8
+
+script: flake8 picoscope setup.py
+
 deploy:
   provider: pypi
   user: hmaarrfk
@@ -9,3 +16,6 @@ deploy:
     secure: Y56exRmK7l0SF0CWZKmb8Imi8G6MerXwP6AVFPSA5kuhzmT7FVrQJGNtcQtQOqff2PGywdfofBPUGsdWnqFkHJqegJ38a/enI0Rj21A5iL6W6uCZ33cW/zqseRze8eqftx9f+iO0MIJF/wwUO3weCE1oIA2pGGcXzGcGXtXP3H8f+pjYiAOQv69RZi4S6yYO393EQqBOVv4z76XF+jIR3YC5U+w98m8WaHAQ38eucpZ9z0d447l9hW1x4RQnnSTGWulSrrUzixmS6nEzNqlVo5En9KrjIqkYqyDAiVjselc5KoIS/JNd//dYy/avoTafQS+EkwDQ6RJNn5Jgbn6ea63m09mWa5fkjJBiL6skZj8M4XFyzaN1S8qWmfr6Y03QlcNkl+3g1pyxWtP6n64RlnNJuSvjl2C+UKcgRl336z7WdzB1dmBq3Lm0TlDLTyl+OIF47Uu9nVA+Zlkj8O2rin6gMtGvxmg/+bTMq9kVkXPpT43MnFuEj0Kme5ujYHxZd3vclOHNIGvIHSHYvlaWN6bEpbBRKMFnTfvRtW8zi64OYzRUVpb0aaRQkkXoNhx5AUlPsyW52nARI1NF/xhKvADftUbZJLbCyFjdRYwPMAGWHIhdc+QPRgrR3LwdD2GWWHax4rHs22jL2TUqse0ryGVCOiR9UBJjYszywSw/HVo=
   on:
     tags: true
+
+dist: trusty
+sudo: false
