@@ -72,25 +72,27 @@ class PS4000(_PicoscopeBase):
 
     MAX_VALUE = 32764
     MIN_VALUE = -32764
-    
+
     # AWG stuff here:
     AWGMaxSamples = 4096
 
-    AWGDACInterval          = 1/192000  # [s]
-    AWGDACFrequency         = 192000 # [Hz]
+    AWGDACInterval = 1 / 192000  # [s]
+    AWGDACFrequency = 192000  # [Hz]
     AWGPhaseAccumulatorSize = 32
 
-    AWGMaxVal               = 32767
-    AWGMinVal               = -32768
-  
+    AWGMaxVal = 32767
+    AWGMinVal = -32768
+
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
-    AWGBufferAddressWidth   = 12
-    AWGMaxSamples           = 2 ** AWGBufferAddressWidth
+    AWGBufferAddressWidth = 12
+    AWGMaxSamples = 2 ** AWGBufferAddressWidth
 
-    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1, "GateHigh": 2, "GateLow": 3}
- 
-    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
+                            "GateHigh": 2, "GateLow": 3}
+
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1,
+                              "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
 
     # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767

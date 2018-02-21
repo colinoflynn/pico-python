@@ -102,7 +102,6 @@ class _PicoscopeBase(object):
     # End of things you must reimplement (I think).
     ############################################################
 
-
     # If we don't get this CaseInsentiveDict working, I would prefer to stick
     # with their spelling of archaic C all caps for this. I know it is silly,
     # but it removes confusion for certain things like
