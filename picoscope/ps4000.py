@@ -310,6 +310,28 @@ class PS4000(_PicoscopeBase):
         else:
             dt = (timebase - 1) / 2e7
         return dt
+    
+    def getTimestepFromTimebase4262(self, timebase):
+        """Return timebase to sampletime as seconds for ps4262."""
+        someConstant = 10000000.0
+        return (timebase+1) / someConstant
+
+    def getTimeBaseNum4262(self, sampleTimeS):
+        """Return sample time in seconds to timebase as int for API calls for ps4262."""
+        someConstant = 10000000.0
+        maxSampleTime = ((2 ** 30) / someConstant)
+        minSampleTime = 1 / someConstant
+
+        if sampleTimeS <= minSampleTime:
+            timebase = 0
+        elif sampleTimeS >= maxSampleTime:
+            timebase = (2 ** 30)
+        else:
+            timebase = round(sampleTimeS * someConstant) - 1
+
+        # is this cast needed?
+        timebase = int(timebase)
+        return timebase
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
                                segmentIndex):
