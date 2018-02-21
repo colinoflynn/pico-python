@@ -10,7 +10,8 @@ The system is very simple:
 
 The SigGen is connected to Channel A. No other setup is required
 
-Warning, the picoscope has a bug, that doesn't let you generate a waveform correctly for a while
+Warning, the picoscope has a bug, that doesn't let you generate a
+waveform correctly for a while
 It means that you need to kick it in place
 
 See http://www.picotech.com/support/topic12969.html
@@ -37,18 +38,20 @@ if __name__ == "__main__":
     obs_duration = 10 * waveform_desired_duration
     sampling_interval = obs_duration / 4096
 
-    (actualSamplingInterval, nSamples, maxSamples) = ps.setSamplingInterval(sampling_interval,
-                                                                            obs_duration)
+    (actualSamplingInterval, nSamples, maxSamples) = ps.setSamplingInterval(
+        sampling_interval, obs_duration)
     print("Sampling interval = %f ns" % (actualSamplingInterval * 1E9))
     print("Taking  samples = %d" % nSamples)
     print("Maximum samples = %d" % maxSamples)
 
     ps.setChannel('A', 'DC', 5.0, 0.0, True, False)
-    ps.setSimpleTrigger('A', 0.0, 'Rising', delay=0, timeout_ms=100, enabled=True)
+    ps.setSimpleTrigger('A', 0.0, 'Rising', delay=0, timeout_ms=100,
+                        enabled=True)
 
     ps.setSigGenBuiltInSimple(offsetVoltage=0, pkToPk=4, waveType="Square",
-                              frequency=1 / waveform_desired_duration * 10, shots=1,
-                              triggerType="Rising", triggerSource="None")
+                              frequency=1 / waveform_desired_duration * 10,
+                              shots=1, triggerType="Rising",
+                              triggerSource="None")
 
     # take the desired waveform
     # This measures all the channels that have been enabled

@@ -23,7 +23,8 @@ if __name__ == "__main__":
 
     pd = ps
 
-    print("Copied the picoscope object, the information of the copied object is:")
+    print("Copied the picoscope object. " +
+          " the information of the copied object is:")
     print("Serial: " + pd.getUnitInfo("BatchAndSerial"))
 
     print("\n\n\n")

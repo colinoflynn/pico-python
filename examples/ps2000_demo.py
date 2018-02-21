@@ -38,7 +38,7 @@ from __future__ import unicode_literals
 
 import time
 from picoscope import ps2000
-from picoscope import ps2000a
+# from picoscope import ps2000a
 import pylab as plt
 import numpy as np
 
@@ -48,7 +48,8 @@ if __name__ == "__main__":
     print("Attempting to open Picoscope 2000...")
 
     ps = ps2000.PS2000()
-    # ps = ps2000a.PS2000a()  # Uncomment this line to use with the 2000a/2000b series
+    # Uncomment this line to use with the 2000a/2000b series
+    # ps = ps2000a.PS2000a()
 
     print("Found the following picoscope:")
     print(ps.getAllUnitInfo())
@@ -64,12 +65,14 @@ if __name__ == "__main__":
     print("Maximum samples = %d" % maxSamples)
 
     # the setChannel command will chose the next largest amplitude
-    channelRange = ps.setChannel('A', 'DC', 2.0, 0.0, enabled=True, BWLimited=False)
+    channelRange = ps.setChannel('A', 'DC', 2.0, 0.0, enabled=True,
+                                 BWLimited=False)
     print("Chosen channel range = %d" % channelRange)
 
     ps.setSimpleTrigger('A', 1.0, 'Falling', timeout_ms=100, enabled=True)
 
-    ps.setSigGenBuiltInSimple(offsetVoltage=0, pkToPk=1.2, waveType="Sine", frequency=50E3)
+    ps.setSigGenBuiltInSimple(offsetVoltage=0, pkToPk=1.2, waveType="Sine",
+                              frequency=50E3)
 
     ps.runBlock()
     ps.waitReady()
@@ -85,9 +88,9 @@ if __name__ == "__main__":
     ps.stop()
     ps.close()
 
-    #Uncomment following for call to .show() to not block
-    #plt.ion()
-    
+    # Uncomment following for call to .show() to not block
+    # plt.ion()
+
     plt.figure()
     plt.hold(True)
     plt.plot(dataTimeAxis, dataA, label="Clock")
