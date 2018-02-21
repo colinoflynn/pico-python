@@ -113,7 +113,7 @@ class PS4000(_PicoscopeBase):
                      ]
 
     NUM_CHANNELS = 4
-    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "EXT": 4, "MaxChannels": 4, "TRIGGER_AUX": 5, "MAX_TRIGGER_SOURCES": 5}
+    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "EXT": 4}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
