@@ -7,7 +7,9 @@ python:
 
 install: pip install flake8
 
-script: flake8 picoscope setup.py
+script: 
+   - flake8 picoscope setup.py
+   - flake8 examples/*
 
 deploy:
   provider: pypi

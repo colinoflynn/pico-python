@@ -50,16 +50,21 @@ if __name__ == "__main__":
     # generate an interesting looking waveform
     waveform = waveformOffset + (x / 2 + (x ** 2) / 2) * waveformAmplitude
 
-    (waveform_duration, deltaPhase) = ps.setAWGSimple(waveform, waveform_desired_duration,
-                                                      offsetVoltage=0.0, indexMode="Dual",
-                                                      triggerSource='None')
+    (waveform_duration, deltaPhase) = ps.setAWGSimple(
+        waveform, waveform_desired_duration, offsetVoltage=0.0,
+        indexMode="Dual", triggerSource='None')
 
     # the setChannel command will chose the next largest amplitude
-    channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0, enabled=True, BWLimited=False)      # BWLimited = 1 for 6402/6403, 2 for 6404, 0 for all
+    # BWLimited = 1 for 6402/6403, 2 for 6404, 0 for all
+    channelRange = ps.setChannel('A', 'DC', waveformAmplitude, 0.0,
+                                 enabled=True, BWLimited=False)
+
     print("Chosen channel range = %d" % channelRange)
 
-    ps.setSimpleTrigger('A', 1.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
-    #ps.setSimpleTrigger('TriggerAux', 0.0, 'Falling', delay=0, timeout_ms=100, enabled=True)
+    ps.setSimpleTrigger('A', 1.0, 'Falling', delay=0, timeout_ms=100,
+                        enabled=True)
+    # ps.setSimpleTrigger('TriggerAux', 0.0, 'Falling', delay=0,
+    #                     timeout_ms=100, enabled=True)
 
     ps.runBlock()
     ps.waitReady()
