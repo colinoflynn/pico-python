@@ -816,6 +816,10 @@ class _PicoscopeBase(object):
         """
         return self._lowLevelEnumerateUnits()
 
+    def ping(self):
+        """Ping unit to check that the already opened device is connected."""
+        return self._lowLevelPingUnit()
+
     def open(self, serialNumber=None):
         """Open the scope, using a serialNumber if given."""
         self._lowLevelOpenUnit(serialNumber)

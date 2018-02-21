@@ -290,6 +290,10 @@ class PS5000a(_PicoscopeBase):
         else:
             return False
 
+    def _lowLevelPingUnit(self):
+        m = self.lib.ps5000aPingUnit(c_int16(self.handle))
+        return m
+
     def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
         """Return (timeIntervalSeconds, maxSamples)."""
         maxSamples = c_int32()
