@@ -224,7 +224,7 @@ class PS5000a(_PicoscopeBase):
             m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(0))
         self.checkResult(m)
 
-    def _lowLevelSetBandwidthFilter(self, channel, bandwidth)
+    def _lowLevelSetBandwidthFilter(self, channel, bandwidth):
         m = self.lib.ps5000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(bandwidth))
         self.checkResult(m)
 
