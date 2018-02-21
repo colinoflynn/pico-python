@@ -1,5 +1,7 @@
 pico-python
 ===========
+[![Build Status](https://travis-ci.org/colinoflynn/pico-python.svg?branch=master)](https://travis-ci.org/colinoflynn/pico-python)
+
 This is a Python 2.7+ library for the Pico Scope. It uses the provided DLL
 for actual communications with the instrument. There have been a few examples
 around, but this one tries to improve on them via:
