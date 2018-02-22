@@ -146,7 +146,7 @@ class PS4000(_PicoscopeBase):
         if self._lowLevelGetUnitInfo(3) == '4262':
             self.getTimestepFromTimebase = self.getTimestepFromTimebase4262
             self.getTimeBaseNum = self.getTimeBaseNum4262
-        else: # some other 4000 series unit
+        else:  # some other 4000 series unit
             self.getTimestepFromTimebase = self.getTimestepFromTimebase4000
             self.getTimeBaseNum = self.getTimeBaseNum4000
 
