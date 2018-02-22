@@ -142,6 +142,18 @@ class PS4000(_PicoscopeBase):
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
 
         super(PS4000, self).__init__(serialNumber, connect)
+        # check to see which model we have and use special functions if needed
+
+        unit_number = self.getUnitInfo('VariantInfo')
+        if unit_number == '4262':
+            self.getTimestepFromTimebase = self._getTimestepFromTimebase4262
+            self.getTimeBaseNum = self._getTimeBaseNum4262
+        elif unit_number in {'4223', '4224', '4423', '4424'}:
+            self.getTimestepFromTimebase = self._getTimestepFromTimebase4223
+            self.getTimeBaseNum = self._getTimeBaseNum4223
+        else:
+            raise NotImplementedError('Timebase functions have not been '
+                                      'written for the ' + unit_number)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
@@ -287,6 +299,16 @@ class PS4000(_PicoscopeBase):
 
     def getTimeBaseNum(self, sampleTimeS):
         """Return sample time in seconds to timebase as int for API calls."""
+        raise NotImplementedError('Timebase functions have not been '
+                                  'written for the scope.')
+
+    def getTimestepFromTimebase(self, timebase):
+        """Return timebase to sampletime as seconds."""
+        raise NotImplementedError('Timebase functions have not been '
+                                  'written for the scope.')
+
+    def _getTimeBaseNum4223(self, sampleTimeS):
+        """Return sample time in seconds to timebase as int for API calls."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
         if sampleTimeS <= 12.5E-9:
@@ -303,13 +325,39 @@ class PS4000(_PicoscopeBase):
         timebase = int(timebase)
         return timebase
 
-    def getTimestepFromTimebase(self, timebase):
+    def _getTimestepFromTimebase4223(self, timebase):
         """Return timebase to sampletime as seconds."""
         if timebase < 3:
             dt = 2. ** timebase / 8e7
         else:
             dt = (timebase - 1) / 2e7
         return dt
+
+    def _getTimestepFromTimebase4262(self, timebase):
+        """Return timebase to sampletime as seconds for ps4262."""
+        someConstant = 10000000.0
+        return (timebase+1) / someConstant
+
+    def _getTimeBaseNum4262(self, sampleTimeS):
+        """Return timebase for the ps4262.
+
+        Return sample time in seconds to timebase as
+        int for API calls for ps4262.
+        """
+        someConstant = 10000000.0
+        maxSampleTime = ((2 ** 30) / someConstant)
+        minSampleTime = 1 / someConstant
+
+        if sampleTimeS <= minSampleTime:
+            timebase = 0
+        elif sampleTimeS >= maxSampleTime:
+            timebase = (2 ** 30)
+        else:
+            timebase = round(sampleTimeS * someConstant) - 1
+
+        # is this cast needed?
+        timebase = int(timebase)
+        return timebase
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
                                segmentIndex):
