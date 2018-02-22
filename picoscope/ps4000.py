@@ -142,6 +142,13 @@ class PS4000(_PicoscopeBase):
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
 
         super(PS4000, self).__init__(serialNumber, connect)
+        # check to see which model we have and use special functions if needed
+        if self._lowLevelGetUnitInfo(3) == '4262':
+            self.getTimestepFromTimebase = self.getTimestepFromTimebase4262
+            self.getTimeBaseNum = self.getTimeBaseNum4262
+        else: # some other 4000 series unit
+            self.getTimestepFromTimebase = self.getTimestepFromTimebase4000
+            self.getTimeBaseNum = self.getTimeBaseNum4000
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
@@ -285,7 +292,7 @@ class PS4000(_PicoscopeBase):
 
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
-    def getTimeBaseNum(self, sampleTimeS):
+    def getTimeBaseNum4000(self, sampleTimeS):
         """Return sample time in seconds to timebase as int for API calls."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
@@ -303,7 +310,7 @@ class PS4000(_PicoscopeBase):
         timebase = int(timebase)
         return timebase
 
-    def getTimestepFromTimebase(self, timebase):
+    def getTimestepFromTimebase4000(self, timebase):
         """Return timebase to sampletime as seconds."""
         if timebase < 3:
             dt = 2. ** timebase / 8e7
