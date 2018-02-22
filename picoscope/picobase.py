@@ -339,6 +339,7 @@ class _PicoscopeBase(object):
         """ This function sets the range for the EXT trigger channel
             VRange MUST either be 0.5 or 5 for +/- 500mV or 5V ranges
             respectively
+            This is only implemented for PS4000 series devices.
         """
         if VRange == 0.5:
             VRangeApiVal = 5
