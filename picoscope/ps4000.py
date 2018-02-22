@@ -143,12 +143,17 @@ class PS4000(_PicoscopeBase):
 
         super(PS4000, self).__init__(serialNumber, connect)
         # check to see which model we have and use special functions if needed
-        if self._lowLevelGetUnitInfo(3) == '4262':
-            self.getTimestepFromTimebase = self.getTimestepFromTimebase4262
-            self.getTimeBaseNum = self.getTimeBaseNum4262
-        else:  # some other 4000 series unit
-            self.getTimestepFromTimebase = self.getTimestepFromTimebase4000
-            self.getTimeBaseNum = self.getTimeBaseNum4000
+
+        unit_number = self._lowLevelGetUnitInfo('VariantInfo')
+        if unit_number == '4262':
+            self.getTimestepFromTimebase = self._getTimestepFromTimebase4262
+            self.getTimeBaseNum = self._getTimeBaseNum4262
+        elif unit_number in {'4223', '4224', '4423', '4424'}:
+            self.getTimestepFromTimebase = self._getTimestepFromTimebase4223
+            self.getTimeBaseNum = self._getTimeBaseNum4223
+        else:
+            raise NotImplementedError('Timebase functions have not been '
+                                      'written for the ' + unit_number)
 
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
@@ -292,7 +297,17 @@ class PS4000(_PicoscopeBase):
 
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
-    def getTimeBaseNum4000(self, sampleTimeS):
+    def getTimeBaseNum(self, sampleTimeS):
+        """Return sample time in seconds to timebase as int for API calls."""
+        raise NotImplementedError('Timebase functions have not been '
+                                  'written for the scope.')
+
+    def getTimestepFromTimebase(self, timebase):
+        """Return timebase to sampletime as seconds."""
+        raise NotImplementedError('Timebase functions have not been '
+                                  'written for the scope.')
+
+    def _getTimeBaseNum4223(self, sampleTimeS):
         """Return sample time in seconds to timebase as int for API calls."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
@@ -310,7 +325,7 @@ class PS4000(_PicoscopeBase):
         timebase = int(timebase)
         return timebase
 
-    def getTimestepFromTimebase4000(self, timebase):
+    def _getTimestepFromTimebase4223(self, timebase):
         """Return timebase to sampletime as seconds."""
         if timebase < 3:
             dt = 2. ** timebase / 8e7
@@ -318,13 +333,14 @@ class PS4000(_PicoscopeBase):
             dt = (timebase - 1) / 2e7
         return dt
 
-    def getTimestepFromTimebase4262(self, timebase):
+    def _getTimestepFromTimebase4262(self, timebase):
         """Return timebase to sampletime as seconds for ps4262."""
         someConstant = 10000000.0
         return (timebase+1) / someConstant
 
-    def getTimeBaseNum4262(self, sampleTimeS):
-        """
+    def _getTimeBaseNum4262(self, sampleTimeS):
+        """Return timebase for the ps4262.
+
         Return sample time in seconds to timebase as
         int for API calls for ps4262.
         """
