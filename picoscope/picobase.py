@@ -335,6 +335,20 @@ class _PicoscopeBase(object):
         segments = self._lowLevelGetMaxSegments()
         return segments
 
+    def setExtTriggerRange(self, VRange=0.5):
+        """ This function sets the range for the EXT trigger channel
+            VRange MUST either be 0.5 or 5 for +/- 500mV or 5V ranges
+            respectively
+        """
+        if VRange == 0.5:
+            VRangeApiVal = 5
+        elif VRange == 5:
+            VRangeApiVal = 8
+        else:
+            raise IOError("External trigger VRange is not 0.5 or 5")
+
+        self._lowLevelSetExtTriggerRange(VRangeApiVal)
+
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising",
                          delay=0, timeout_ms=100, enabled=True):
         """Set up a simple trigger.
