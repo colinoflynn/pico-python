@@ -144,7 +144,7 @@ class PS4000(_PicoscopeBase):
         super(PS4000, self).__init__(serialNumber, connect)
         # check to see which model we have and use special functions if needed
 
-        unit_number = self._lowLevelGetUnitInfo('VariantInfo')
+        unit_number = self.getUnitInfo('VariantInfo')
         if unit_number == '4262':
             self.getTimestepFromTimebase = self._getTimestepFromTimebase4262
             self.getTimeBaseNum = self._getTimeBaseNum4262
