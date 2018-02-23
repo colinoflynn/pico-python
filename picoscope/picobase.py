@@ -335,6 +335,20 @@ class _PicoscopeBase(object):
         segments = self._lowLevelGetMaxSegments()
         return segments
 
+    def setExtTriggerRange(self, VRange=0.5):
+        """ This function sets the range for the EXT trigger channel
+
+            This is only implemented for PS4000 series devices where
+            the only acceptable values for VRange are 0.5 or 5.0
+        """
+        VRangeAPI = self.CHANNEL_RANGE[-1]
+        for item in self.CHANNEL_RANGE:
+            if item["rangeV"] - VRange >= 0:
+                VRangeAPI = item
+                break
+
+        self._lowLevelSetExtTriggerRange(VRangeAPI["apivalue"])
+
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising",
                          delay=0, timeout_ms=100, enabled=True):
         """Set up a simple trigger.

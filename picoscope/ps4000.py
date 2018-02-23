@@ -115,7 +115,7 @@ class PS4000(_PicoscopeBase):
                      ]
 
     NUM_CHANNELS = 4
-    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "MaxChannels": 4}
+    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "EXT": 4}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
@@ -439,6 +439,15 @@ class PS4000(_PicoscopeBase):
             c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
+        self.checkResult(m)
+
+    # use VRange=5 for +/- 500mV signal range
+    # OR
+    # VRange=8 for +/- 5V range
+    def _lowLevelSetExtTriggerRange(self, VRange):
+        m = self.lib.ps4000SetExtTriggerRange(
+            c_int16(self.handle),
+            c_enum(VRange))
         self.checkResult(m)
 
     ####################################################################
