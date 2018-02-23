@@ -343,7 +343,7 @@ class _PicoscopeBase(object):
         """
         VRangeAPI = CHANNEL_RANGE[-1]
         for item in self.CHANNEL_RANGE:
-            if item["rangeV"] - VRange  >= 0:
+            if item["rangeV"] - VRange >= 0:
                 VRangeAPI = item
                 break
 
