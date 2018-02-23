@@ -337,18 +337,17 @@ class _PicoscopeBase(object):
 
     def setExtTriggerRange(self, VRange=0.5):
         """ This function sets the range for the EXT trigger channel
-            VRange MUST either be 0.5 or 5 for +/- 500mV or 5V ranges
-            respectively
-            This is only implemented for PS4000 series devices.
-        """
-        if VRange == 0.5:
-            VRangeApiVal = 5
-        elif VRange == 5:
-            VRangeApiVal = 8
-        else:
-            raise IOError("External trigger VRange is not 0.5 or 5")
 
-        self._lowLevelSetExtTriggerRange(VRangeApiVal)
+            This is only implemented for PS4000 series devices where
+            the only acceptable values for VRange are 0.5 or 5.0
+        """
+        VRangeAPI = CHANNEL_RANGE[-1]
+        for item in self.CHANNEL_RANGE:
+            if item["rangeV"] - VRange  >= 0:
+                VRangeAPI = item
+                break
+
+        self._lowLevelSetExtTriggerRange(VRangeAPI["apivalue"])
 
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising",
                          delay=0, timeout_ms=100, enabled=True):
