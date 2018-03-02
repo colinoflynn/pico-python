@@ -341,11 +341,14 @@ class _PicoscopeBase(object):
             This is only implemented for PS4000 series devices where
             the only acceptable values for VRange are 0.5 or 5.0
         """
-        VRangeAPI = self.CHANNEL_RANGE[-1]
+        VRangeAPI = None
         for item in self.CHANNEL_RANGE:
-            if item["rangeV"] - VRange >= 0:
+            if np.isclose(item["rangeV"], VRange):
                 VRangeAPI = item
                 break
+
+        if VRangeAPI is None:
+            raise ValueError('Provided VRange is not valid')
 
         self._lowLevelSetExtTriggerRange(VRangeAPI["apivalue"])
 
