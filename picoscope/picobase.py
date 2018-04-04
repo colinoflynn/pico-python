@@ -447,7 +447,7 @@ class _PicoscopeBase(object):
             channel = self.CHANNELS[channel]
 
         if dataV is None:
-            dataV = np.empty(dataRaw.size, dtype=dtype)
+            dataV = np.empty(dataRaw.shape, dtype=dtype)
 
         a2v = self.CHRange[channel] / dtype(self.getMaxValue())
         np.multiply(dataRaw, a2v, dataV)
