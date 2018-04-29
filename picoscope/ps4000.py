@@ -441,6 +441,12 @@ class PS4000(_PicoscopeBase):
             c_int16(0))
         self.checkResult(m)
 
+    def _lowLevelSigGenSoftwareControl(self, triggerType):
+
+        m = self.lib.ps4000SigGenSoftwareControl(
+            c_int16(self.handle), c_enum(triggerType))
+        self.checkResult(m)
+
     # use VRange=5 for +/- 500mV signal range
     # OR
     # VRange=8 for +/- 5V range
