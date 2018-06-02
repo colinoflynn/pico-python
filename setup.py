@@ -1,9 +1,9 @@
 from setuptools import setup
-import picoscope
+import versioneer
 
 setup(
     name='picoscope',
-    version=picoscope.__version__,
+    version=versioneer.get_version(),
     description="Unofficial python wrapper for the PicoScope devices.",
     author="Colin O'Flynn, Mark Harfouche",
     author_email='coflynn@newae.com, mark.harfouche@gmail.com',
@@ -23,5 +23,6 @@ setup(
 
     # What does your project relate to?
     keywords='picoscope peripherals hardware oscilloscope ATE',
-    install_requires=['numpy']
+    install_requires=['numpy'],
+    cmdclass=versioneer.get_cmdclass()
 )

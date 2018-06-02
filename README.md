@@ -102,9 +102,7 @@ Alternatively, you can follow more thorough instructions
 [here](http://scikit-image.org/docs/dev/contribute.html).
 
 # Developer notes
-To update versions, change it in `picoscope/__init__.py`, `__version__ = "X.Y.Z"`
-
-Once the versions have been updated, commit and create a new tag with git
+Commit and create a new tag with git
 ```
 git commit
 git tag -a X.Y.Z -m "Short descriptive message"
@@ -120,4 +118,5 @@ or to push all tags
 git push --tags
 ```
 
+[versioneer](https://github.com/warner/python-versioneer) takes care of updating the version.
 New tags will be pushed to PyPi automatically by Travis.
