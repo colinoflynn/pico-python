@@ -21,7 +21,7 @@ def LoadLibraryDarwin(library):
         # Get the library normally. This should work if SIP is disabled and
         # DYLD_LIBRARY_PATH is set properly.
         return cdll.LoadLibrary(library)
-    except OSError as e:
+    except OSError:
         # 2.7 Fix. This only fixes flake8
         try:
             FileNotFoundError
