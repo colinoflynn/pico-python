@@ -138,7 +138,8 @@ class PS2000(_PicoscopeBase):
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
         elif platform.system() == 'Darwin':
-            self.lib = self.loadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
+            from picoscope.darwin_utils import LoadLibraryDarwin
+            self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
