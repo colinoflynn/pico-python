@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import tempfile
 
+
 def LoadLibraryDarwin(library):
     """Wrapper around cdll.LoadLibrary that works around how SIP breaks
     dynamically linked libraries. This improves upon the process described
