@@ -918,7 +918,6 @@ class _PicoscopeBase(object):
 
     ERROR_CODES = _ERROR_CODES
 
-
     def loadLibraryDarwin(self, library):
         """Wrapper around cdll.LoadLibrary that works around how SIP breaks
         dynamically linked libraries. This improves upon the process described
@@ -943,27 +942,30 @@ class _PicoscopeBase(object):
             return cdll.LoadLibrary(library)
         except OSError as e:
             if not Path(PICO_LIB_PATH).is_dir():
-                raise FileNotFoundError("/Applications/PicoScope6.app is missing")
+                raise FileNotFoundError(
+                        "/Applications/PicoScope6.app is missing")
 
-            # Modifying the libraries in-place breaks their signatures, causing
-            # PicoScope6.app to fail to detect the oscilloscope. Instead, patch
-            # copies of the libraries in a temporary directory.
+            # Modifying the libraries in-place breaks their signatures,
+            # causing PicoScope6.app to fail to detect the oscilloscope.
+            # Instead, patch copies of the libraries in a temporary directory.
             self.tempLibDir = tempfile.TemporaryDirectory()
             patchedPicoPath = self.tempLibDir.name + "/lib/"
             shutil.copytree(PICO_LIB_PATH, patchedPicoPath)
 
-            # Patch libraries that depend on libiomp5.dylib to refer to it by an
-            # absolute path instead of a relative path, which is not allowed by
-            # SIP.
+            # Patch libraries that depend on libiomp5.dylib to refer to it by
+            # an absolute path instead of a relative path, which is not
+            # allowed by SIP.
             for libraryToPatch in IOMP5_DEPS:
                 subprocess.run(["install_name_tool", "-change",
-                    "libiomp5.dylib", patchedPicoPath + "/libiomp5.dylib",
-                    patchedPicoPath + "/" + libraryToPatch]).check_returncode()
+                                "libiomp5.dylib",
+                                patchedPicoPath + "/libiomp5.dylib",
+                                patchedPicoPath + "/" + libraryToPatch
+                                ]).check_returncode()
 
             # Finally, patch the originally requested library to look in the
             # patched directory.
             patchedLibrary = patchedPicoPath + "/" + library
             subprocess.run(["install_name_tool", "-add_rpath", patchedPicoPath,
-                patchedLibrary]).check_returncode()
+                            patchedLibrary]).check_returncode()
 
             return cdll.LoadLibrary(patchedLibrary)
