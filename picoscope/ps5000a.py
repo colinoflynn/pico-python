@@ -130,8 +130,7 @@ class PS5000a(_PicoscopeBase):
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
         elif platform.system() == 'Darwin':
-            from ctypes import cdll
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
+            self.lib = self.loadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
