@@ -123,8 +123,8 @@ class PS4000a(_PicoscopeBase):
             # but I need to include .so.2
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
         elif platform.system() == 'Darwin':
-            from ctypes import cdll
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".dylib")
+            from picoscope.darwin_utils import LoadLibraryDarwin
+            self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
