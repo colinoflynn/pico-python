@@ -22,6 +22,11 @@ def LoadLibraryDarwin(library):
         # DYLD_LIBRARY_PATH is set properly.
         return cdll.LoadLibrary(library)
     except OSError as e:
+        # 2.7 Fix. This only fixes flake8
+        try:
+            FileNotFoundError
+        except NameError:
+            FileNotFoundError = IOError
         if not Path(PICO_LIB_PATH).is_dir():
             raise FileNotFoundError(
                     "/Applications/PicoScope6.app is missing")
