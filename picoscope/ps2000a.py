@@ -440,3 +440,8 @@ class PS2000a(_PicoscopeBase):
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
+
+    def _lowLevelSigGenSoftwareControl(self, triggerType):
+        m = self.lib.ps2000aSigGenSoftwareControl(
+            c_int16(self.handle), c_enum(triggerType))
+        self.checkResult(m)

@@ -822,6 +822,12 @@ class _PicoscopeBase(object):
             2 ** (self.AWGPhaseAccumulatorSize - self.AWGBufferAddressWidth))
         return 1 / samplingFrequency
 
+    def sigGenSoftwareControl(self, state=True):
+        """
+        Trigger the AWG when configured with software triggering.
+        """
+        self._lowLevelSigGenSoftwareControl(state)
+
     def setResolution(self, resolution):
         """For 5000-series scopes ONLY, sets the resolution."""
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
