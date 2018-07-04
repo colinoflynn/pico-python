@@ -289,10 +289,10 @@ class _PicoscopeBase(object):
         """
         return self._lowLevelIsReady()
 
-    def waitReady(self):
+    def waitReady(self, spin_delay=0.01):
         """Block until the scope is ready."""
         while not self.isReady():
-            time.sleep(0.01)
+            time.sleep(spin_delay)
 
     def setSamplingInterval(self, sampleInterval, duration, oversample=0,
                             segmentIndex=0):
