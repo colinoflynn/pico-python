@@ -108,20 +108,7 @@ class PS2000a(_PicoscopeBase):
     # 'PS2000A_S':5,'PS2000A_MAX_TIME_UNITS':6}
     TIME_UNITS = {0: 1e-15, 1: 1e-12, 2: 1e-9, 3: 1e-6, 4: 1e-3, 5: 1e0}
 
-    # This is actually different depending on the AB/CD models
-    # I wonder how we could detect the difference between the oscilloscopes
-    # I believe we can obtain this information from the setInfo function
-    # by readign the hardware version
-    # for the PS6403B version, the hardware version is "1 1",
-    # an other possibility is that the PS6403B shows up as 6403 when using
-    # VARIANT_INFO and others show up as PS6403X where X = A,C or D
-
     AWGPhaseAccumulatorSize = 32
-    AWGBufferAddressWidth = 14
-    AWGMaxSamples = 2 ** AWGBufferAddressWidth
-
-    AWGDACInterval = 5E-9  # in seconds
-    AWGDACFrequency = 1 / AWGDACInterval
 
     # AWG scaling according to programming manual p.72
     # Vout = 1uV * (pkToPk/2) * (sample_value / 32767) + offsetVoltage
@@ -191,6 +178,26 @@ class PS2000a(_PicoscopeBase):
                 lambda t: math.log(t * 2e8, 2) if t < 10e-9 else (t * 1e8)
         else:
             raise ValueError("Unrecognised variant {}".format(self.model))
+
+        # The AWG parameters vary based on the particular model. See section
+        # 3.51.2 of the 2000a programmer's guide
+        if self.model in ('2205AMSO', '2206', '2206A', '2207', '2207A', '2208',
+                          '2208A', '2405A'):
+            self.AWGBufferAddressWidth = 13
+            self.AWGDACInterval = 50E-9
+        elif self.model in ('2206B', '2206BMSO', '2207B', '2207BMSO', '2208B',
+                            '2208BMSO', '2406B', '2407B', '2408B'):
+            self.AWGBufferAddressWidth = 15
+            self.AWGDACInterval = 50E-9
+        else:
+            # The programmer's manual indicates that some older models have
+            # these parameters. Just use them as a catch-all for any models
+            # not listed above
+            self.AWGBufferAddressWidth = 13
+            self.AWGDACInterval = 20.83E-9
+
+        self.AWGMaxSamples = 2 ** self.AWGBufferAddressWidth
+        self.AWGDACFrequency = 1 / self.AWGDACInterval
 
     def _lowLevelCloseUnit(self):
         m = self.lib.ps2000aCloseUnit(c_int16(self.handle))
