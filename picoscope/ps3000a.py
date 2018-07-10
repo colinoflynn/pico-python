@@ -173,7 +173,7 @@ class PS3000a(_PicoscopeBase):
     def _lowLevelCloseUnit(self):
         m = self.lib.ps3000aCloseUnit(c_int16(self.handle))
         self.checkResult(m)
-    
+ 
     def _lowLevelEnumerateUnits(self):
         count = c_int16(0)
         m = self.lib.ps3000aEnumerateUnits(byref(count), None, None)
@@ -186,7 +186,7 @@ class PS3000a(_PicoscopeBase):
         serials = create_string_buffer(serialLth.value + 1)
 
         m = self.lib.ps3000aEnumerateUnits(byref(count), serials,
-                                          byref(serialLth))
+                                           byref(serialLth))
         self.checkResult(m)
 
         serialList = str(serials.value.decode('utf-8')).split(',')
