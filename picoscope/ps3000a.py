@@ -174,6 +174,27 @@ class PS3000a(_PicoscopeBase):
         m = self.lib.ps3000aCloseUnit(c_int16(self.handle))
         self.checkResult(m)
 
+    def _lowLevelEnumerateUnits(self):
+        count = c_int16(0)
+        m = self.lib.ps3000aEnumerateUnits(byref(count), None, None)
+        self.checkResult(m)
+        # a serial number is rouhgly 8 characters
+        # an extra character for the comma
+        # and an extra one for the space after the comma?
+        # the extra two also work for the null termination
+        serialLth = c_int16(count.value * (8 + 2))
+        serials = create_string_buffer(serialLth.value + 1)
+
+        m = self.lib.ps3000aEnumerateUnits(byref(count), serials,
+                                           byref(serialLth))
+        self.checkResult(m)
+
+        serialList = str(serials.value.decode('utf-8')).split(',')
+
+        serialList = [x.strip() for x in serialList]
+
+        return serialList
+
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
                             BWLimited):
         m = self.lib.ps3000aSetChannel(c_int16(self.handle), c_enum(chNum),
