@@ -1,8 +1,10 @@
-from ctypes import c_short, byref, cdll, windll, c_char, create_string_buffer
+from ctypes import c_short, byref, cdll, c_char, create_string_buffer
 import time
 import platform
 
 if platform.system() == "Windows":
+    from ctypes import windll
+
     lib = windll.LoadLibrary("ps3000a.dll")
 elif platform.system() == "Linux":
     lib = cdll.LoadLibrary("libps3000a.so")
