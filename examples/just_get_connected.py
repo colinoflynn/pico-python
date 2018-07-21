@@ -39,7 +39,7 @@ try:
     start = c_short(10)
     lib.ps3000aFlashLed(handle, start)
     time.sleep(5)
-except: # noqa
+except:  # noqa
     print("led wouldn't flash")
     pass
 # close unit
