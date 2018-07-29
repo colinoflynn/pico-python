@@ -262,11 +262,11 @@ class PS5000a(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
-                                  direction, timeout_ms, auto):
+                                  direction, delay, timeout_ms):
         m = self.lib.ps5000aSetSimpleTrigger(
             c_int16(self.handle), c_int16(enabled),
             c_enum(trigsrc), c_int16(threshold_adc),
-            c_enum(direction), c_uint32(timeout_ms), c_int16(auto))
+            c_enum(direction), c_uint32(delay), c_int16(timeout_ms))
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
