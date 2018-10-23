@@ -13,8 +13,8 @@ def LoadLibraryDarwin(library):
     http://ulthiel.com/vk2utl/picoscope-python-interface-under-mac-os-x/
     """
     # Newer version of Picoscope application has added space to the path
-    PICO_LIB_PATHS = ["/Applications/PicoScope6.app/Contents/Resources/lib/", 
-                    "/Applications/PicoScope 6.app/Contents/Resources/lib/"]
+    PICO_LIB_PATHS = ["/Applications/PicoScope6.app/Contents/Resources/lib/",
+                      "/Applications/PicoScope 6.app/Contents/Resources/lib/"]
 
     # Libraries that depend on libiomp5.dylib
     IOMP5_DEPS = ["libpicoipp.dylib", "libpicoipp.1.dylib"]
