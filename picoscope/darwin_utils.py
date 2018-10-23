@@ -12,7 +12,9 @@ def LoadLibraryDarwin(library):
 
     http://ulthiel.com/vk2utl/picoscope-python-interface-under-mac-os-x/
     """
-    PICO_LIB_PATH = "/Applications/PicoScope6.app/Contents/Resources/lib/"
+    # Newer version of Picoscope application has added space to the path
+    PICO_LIB_PATHS = ["/Applications/PicoScope6.app/Contents/Resources/lib/", 
+                    "/Applications/PicoScope 6.app/Contents/Resources/lib/"]
 
     # Libraries that depend on libiomp5.dylib
     IOMP5_DEPS = ["libpicoipp.dylib", "libpicoipp.1.dylib"]
@@ -27,7 +29,13 @@ def LoadLibraryDarwin(library):
             FileNotFoundError
         except NameError:
             FileNotFoundError = IOError
-        if not Path(PICO_LIB_PATH).is_dir():
+
+        PICO_LIB_PATH = None
+        for path in PICO_LIB_PATHS:
+            if Path(path).is_dir():
+                PICO_LIB_PATH = path
+
+        if PICO_LIB_PATH is None:
             raise FileNotFoundError(
                     "/Applications/PicoScope6.app is missing")
 
