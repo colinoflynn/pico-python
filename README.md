@@ -60,6 +60,11 @@ You either want to add this every time before you start python or IPython, but I
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
 ```
 
+Recently, this directory has moved to a new location See issue https://github.com/colinoflynn/pico-python/issues/143
+```
+export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:/Applications/PicoScope 6.app/Contents/Resources/lib"
+```
+
 See [Issue 80](https://github.com/colinoflynn/pico-python/issues/80#issuecomment-314149552) for more information on how this was found.
 
 You should also add yourself to the pico group so that your user has access to the picoscope as a USB device
