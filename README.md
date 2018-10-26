@@ -20,7 +20,6 @@ System has support for:
 Note the 'A' series covers a different ground than the non-A series! Check the programming manuals posted at http://www.picotech.com/document/ for details.
 
 
-
 ## Installation
 You need to install the Python module as well as the Picoscope libraries for your Operating system.
 
@@ -51,7 +50,7 @@ Install the PicoScope Beta for Linux version of PicoScope as describe under Gett
 Once you have PicoScope running you need to add your login account to the pico group in order to access the USB.  The examples will crash if you don't have permission to use the USB.  This is true for use of the shared libraries in general, even if you're not using pico-python.
 
 ```
-useradd -G pico <username>
+useradd -G pico $USER
 ```
 
 #### Mac OSX
@@ -70,6 +69,7 @@ sudo dseditgroup -o create pico
 # Add the current user to the pico group :
 sudo dseditgroup -o edit -a $USER -t user pico
 ```
+
 ### Using Anaconda/Conda
 Seems like Anaconda has an issue with ctypes. See the comment [here](https://github.com/pymedusa/Medusa/issues/1843#issuecomment-310126049) imdatacenters says to:
 > If you are using a special version of Python [like Anaconda] and you can't fix it.
@@ -79,6 +79,9 @@ Seems like Anaconda has an issue with ctypes. See the comment [here](https://git
 # Similar Projects
 PicoPy uses Cython to interface with a PicoScope 3000A
 https://github.com/hgomersall/PicoPy
+
+Picoscope offers official wrappers,
+https://github.com/picotech/picosdk-python-wrappers
 
 # Authors, Copyright, and Thanks
 pico-python is Copyright (C) 2013 By:
