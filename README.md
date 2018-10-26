@@ -60,7 +60,7 @@ You either want to add this every time before you start python or IPython, but I
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/PicoScope6.app/Contents/Resources/lib
 ```
 
-Recently, this directory has moved to a new location See issue https://github.com/colinoflynn/pico-python/issues/143
+Recently, this directory has moved to a new location See [Issue #143](https://github.com/colinoflynn/pico-python/issues/143)
 ```
 export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:/Applications/PicoScope 6.app/Contents/Resources/lib"
 ```
@@ -85,7 +85,7 @@ Seems like Anaconda has an issue with ctypes. See the comment [here](https://git
 PicoPy uses Cython to interface with a PicoScope 3000A
 https://github.com/hgomersall/PicoPy
 
-Picoscope offers official wrappers,
+Picoscope offers their official wrappers,
 https://github.com/picotech/picosdk-python-wrappers
 
 # Authors, Copyright, and Thanks
