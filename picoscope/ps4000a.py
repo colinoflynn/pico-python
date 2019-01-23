@@ -73,7 +73,7 @@ class PS4000a(_PicoscopeBase):
     MAX_VALUE = 32764
     MIN_VALUE = -32764
 
-    # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
+    # EXT/AUX seems to have an input impedance of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 1
@@ -94,8 +94,9 @@ class PS4000a(_PicoscopeBase):
                      ]
 
     NUM_CHANNELS = 8
-    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6,
-                "H": 7,  "MaxChannels": 8}
+    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7,  "MaxChannels": 8}
+
+    ADC_RESOLUTIONS = {"8": 0, "12": 1, "14": 2, "15": 3, "16": 4}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
@@ -129,6 +130,8 @@ class PS4000a(_PicoscopeBase):
             from ctypes import windll
             self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
 
+        self.resolution = self.ADC_RESOLUTIONS["12"]
+
         super(PS4000a, self).__init__(serialNumber, connect)
 
     def _lowLevelOpenUnit(self, sn):
@@ -141,6 +144,8 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNullTermStr)
         self.checkResult(m)
         self.handle = c_handle.value
+
+        self.model = self.getUnitInfo('VariantInfo')
 
     def _lowLevelOpenUnitAsync(self, sn):
         c_status = c_int16()
@@ -278,17 +283,46 @@ class PS4000a(_PicoscopeBase):
 
     def getTimeBaseNum(self, sampleTimeS):
         """Return sample time in seconds to timebase as int for API calls."""
-        maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
-        if sampleTimeS <= 12.5E-9:
-            timebase = math.floor(math.log(sampleTimeS * 8E7, 2))
-            timebase = max(timebase, 0)
-        else:
-            # Otherwise in range 2^32-1
-            if sampleTimeS > maxSampleTime:
-                sampleTimeS = maxSampleTime
+        if self.model in ('4828'):
+            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
 
-            timebase = math.floor((sampleTimeS * 2e7) + 1)
+            if sampleTimeS <= 12.5E-9:
+                timebase = 0
+            else:
+                # Otherwise in range 2^32-1
+                if sampleTimeS > maxSampleTime:
+                    sampleTimeS = maxSampleTime
+
+                timebase = math.floor((sampleTimeS * 2e7) + 1)
+
+        elif self.model in ('4444'):
+            maxSampleTime = (((2 ** 32 - 1) - 2) / 5.0E7)
+
+            if sampleTimeS <= 2.5E-9 and self.resolution == self.ADC_RESOLUTIONS["12"]:
+                timebase = 0
+            elif sampleTimeS <= 20E-9 and self.resolution == self.ADC_RESOLUTIONS["14"]:
+                timebase = 3
+            else:
+                # Otherwise in range 2^32-1
+                if sampleTimeS > maxSampleTime:
+                    sampleTimeS = maxSampleTime
+
+                timebase = math.floor((sampleTimeS * 5.0E7) + 2)
+
+        else: # The original case from non "A" series
+            print("Note - the model you are using may not be fully supported")
+            maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
+
+            if sampleTimeS <= 12.5E-9:
+                timebase = math.floor(math.log(sampleTimeS * 8E7, 2))
+                timebase = max(timebase, 0)
+            else:
+                # Otherwise in range 2^32-1
+                if sampleTimeS > maxSampleTime:
+                    sampleTimeS = maxSampleTime
+
+                timebase = math.floor((sampleTimeS * 2e7) + 1)
 
         # is this cast needed?
         timebase = int(timebase)
@@ -296,10 +330,21 @@ class PS4000a(_PicoscopeBase):
 
     def getTimestepFromTimebase(self, timebase):
         """Return timebase to sampletime as seconds."""
-        if timebase < 3:
-            dt = 2. ** timebase / 8e7
-        else:
-            dt = (timebase - 1) / 2e7
+        if self.model in ('4828'):
+            dt = (timebase + 1) / 8.0E7
+        elif self.model in ('4444'):
+            if timebase < 3:
+                dt = 2.5 ** timebase / 4.0E8
+            else:
+                dt = (timebase - 2) / 5.0E7
+
+        else: # The original case from non "A" series
+            print("Note - the model you are using may not be fully supported")
+            if timebase < 3:
+                dt = 2. ** timebase / 8e7
+            else:
+                dt = (timebase - 1) / 2e7
+            return dt
         return dt
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
@@ -313,11 +358,12 @@ class PS4000a(_PicoscopeBase):
         segmentIndex is unused, but required by other versions of the API
         (eg PS5000a)
         """
+        dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
 
         m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle),
                                           c_enum(channel),
-                                          byref(data), c_uint32(numSamples),
+                                          dataPtr, c_uint32(numSamples),
                                           c_uint32(segmentIndex),
                                           c_uint32(downSampleMode))
         self.checkResult(m)
@@ -341,6 +387,35 @@ class PS4000a(_PicoscopeBase):
             byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
+
+    def _lowLevelSetDeviceResolution(self, resolution):
+        self.resolution = resolution
+        m = self.lib.ps4000aSetDeviceResolution(
+            c_int16(self.handle),
+            c_enum(resolution))
+        self.checkResult(m)
+
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
+                               downSampleRatio, downSampleMode, overflow):
+        """Copy data from several memory segments at once."""
+        overflowPoint = overflow.ctypes.data_as(POINTER(c_int16))
+        m = self.lib.ps4000aGetValuesBulk(
+            c_int16(self.handle),
+            byref(c_int32(numSamples)),
+            c_int32(fromSegment),
+            c_int32(toSegment),
+            c_int32(downSampleRatio),
+            c_enum(downSampleMode),
+            overflowPoint
+        )
+        self.checkResult(m)
+
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex, downSampleMode):
+        """Just calls setDataBuffer with argument order changed.
+
+        For compatibility with current picobase.py.
+        """
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
 
     ####################################################################
     # Untested functions below                                         #
@@ -449,39 +524,7 @@ class PS4000a(_PicoscopeBase):
             c_uint32(0))
         self.checkResult(m)
 
-    # Bulk values.
-    # These would be nice, but the user would have to provide us
-    # with an array.
-    # we would have to make sure that it is contiguous amonts other things
-    def _lowLevelGetValuesBulk(self,
-                               numSamples,
-                               fromSegmentIndex,
-                               toSegmentIndex,
-                               downSampleRatio,
-                               downSampleMode,
-                               overflow):
-        noOfSamples = c_uint32(numSamples)
 
-        m = self.lib.ps4000aGetValuesBulk(
-            c_int16(self.handle),
-            byref(noOfSamples),
-            c_uint16(fromSegmentIndex), c_uint16(toSegmentIndex),
-            overflow.ctypes.data_as(POINTER(c_int16)))
-        self.checkResult(m)
-        return noOfSamples.value
-
-    def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform,
-                                   downSampleRatioMode):
-        bufferPtr = buffer.ctypes.data_as(POINTER(c_int16))
-        bufferLth = len(buffer)
-
-        m = self.lib.ps4000aSetDataBufferBulk(
-            c_int16(self.handle),
-            c_enum(channel),
-            bufferPtr,
-            c_uint32(bufferLth),
-            c_uint16(waveform))
-        self.checkResult(m)
 
     def _lowLevelSetNoOfCaptures(self, nCaptures):
         m = self.lib.ps4000aSetNoOfCaptures(
@@ -490,54 +533,54 @@ class PS4000a(_PicoscopeBase):
         self.checkResult(m)
 
     # ETS Functions
-    def _lowLevelSetEts():
+    def _lowLevelSetEts(self):
         pass
 
-    def _lowLevelSetEtsTimeBuffer():
+    def _lowLevelSetEtsTimeBuffer(self):
         pass
 
-    def _lowLevelSetEtsTimeBuffers():
+    def _lowLevelSetEtsTimeBuffers(self):
         pass
 
-    def _lowLevelSetExternalClock():
+    def _lowLevelSetExternalClock(self):
         pass
 
     # Complicated triggering
     # need to understand structs for this one to work
-    def _lowLevelIsTriggerOrPulseWidthQualifierEnabled():
+    def _lowLevelIsTriggerOrPulseWidthQualifierEnabled(self):
         pass
 
-    def _lowLevelGetValuesTriggerTimeOffsetBulk():
+    def _lowLevelGetValuesTriggerTimeOffsetBulk(self):
         pass
 
-    def _lowLevelSetTriggerChannelConditions():
+    def _lowLevelSetTriggerChannelConditions(self):
         pass
 
-    def _lowLevelSetTriggerChannelDirections():
+    def _lowLevelSetTriggerChannelDirections(self):
         pass
 
-    def _lowLevelSetTriggerChannelProperties():
+    def _lowLevelSetTriggerChannelProperties(self):
         pass
 
-    def _lowLevelSetPulseWidthQualifier():
+    def _lowLevelSetPulseWidthQualifier(self):
         pass
 
-    def _lowLevelSetTriggerDelay():
+    def _lowLevelSetTriggerDelay(self):
         pass
 
     # Async functions
     # would be nice, but we would have to learn to implement callbacks
-    def _lowLevelGetValuesAsync():
+    def _lowLevelGetValuesAsync(self):
         pass
 
-    def _lowLevelGetValuesBulkAsync():
+    def _lowLevelGetValuesBulkAsync(self):
         pass
 
     # overlapped functions
-    def _lowLevelGetValuesOverlapped():
+    def _lowLevelGetValuesOverlapped(self):
         pass
 
-    def _lowLevelGetValuesOverlappedBulk():
+    def _lowLevelGetValuesOverlappedBulk(self):
         pass
 
     # Streaming related functions
@@ -575,5 +618,5 @@ class PS4000a(_PicoscopeBase):
 
         self.checkResult(m)
 
-    def _lowLevelStreamingReady():
+    def _lowLevelStreamingReady(self):
         pass
