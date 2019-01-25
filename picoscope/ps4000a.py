@@ -321,7 +321,7 @@ class PS4000a(_PicoscopeBase):
 
         else:  # The original case from non "A" series
             warnings.warn("The model PS4000a you are using may not be"
-                                  "fully supported", stacklevel=2)
+                          "fully supported", stacklevel=2)
             maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
             if sampleTimeS <= 12.5E-9:
@@ -350,7 +350,7 @@ class PS4000a(_PicoscopeBase):
 
         else:  # The original case from non "A" series
             warnings.warn("The model PS4000a you are using may not be"
-                                  "fully supported", stacklevel=2)
+                          "fully supported", stacklevel=2)
             if timebase < 3:
                 dt = 2. ** timebase / 8e7
             else:
