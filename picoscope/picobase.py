@@ -646,7 +646,8 @@ class _PicoscopeBase(object):
                                pkToPk=None, indexMode="Single", shots=1,
                                triggerType="Rising",
                                triggerSource="ScopeTrig"):
-        """Specify deltaPhase between each sample and not the total waveform duration.
+        """Specify deltaPhase between each sample and not the total waveform
+        duration.
 
         Returns the actual time duration of the waveform
 
@@ -829,7 +830,9 @@ class _PicoscopeBase(object):
         self._lowLevelSigGenSoftwareControl(state)
 
     def setResolution(self, resolution):
-        """For 5000-series or certain 4000-series scopes ONLY, sets the resolution."""
+        """For 5000-series or certain 4000-series scopes ONLY,
+        sets the resolution.
+        """
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
 
     def enumerateUnits(self):

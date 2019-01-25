@@ -62,6 +62,8 @@ from ctypes import byref, POINTER, create_string_buffer, c_float, \
     c_int16, c_uint16, c_int32, c_uint32, c_uint64, c_void_p, c_int8
 from ctypes import c_int32 as c_enum
 
+import warnings
+
 from picoscope.picobase import _PicoscopeBase
 
 
@@ -94,7 +96,8 @@ class PS4000a(_PicoscopeBase):
                      ]
 
     NUM_CHANNELS = 8
-    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7,  "MaxChannels": 8}
+    CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6,
+                "H": 7,  "MaxChannels": 8}
 
     ADC_RESOLUTIONS = {"8": 0, "12": 1, "14": 2, "15": 3, "16": 4}
 
@@ -282,9 +285,13 @@ class PS4000a(_PicoscopeBase):
         return (sampleRate.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """Return sample time in seconds to timebase as int for API calls."""
+        """ Convert the sample interval (float of seconds) to the
+        corresponding integer timebase value as defined by the API.
+        See "Timebases" section of the PS4000a programmers guide
+        for more information.
+        """
 
-        if self.model in ('4828'):
+        if self.model == '4828':
             maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
 
             if sampleTimeS <= 12.5E-9:
@@ -296,12 +303,14 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 2e7) + 1)
 
-        elif self.model in ('4444'):
+        elif self.model == '4444':
             maxSampleTime = (((2 ** 32 - 1) - 2) / 5.0E7)
 
-            if sampleTimeS <= 2.5E-9 and self.resolution == self.ADC_RESOLUTIONS["12"]:
+            if (sampleTimeS <= 2.5E-9 and
+                    self.resolution == self.ADC_RESOLUTIONS["12"]):
                 timebase = 0
-            elif sampleTimeS <= 20E-9 and self.resolution == self.ADC_RESOLUTIONS["14"]:
+            elif (sampleTimeS <= 20E-9 and
+                    self.resolution == self.ADC_RESOLUTIONS["14"]):
                 timebase = 3
             else:
                 # Otherwise in range 2^32-1
@@ -310,8 +319,8 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 5.0E7) + 2)
 
-        else: # The original case from non "A" series
-            print("Note - the model you are using may not be fully supported")
+        else:  # The original case from non "A" series
+            warnings.warn(message="The model PS4000a you are using may not be fully supported", stacklevel=2)
             maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
 
             if sampleTimeS <= 12.5E-9:
@@ -330,16 +339,16 @@ class PS4000a(_PicoscopeBase):
 
     def getTimestepFromTimebase(self, timebase):
         """Return timebase to sampletime as seconds."""
-        if self.model in ('4828'):
+        if self.model == '4828':
             dt = (timebase + 1) / 8.0E7
-        elif self.model in ('4444'):
+        elif self.model == '4444':
             if timebase < 3:
                 dt = 2.5 ** timebase / 4.0E8
             else:
                 dt = (timebase - 2) / 5.0E7
 
-        else: # The original case from non "A" series
-            print("Note - the model you are using may not be fully supported")
+        else:  # The original case from non "A" series
+            warnings.warn(message="The model PS4000a you are using may not be fully supported", stacklevel=2)
             if timebase < 3:
                 dt = 2. ** timebase / 8e7
             else:
@@ -410,12 +419,14 @@ class PS4000a(_PicoscopeBase):
         )
         self.checkResult(m)
 
-    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex, downSampleMode):
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex,
+                                   downSampleMode):
         """Just calls setDataBuffer with argument order changed.
 
         For compatibility with current picobase.py.
         """
-        self._lowLevelSetDataBuffer(channel, data, downSampleMode, segmentIndex)
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode,
+                                    segmentIndex)
 
     ####################################################################
     # Untested functions below                                         #
@@ -523,8 +534,6 @@ class PS4000a(_PicoscopeBase):
             c_void_p(),
             c_uint32(0))
         self.checkResult(m)
-
-
 
     def _lowLevelSetNoOfCaptures(self, nCaptures):
         m = self.lib.ps4000aSetNoOfCaptures(

@@ -15,7 +15,7 @@ ps.setChannel(channel="D", enabled=False)
 n_captures = 100
 sample_interval = 100e-9  # 100 ns
 sample_duration = 2e-3  # 1 ms
-ps.setResolution('12') # Resolution can only be set on the PS4444
+ps.setResolution('12')  # Resolution can only be set on the PS4444
 ps.setSamplingInterval(sample_interval, sample_duration)
 ps.setSimpleTrigger("A", threshold_V=0.1, timeout_ms=1)
 
