@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import tempfile
 
+import sys
+
 
 def LoadLibraryDarwin(library):
     """Wrapper around cdll.LoadLibrary that works around how SIP breaks
@@ -23,9 +25,7 @@ def LoadLibraryDarwin(library):
         return cdll.LoadLibrary(library)
     except OSError:
         # 2.7 Fix. This only fixes flake8
-        try:
-            FileNotFoundError
-        except NameError:
+        if sys.version_info[0] == 2:
             FileNotFoundError = IOError
         if not Path(PICO_LIB_PATH).is_dir():
             raise FileNotFoundError(
