@@ -247,10 +247,12 @@ class _PicoscopeBase(object):
         if not isinstance(BWLimited, int):
             BWLimited = self.BW_LIMITS[BWLimited]
 
-        if BWLimited == 2:
-            BWLimited = 2  # Bandwidth Limiter for PicoScope 6404
+        if BWLimited == 3:
+            BWLimited = 3  # 1MHz Bandwidth Limiter for PicoScope 4444
+        elif BWLimited == 2:
+            BWLimited = 2  # Bandwidth Limiter for PicoScope 6404, 100kHz Bandwidth Limiter for PicoScope 4444
         elif BWLimited == 1:
-            BWLimited = 1  # Bandwidth Limiter for PicoScope 6402/6403
+            BWLimited = 1  # Bandwidth Limiter for PicoScope 6402/6403, 20kHz Bandwidth Limiter for PicoScope 4444
         else:
             BWLimited = 0
 

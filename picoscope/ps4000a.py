@@ -145,8 +145,18 @@ class PS4000a(_PicoscopeBase):
             serialNullTermStr = None
         # Passing None is the same as passing NULL
         m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNullTermStr)
-        self.checkResult(m)
         self.handle = c_handle.value
+
+        # This will check if the power supply is not connected
+        # and change the power supply accordingly
+        # Personally (me = Mark), I don't like this
+        # since the user should address this immediately, and we
+        # shouldn't let this go as a soft error
+        # but I think this should do for now
+        if m == 0x11A:
+            self.changePowerSource(m)
+        else:
+            self.checkResult(m)
 
         self.model = self.getUnitInfo('VariantInfo')
 
@@ -214,6 +224,9 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aSetChannel(c_int16(self.handle), c_enum(chNum),
                                        c_int16(enabled), c_enum(coupling),
                                        c_enum(VRange), c_float(VOffset))
+        self.checkResult(m)
+
+        m = self.lib.ps4000aSetBandwidthFilter(c_int16(self.handle), c_enum(chNum), c_enum(BWLimited))
         self.checkResult(m)
 
     def _lowLevelStop(self):
@@ -404,6 +417,12 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aSetDeviceResolution(
             c_int16(self.handle),
             c_enum(resolution))
+        self.checkResult(m)
+
+    def _lowLevelChangePowerSource(self, powerstate):
+        m = self.lib.ps4000aChangePowerSource(
+            c_int16(self.handle),
+            c_enum(powerstate))
         self.checkResult(m)
 
     def _lowLevelGetValuesBulk(self, numSamples, fromSegment, toSegment,
