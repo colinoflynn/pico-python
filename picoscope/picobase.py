@@ -138,6 +138,7 @@ class _PicoscopeBase(object):
         # the "true" voltage as seen at the oscilloscope probe
         self.CHRange = [5.0] * self.NUM_CHANNELS
         self.CHOffset = [0.0] * self.NUM_CHANNELS
+        self.CHCoupling = [1] * self.NUM_CHANNELS
         self.ProbeAttenuation = [1.0] * self.NUM_CHANNELS
 
         self.handle = None
@@ -265,6 +266,7 @@ class _PicoscopeBase(object):
         # if all was successful, save the parameters
         self.CHRange[chNum] = VRange
         self.CHOffset[chNum] = VOffset
+        self.CHCoupling[chNum] = coupling
         self.ProbeAttenuation[chNum] = probeAttenuation
 
         return VRange
