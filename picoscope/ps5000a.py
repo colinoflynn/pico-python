@@ -176,7 +176,7 @@ class PS5000a(_PicoscopeBase):
             self.AWGMaxVal = 32767
             self.AWGMinVal = -32768
             self.AWGMaxSamples = 49152
-        elif self.model in ('5243B', '5443B'):
+        elif self.model in ('5243B', '5443B', '5243D', '5443D'):
             self.AWGBufferAddressWidth = 15
             self.AWGMaxVal = 32767
             self.AWGMinVal = -32768
