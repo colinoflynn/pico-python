@@ -202,6 +202,11 @@ class PS3000a(_PicoscopeBase):
                                        c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
 
+        m = self.lib.ps3000aSetBandwidthFilter(c_int16(self.handle),
+                                               c_enum(chNum),
+                                               c_enum(BWLimited))
+        self.checkResult(m)
+
     def _lowLevelStop(self):
         m = self.lib.ps3000aStop(c_int16(self.handle))
         self.checkResult(m)
