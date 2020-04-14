@@ -461,3 +461,9 @@ class PS3000a(_PicoscopeBase):
             c_int16(self.handle),
             c_enum(powerstate))
         self.checkResult(m)
+
+    def _lowLevelSigGenSoftwareControl(self, triggerType):
+        m = self.lib.ps3000aSigGenSoftwareControl(
+            c_int16(self.handle),
+            c_enum(triggerType))
+        self.checkResult(m)
