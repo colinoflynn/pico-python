@@ -59,7 +59,7 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int16, c_int32, c_uint32, c_uint64, c_void_p
+    c_int8, c_int16, c_int32, c_uint32, c_uint64, c_void_p
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -198,7 +198,10 @@ class PS6000(_PicoscopeBase):
 
     def _lowLevelEnumerateUnits(self):
         count = c_int16(0)
-        m = self.lib.ps6000EnumerateUnits(byref(count), None, None)
+        serials = c_int8(0)
+        serialLth = c_int16(0)
+        m = self.lib.ps6000EnumerateUnits(byref(count), byref(serials),
+                                          byref(serialLth))
         self.checkResult(m)
         # a serial number is rouhgly 8 characters
         # an extra character for the comma
