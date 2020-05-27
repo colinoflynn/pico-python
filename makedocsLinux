@@ -1,14 +1,14 @@
 #!/bin/bash
 echo "Creating html files..."
-pydoc -w picoscope
-pydoc -w picoscope.picobase
-pydoc -w picoscope.ps2000
-pydoc -w picoscope.ps2000a
-pydoc -w picoscope.ps3000
-pydoc -w picoscope.ps3000a
-pydoc -w picoscope.ps4000
-pydoc -w picoscope.ps5000a
-pydoc -w picoscope.ps6000
+pydoc3 -w picoscope
+pydoc3 -w picoscope.picobase
+pydoc3 -w picoscope.ps2000
+pydoc3 -w picoscope.ps2000a
+pydoc3 -w picoscope.ps3000
+pydoc3 -w picoscope.ps3000a
+pydoc3 -w picoscope.ps4000
+pydoc3 -w picoscope.ps5000a
+pydoc3 -w picoscope.ps6000
 echo "Moving html files to doc/"
 mv *.html doc
 echo "Done!"
