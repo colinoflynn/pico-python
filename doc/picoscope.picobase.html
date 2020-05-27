@@ -1,7 +1,6 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <html><head><title>Python: module picoscope.picobase</title>
-<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 </head><body bgcolor="#f0f0f8">
 
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
@@ -9,8 +8,17 @@
 <td valign=bottom>&nbsp;<br>
 <font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="picoscope.html"><font color="#ffffff">picoscope</font></a>.picobase</strong></big></big></font></td
 ><td align=right valign=bottom
-><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/rtc/projects/picoscope/pico-python/picoscope/picobase.py">/home/rtc/projects/picoscope/pico-python/picoscope/picobase.py</a></font></td></tr></table>
-    <p><tt>This&nbsp;is&nbsp;the&nbsp;base&nbsp;class&nbsp;for&nbsp;PicoScope&nbsp;instruments.</tt></p>
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/guest/software/pico-python/picoscope/picobase.py">/home/guest/software/pico-python/picoscope/picobase.py</a></font></td></tr></table>
+    <p><tt>This&nbsp;is&nbsp;the&nbsp;base&nbsp;class&nbsp;that&nbsp;all&nbsp;picoscope&nbsp;modules&nbsp;use.<br>
+&nbsp;<br>
+As&nbsp;much&nbsp;logic&nbsp;as&nbsp;possible&nbsp;is&nbsp;put&nbsp;into&nbsp;this&nbsp;file.<br>
+At&nbsp;minimum&nbsp;each&nbsp;instrument&nbsp;file&nbsp;requires&nbsp;you&nbsp;to&nbsp;modify&nbsp;the&nbsp;name&nbsp;of&nbsp;the&nbsp;API<br>
+function&nbsp;call&nbsp;(e.g.&nbsp;ps6000xxxx&nbsp;vs&nbsp;ps4000xxxx).<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;to&nbsp;force&nbsp;the&nbsp;authors&nbsp;of&nbsp;the&nbsp;instrument&nbsp;files&nbsp;to&nbsp;actually&nbsp;read&nbsp;the<br>
+documentation&nbsp;as&nbsp;opposed&nbsp;to&nbsp;assuming&nbsp;similarities&nbsp;between&nbsp;scopes.<br>
+&nbsp;<br>
+You&nbsp;can&nbsp;find&nbsp;pico-python&nbsp;at&nbsp;github.com/colinoflynn/pico-python&nbsp;.</tt></p>
 <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#aa55cc">
@@ -28,17 +36,8 @@
 <font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
     
 <tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%"><strong>__author__</strong> = u"Colin O'Flynn, Mark Harfouche"<br>
-<strong>__license__</strong> = u'FreeBSD'<br>
-<strong>absolute_import</strong> = _Feature((2, 5, 0, 'alpha', 1), (3, 0, 0, 'alpha', 0), 16384)<br>
+<td width="100%"><strong>absolute_import</strong> = _Feature((2, 5, 0, 'alpha', 1), (3, 0, 0, 'alpha', 0), 16384)<br>
 <strong>division</strong> = _Feature((2, 2, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 8192)<br>
 <strong>print_function</strong> = _Feature((2, 6, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 65536)<br>
-<strong>unicode_literals</strong> = _Feature((2, 6, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 131072)</td></tr></table><p>
-<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
-<tr bgcolor="#7799ee">
-<td colspan=3 valign=bottom>&nbsp;<br>
-<font color="#ffffff" face="helvetica, arial"><big><strong>Author</strong></big></font></td></tr>
-    
-<tr><td bgcolor="#7799ee"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%">Colin&nbsp;O'Flynn,&nbsp;Mark&nbsp;Harfouche</td></tr></table>
+<strong>unicode_literals</strong> = _Feature((2, 6, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 131072)</td></tr></table>
 </body></html>
