@@ -210,6 +210,7 @@ class _PicoscopeBase(object):
         Note that if you set a channel to use AC coupling, you may need
         to make a "dummy call" to runBlock, or the first batch of data
         returned via getData* may be inaccurate.
+        See https://www.picotech.com/support/topic35401.html for more details.
 
         If you want to use units of mA, supply a probe attenuation of 1.3E3.
         Note, the authors recommend sticking to SI units because it makes it
