@@ -579,6 +579,10 @@ class _PicoscopeBase(object):
         self._lowLevelGetValuesBulk(numSamples, fromSegment, toSegment,
                                     downSampleRatio, downSampleMode, overflow)
 
+        # don't leave the API thinking these can be written to later
+        for i, segment in enumerate(range(fromSegment, toSegment + 1)):
+            self._lowLevelClearDataBuffer(channel, segment)
+
         return (data, numSamples, overflow)
 
     def setSigGenBuiltInSimple(self,
