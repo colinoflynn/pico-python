@@ -134,7 +134,8 @@ class PS5000a(_PicoscopeBase):
             self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
-            self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
+            from ctypes.util import find_library
+            self.lib = windll.LoadLibrary(find_library(str(self.LIBNAME + ".dll")))
 
         self.resolution = self.ADC_RESOLUTIONS["8"]
 

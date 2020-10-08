@@ -142,7 +142,8 @@ class PS2000(_PicoscopeBase):
             self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
-            self.lib = windll.LoadLibrary(str(self.LIBNAME + ".dll"))
+            from ctypes.util import find_library
+            self.lib = windll.LoadLibrary(find_library(str(self.LIBNAME + ".dll")))
 
         super(PS2000, self).__init__(serialNumber, connect)
 
