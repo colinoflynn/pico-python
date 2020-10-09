@@ -29,16 +29,8 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import (
-    byref,
-    POINTER,
-    create_string_buffer,
-    c_float,
-    c_int16,
-    c_int32,
-    c_uint32,
-    c_void_p,
-)
+from ctypes import byref, POINTER, create_string_buffer, c_float, \
+    c_int16, c_int32, c_uint32, c_void_p
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -84,32 +76,26 @@ class PS2000(_PicoscopeBase):
     NUM_CHANNELS = 2
     CHANNELS = {"A": 0, "B": 1, "MaxChannels": 2}
 
-    THRESHOLD_TYPE = {"Rising": 0, "Falling": 1}
+    THRESHOLD_TYPE = {"Rising": 0,
+                      "Falling": 1}
 
     CHANNEL_RANGE = [
-        {"rangeV": 20e-3, "apivalue": 1, "rangeStr": "20 mV"},
-        {"rangeV": 50e-3, "apivalue": 2, "rangeStr": "50 mV"},
-        {"rangeV": 100e-3, "apivalue": 3, "rangeStr": "100 mV"},
-        {"rangeV": 200e-3, "apivalue": 4, "rangeStr": "200 mV"},
-        {"rangeV": 500e-3, "apivalue": 5, "rangeStr": "500 mV"},
+        {"rangeV": 20E-3, "apivalue": 1, "rangeStr": "20 mV"},
+        {"rangeV": 50E-3, "apivalue": 2, "rangeStr": "50 mV"},
+        {"rangeV": 100E-3, "apivalue": 3, "rangeStr": "100 mV"},
+        {"rangeV": 200E-3, "apivalue": 4, "rangeStr": "200 mV"},
+        {"rangeV": 500E-3, "apivalue": 5, "rangeStr": "500 mV"},
         {"rangeV": 1.0, "apivalue": 6, "rangeStr": "1 V"},
         {"rangeV": 2.0, "apivalue": 7, "rangeStr": "2 V"},
         {"rangeV": 5.0, "apivalue": 8, "rangeStr": "5 V"},
         {"rangeV": 10.0, "apivalue": 9, "rangeStr": "10 V"},
-        {"rangeV": 20.0, "apivalue": 10, "rangeStr": "20 V"},
-    ]
+        {"rangeV": 20.0, "apivalue": 10, "rangeStr": "20 V"}]
 
     CHANNEL_COUPLINGS = {"DC": 1, "AC": 0}
 
     # has_sig_gen = True
-    WAVE_TYPES = {
-        "Sine": 0,
-        "Square": 1,
-        "Triangle": 2,
-        "RampUp": 3,
-        "RampDown": 4,
-        "DCVoltage": 5,
-    }
+    WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
+                  "RampUp": 3, "RampDown": 4, "DCVoltage": 5}
 
     SWEEP_TYPES = {"Up": 0, "Down": 1, "UpDown": 2, "DownUp": 3}
 
@@ -120,34 +106,22 @@ class PS2000(_PicoscopeBase):
 
     MAX_TIMEBASES = 19
 
-    UNIT_INFO_TYPES = {
-        "DriverVersion": 0x0,
-        "USBVersion": 0x1,
-        "HardwareVersion": 0x2,
-        "VariantInfo": 0x3,
-        "BatchAndSerial": 0x4,
-        "CalDate": 0x5,
-        "ErrorCode": 0x6,
-        "KernelVersion": 0x7,
-    }
+    UNIT_INFO_TYPES = {"DriverVersion": 0x0,
+                       "USBVersion": 0x1,
+                       "HardwareVersion": 0x2,
+                       "VariantInfo": 0x3,
+                       "BatchAndSerial": 0x4,
+                       "CalDate": 0x5,
+                       "ErrorCode": 0x6,
+                       "KernelVersion": 0x7}
 
     channelBuffersPtr = [c_void_p(), c_void_p()]
     channelBuffersLen = [0, 0]
 
-    SIGGEN_TRIGGER_TYPES = {
-        "Rising": 0,
-        "Falling": 1,
-        "GateHigh": 2,
-        "GateLow": 3,
-    }
-    SIGGEN_TRIGGER_SOURCES = {
-        "None": 0,
-        "ScopeTrig": 1,
-        "AuxIn": 2,
-        "ExtIn": 3,
-        "SoftTrig": 4,
-        "TriggerRaw": 5,
-    }
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
+                            "GateHigh": 2, "GateLow": 3}
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
+                              "ExtIn": 3, "SoftTrig": 4, "TriggerRaw": 5}
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
@@ -160,21 +134,16 @@ class PS2000(_PicoscopeBase):
 
     def __init__(self, serialNumber=None, connect=True):
         """Load DLL etc."""
-        if platform.system() == "Linux":
+        if platform.system() == 'Linux':
             from ctypes import cdll
-
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
-        elif platform.system() == "Darwin":
+        elif platform.system() == 'Darwin':
             from picoscope.darwin_utils import LoadLibraryDarwin
-
             self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             from ctypes.util import find_library
-
-            self.lib = windll.LoadLibrary(
-                find_library(str(self.LIBNAME + ".dll"))
-            )
+            self.lib = windll.LoadLibrary(find_library(str(self.LIBNAME + ".dll")))
 
         super(PS2000, self).__init__(serialNumber, connect)
 
@@ -185,10 +154,8 @@ class PS2000(_PicoscopeBase):
         m = self.lib.ps2000_open_unit()
 
         if m < 0:
-            raise IOError(
-                "Failed to Find PS2000 Unit."
-                + " Should you be using PS2000a driver?"
-            )
+            raise IOError("Failed to Find PS2000 Unit." +
+                          " Should you be using PS2000a driver?")
 
         self.handle = m
         self.suggested_time_units = self.TIME_UNITS["NS"]
@@ -197,16 +164,11 @@ class PS2000(_PicoscopeBase):
         m = self.lib.ps2000_close_unit(c_int16(self.handle))
         self.checkResult(m)
 
-    def _lowLevelSetChannel(
-        self, chNum, enabled, coupling, VRange, VOffset, BWLimited
-    ):
+    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
+                            BWLimited):
         m = self.lib.ps2000_set_channel(
-            c_int16(self.handle),
-            c_enum(chNum),
-            c_int16(enabled),
-            c_enum(coupling),
-            c_enum(VRange),
-        )
+            c_int16(self.handle), c_enum(chNum), c_int16(enabled),
+            c_enum(coupling), c_enum(VRange))
         self.checkResult(m)
 
     def _lowLevelStop(self):
@@ -217,43 +179,30 @@ class PS2000(_PicoscopeBase):
         s = create_string_buffer(256)
 
         m = self.lib.ps2000_get_unit_info(
-            c_int16(self.handle), byref(s), c_int16(len(s)), c_enum(info)
-        )
+            c_int16(self.handle), byref(s), c_int16(len(s)), c_enum(info))
         self.checkResult(m)
 
         # should this bee ascii instead?
         # I think they are equivalent...
-        return s.value.decode("utf-8")
+        return s.value.decode('utf-8')
 
     def _lowLevelFlashLed(self, times):
         m = self.lib.ps2000_flash_led(c_int16(self.handle))
         self.checkResult(m)
 
-    def _lowLevelSetSimpleTrigger(
-        self, enabled, trigsrc, threshold_adc, direction, delay, timeout_ms
-    ):
+    def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
+                                  direction, delay, timeout_ms):
 
         # TODO:
         # Fix 'auto' which is where trigger occurs in block. Delay is not used
 
         m = self.lib.ps2000_set_trigger(
-            c_int16(self.handle),
-            c_enum(trigsrc),
-            c_int16(threshold_adc),
-            c_enum(direction),
-            c_int16(delay),
-            c_int16(timeout_ms),
-        )
+            c_int16(self.handle), c_enum(trigsrc), c_int16(threshold_adc),
+            c_enum(direction), c_int16(delay), c_int16(timeout_ms))
         self.checkResult(m)
 
-    def _lowLevelRunBlock(
-        self,
-        numPreTrigSamples,
-        numPostTrigSamples,
-        timebase,
-        oversample,
-        segmentIndex,
-    ):
+    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
+                          timebase, oversample, segmentIndex):
         # NOT: Oversample is NOT used!
 
         # TODO: Fix 'delay' which is where trigger occurs in block
@@ -262,12 +211,8 @@ class PS2000(_PicoscopeBase):
 
         timeIndisposedMs = c_int32()
         m = self.lib.ps2000_run_block(
-            c_int16(self.handle),
-            c_uint32(numPostTrigSamples),
-            c_uint32(timebase),
-            c_int16(1),
-            byref(timeIndisposedMs),
-        )
+            c_int16(self.handle), c_uint32(numPostTrigSamples),
+            c_uint32(timebase), c_int16(1), byref(timeIndisposedMs))
 
         self.checkResult(m)
         return timeIndisposedMs.value
@@ -289,20 +234,15 @@ class PS2000(_PicoscopeBase):
         time_units = c_int16()
 
         m = self.lib.ps2000_get_timebase(
-            c_int16(self.handle),
-            c_int16(tb),
-            c_uint32(noSamples),
-            byref(time_interval),
-            byref(time_units),
-            c_int16(1),
-            byref(maxSamples),
-        )
+            c_int16(self.handle), c_int16(tb), c_uint32(noSamples),
+            byref(time_interval), byref(time_units), c_int16(1),
+            byref(maxSamples))
 
         self.checkResult(m)
 
         self.suggested_time_units = time_units.value
 
-        return (time_interval.value / 1.0e9, maxSamples.value)
+        return (time_interval.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
         """ps2000 doesn't seem to have published formula like other scopes."""
@@ -310,26 +250,20 @@ class PS2000(_PicoscopeBase):
         timebases = [None] * self.MAX_TIMEBASES
 
         # Convert to nS
-        sampleTimenS = sampleTimeS * 1e9
+        sampleTimenS = sampleTimeS * 1E9
 
         tb = 0
         while tb < self.MAX_TIMEBASES:
             rv = self.lib.ps2000_get_timebase(
-                c_int16(self.handle),
-                c_int16(tb),
-                c_uint32(512),
-                byref(time_interval),
-                c_void_p(),
-                c_int16(1),
-                c_void_p(),
-            )
+                c_int16(self.handle), c_int16(tb), c_uint32(512),
+                byref(time_interval), c_void_p(), c_int16(1),  c_void_p())
             if rv != 0:
                 timebases[tb] = time_interval.value
 
             tb += 1
 
         # Figure out closest option
-        besterror = 1e99
+        besterror = 1E99
         bestindx = 0
         for indx, val in enumerate(timebases):
             if val is not None:
@@ -344,20 +278,13 @@ class PS2000(_PicoscopeBase):
         """Return timestep from timebase."""
         time_interval = c_int32()
         m = self.lib.ps2000_get_timebase(
-            c_int16(self.handle),
-            c_int16(timebase),
-            c_uint32(512),
-            byref(time_interval),
-            c_void_p(),
-            c_int16(1),
-            c_void_p(),
-        )
+            c_int16(self.handle), c_int16(timebase), c_uint32(512),
+            byref(time_interval), c_void_p(), c_int16(1),  c_void_p())
         self.checkResult(m)
-        return time_interval.value / 1.0e9
+        return (time_interval.value / 1.0E9)
 
-    def _lowLevelSetDataBuffer(
-        self, channel, data, downSampleMode, segmentIndex
-    ):
+    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
+                               segmentIndex):
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
 
@@ -368,14 +295,8 @@ class PS2000(_PicoscopeBase):
         self.channelBuffersPtr[channel] = c_void_p()
         self.channelBuffersLen[channel] = 0
 
-    def _lowLevelGetValues(
-        self,
-        numSamples,
-        startIndex,
-        downSampleRatio,
-        downSampleMode,
-        segmentIndex,
-    ):
+    def _lowLevelGetValues(self, numSamples, startIndex,
+                           downSampleRatio, downSampleMode, segmentIndex):
 
         # TODO: Check overflow in channelBuffersLen against numSamples,
         # but need to not raise error if channelBuffersPtr is void
@@ -385,30 +306,16 @@ class PS2000(_PicoscopeBase):
             c_int16(self.handle),
             self.channelBuffersPtr[0],
             self.channelBuffersPtr[1],
-            c_void_p(),
-            c_void_p(),
-            byref(overflow),
-            c_int32(numSamples),
-        )
+            c_void_p(), c_void_p(),
+            byref(overflow), c_int32(numSamples))
 
         self.checkResult(rv)
         return (rv, overflow.value)
 
-    def _lowLevelSetSigGenBuiltInSimple(
-        self,
-        offsetVoltage,
-        pkToPk,
-        waveType,
-        frequency,
-        shots,
-        triggerType,
-        triggerSource,
-        stopFreq,
-        increment,
-        dwellTime,
-        sweepType,
-        numSweeps,
-    ):
+    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
+                                        frequency, shots, triggerType,
+                                        triggerSource, stopFreq, increment,
+                                        dwellTime, sweepType, numSweeps):
         if stopFreq is None:
             stopFreq = frequency
 
@@ -417,19 +324,15 @@ class PS2000(_PicoscopeBase):
             c_int32(int(offsetVoltage * 1000000)),
             c_int32(int(pkToPk * 1000000)),
             c_int16(waveType),
-            c_float(frequency),
-            c_float(stopFreq),
-            c_float(increment),
-            c_float(dwellTime),
-            c_enum(sweepType),
-            c_uint32(numSweeps),
-        )
+            c_float(frequency), c_float(stopFreq),
+            c_float(increment), c_float(dwellTime), c_enum(sweepType),
+            c_uint32(numSweeps))
         self.checkResult(m)
 
     def checkResult(self, ec):
         """Check result of function calls, raise exception if not 0."""
         # PS2000 differs from other drivers in that non-zero is good
         if ec == 0:
-            raise IOError("Error calling %s" % (inspect.stack()[1][3]))
+            raise IOError('Error calling %s' % (inspect.stack()[1][3]))
 
         return 0
