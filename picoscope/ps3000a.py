@@ -143,7 +143,7 @@ class PS3000a(_PicoscopeBase):
         else:
             from ctypes import windll
             from ctypes.util import find_library
-            self.lib = windll.LoadLibrary(	
+            self.lib = windll.LoadLibrary(
                 find_library(str(self.LIBNAME + ".dll"))
             )
 
