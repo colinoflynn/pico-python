@@ -143,7 +143,9 @@ class PS2000(_PicoscopeBase):
         else:
             from ctypes import windll
             from ctypes.util import find_library
-            self.lib = windll.LoadLibrary(find_library(str(self.LIBNAME + ".dll")))
+            self.lib = windll.LoadLibrary(	
+                find_library(str(self.LIBNAME + ".dll"))
+            )
 
         super(PS2000, self).__init__(serialNumber, connect)
 
