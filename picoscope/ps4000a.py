@@ -228,11 +228,11 @@ class PS4000a(_PicoscopeBase):
                                        c_int16(enabled), c_enum(coupling),
                                        c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
-
-        m = self.lib.ps4000aSetBandwidthFilter(c_int16(self.handle),
-                                               c_enum(chNum),
-                                               c_enum(BWLimited))
-        self.checkResult(m)
+        if self.model.startswith('4444'):  # Only for model 4444
+            m = self.lib.ps4000aSetBandwidthFilter(c_int16(self.handle),
+                                                   c_enum(chNum),
+                                                   c_enum(BWLimited))
+            self.checkResult(m)
 
     def _lowLevelStop(self):
         m = self.lib.ps4000aStop(c_int16(self.handle))
