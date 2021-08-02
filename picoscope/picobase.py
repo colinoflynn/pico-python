@@ -176,14 +176,16 @@ class _PicoscopeBase(object):
                    VOffset=0.0, enabled=True, BWLimited=0,
                    probeAttenuation=1.0):
         """
-        Set up a specific chthe scopeannel.
+        Set up a specific scope channel.
+
+        Returns
+            Actual range of the scope as double.
 
         It finds the smallest range that is capable of accepting your signal.
-        Return actual range of the scope as double.
 
-        The VOffset, is an offset that the scope will ADD to your signal.
+        The `VOffset`, is an offset that the scope will ADD to your signal.
 
-        If using a probe (or a sense resitor), the probeAttenuation value is
+        If using a probe (or a sense resitor), the `probeAttenuation` value is
         used to find the approriate channel range on the scope to use.
 
         e.g. to use a 10x attenuation probe, you must supply the following
@@ -203,7 +205,7 @@ class _PicoscopeBase(object):
         You should supply probeAttenuation = 1.3
         The rest of your units should be specified in amps.
 
-        Unfortunately, you still have to supply a VRange that is very close to
+        Unfortunately, you still have to supply a `VRange` that is very close to
         the allowed values. This will change in furture version where we will
         find the next largest range to accomodate the desired range.
 
@@ -280,6 +282,11 @@ class _PicoscopeBase(object):
         """Run a single block.
 
         Must have already called setSampling for proper setup.
+
+        pretrig
+            Fraction of samples before the trigger.
+        segmentIndex
+            Index of scope memory segment to save data to.
         """
         # getting max samples is riddiculous.
         # 1GS buffer means it will take so long
@@ -301,7 +308,7 @@ class _PicoscopeBase(object):
         return self._lowLevelIsReady()
 
     def waitReady(self, spin_delay=0.01):
-        """Block until the scope is ready."""
+        """Block until the scope is ready retesting every `spin_delay` s."""
         while not self.isReady():
             time.sleep(spin_delay)
 
@@ -334,15 +341,33 @@ class _PicoscopeBase(object):
         return (self.sampleRate, self.maxSamples)
 
     def setNoOfCaptures(self, noCaptures):
+        """
+        Set the number of captures to be collected in one run of rapid block mode.
+
+        If you do not call this function before a run, the driver will capture one waveform.
+        """
         self._lowLevelSetNoOfCaptures(noCaptures)
 
     def memorySegments(self, noSegments):
+        """
+        Divide the scope memory into `noSegments` segments.
+
+        The scope fills the available memory segment for a single capture.
+        More segments allow several consecutive captures.
+        The memory is distributed amongst the active channels: the number of
+        samples available to each channel is nMaxSamples divided by 2 (for 2 channels)
+        or 4 (for 3 or 4 channels) or 8 (for 5 to 8 channels).
+
+        Returns
+            Number of samples in the segment.
+        """
         maxSamples = self._lowLevelMemorySegments(noSegments)
         self.maxSamples = maxSamples
         self.noSegments = noSegments
         return self.maxSamples
 
     def getMaxMemorySegments(self):
+        """Retrieve the maximum number of memory segments allowed by the device."""
         segments = self._lowLevelGetMaxSegments()
         return segments
 
@@ -367,19 +392,24 @@ class _PicoscopeBase(object):
                          delay=0, timeout_ms=100, enabled=True):
         """Set up a simple trigger.
 
-        trigSrc can be either a number corresponding to the low level
-        specifications of the scope or a string such as 'A' or 'AUX'
-
-        direction can be a text string such as "Rising" or "Falling",
-        or the value of the dict from self.THRESHOLD_TYPE[] corresponding
-        to your trigger type.
-
-        delay is number of clock cycles to wait from trigger conditions met
-        until we actually trigger capture.
-
-        timeout_ms is time to wait in mS from calling runBlock() or similar
-        (e.g. when trigger arms) for the trigger to occur. If no trigger
-        occurs it gives up & auto-triggers.
+        trigSrc
+            can be either a number corresponding to the low level specifications
+            of the scope or a string such as 'A' or 'AUX'
+        threshold_V
+            threshold at which to trigger in V.
+        direction
+            can be a text string such as "Rising" or "Falling",
+            or the value of the dict from self.THRESHOLD_TYPE[] corresponding
+            to your trigger type.
+        delay
+            is number of clock cycles to wait from trigger conditions met
+            until we actually trigger capture.
+        timeout_ms
+            is time to wait in mS from calling runBlock() or similar
+            (e.g. when trigger arms) for the trigger to occur. If no trigger
+            occurs it gives up & auto-triggers.
+        enabled
+            whether to set or disable the trigger.
 
         Support for offset is currently untested
 
@@ -418,6 +448,7 @@ class _PicoscopeBase(object):
                                        direction, delay, timeout_ms)
 
     def getTriggerTimeOffset(self, segmentIndex=0):
+        """Get the trigger time offset in s for a waveform for segment `segmentIndex`."""
         return self._lowLevelGetTriggerTimeOffset(segmentIndex)
 
     def flashLed(self, times=5, start=False, stop=False):
