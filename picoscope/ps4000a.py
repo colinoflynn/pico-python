@@ -228,6 +228,8 @@ class PS4000a(_PicoscopeBase):
                                        c_int16(enabled), c_enum(coupling),
                                        c_enum(VRange), c_float(VOffset))
         self.checkResult(m)
+        # Only for model PS4444
+        # See discussion: https://github.com/colinoflynn/pico-python/pull/171
         if self.model.startswith('4444'):  # Only for model 4444
             m = self.lib.ps4000aSetBandwidthFilter(c_int16(self.handle),
                                                    c_enum(chNum),
