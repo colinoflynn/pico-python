@@ -276,10 +276,19 @@ class _PicoscopeBase(object):
 
         return VRange
 
-    def runBlock(self, pretrig=0.0, segmentIndex=0):
+    def runBlock(self, pretrig=0.0, segmentIndex=0, callback=None):
         """Run a single block.
 
         Must have already called setSampling for proper setup.
+
+        Parameters
+        ----------
+        pretrig
+            Fraction of samples before the trigger.
+        segmentIndex
+            Index of scope memory segment to save data to.
+        callback
+            Function to call once the data acquisition finishes.
         """
         # getting max samples is riddiculous.
         # 1GS buffer means it will take so long
@@ -289,7 +298,8 @@ class _PicoscopeBase(object):
         nSamples_pretrig = int(round(nSamples * pretrig))
         self._lowLevelRunBlock(nSamples_pretrig,
                                nSamples - nSamples_pretrig,
-                               self.timebase, self.oversample, segmentIndex)
+                               self.timebase, self.oversample, segmentIndex,
+                               callback, None)
 
     def isReady(self):
         """

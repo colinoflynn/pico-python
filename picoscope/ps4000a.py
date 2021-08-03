@@ -59,12 +59,39 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int16, c_uint16, c_int32, c_uint32, c_uint64, c_void_p, c_int8
+    c_int16, c_uint16, c_int32, c_uint32, c_uint64, c_void_p, c_int8, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 import warnings
 
 from picoscope.picobase import _PicoscopeBase
+
+
+# Wrappers for callbacks. PICO_STATUS is uint32_t
+def blockReady(function):
+    """typedef void (*ps4000aBlockReady)
+    (
+     int16_t         handle,
+     PICO_STATUS     status,
+     void          * pParameter
+    )
+    """
+    callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_void_p)
+    return callback(function)
+
+
+def dataReady(function):
+    """typedef void (*ps4000aDataReady)
+    (
+     int16_t         handle,
+     PICO_STATUS     status,
+     uint32_t        noOfSamples,
+     int16_t         overflow,
+     void         * pParameter
+    )
+    """
+    callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_uint32, c_int16, c_void_p)
+    return callback(function)
 
 
 class PS4000a(_PicoscopeBase):
@@ -280,14 +307,14 @@ class PS4000a(_PicoscopeBase):
             c_enum(direction), c_uint32(delay), c_int16(timeout_ms))
         self.checkResult(m)
 
-    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
-                          timebase, oversample, segmentIndex):
+    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase,
+                          oversample, segmentIndex, callback=c_void_p(), pParameter=c_void_p()):
         timeIndisposedMs = c_int32()
         m = self.lib.ps4000aRunBlock(
             c_int16(self.handle), c_int32(numPreTrigSamples),
             c_int32(numPostTrigSamples), c_uint32(timebase),
             byref(timeIndisposedMs),
-            c_uint32(segmentIndex), c_void_p(), c_void_p())
+            c_uint32(segmentIndex), callback, pParameter)
         self.checkResult(m)
         return timeIndisposedMs.value
 
