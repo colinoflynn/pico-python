@@ -289,27 +289,29 @@ class PS4000a(_PicoscopeBase):
         else:
             return False
 
-    def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """Return (timeIntervalSeconds, maxSamples)."""
+    def _lowLevelGetTimebase(self, timebase, noSamples, oversample, segmentIndex):
+        """Return (timeIntervalSeconds, maxSamples) for a given `timebase` number."""
         maxSamples = c_int32()
-        sampleRate = c_float()
+        timeIntervalSeconds = c_float()
 
-        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
-                                         c_int32(noSamples), byref(sampleRate),
+        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle), c_uint32(timebase),
+                                         c_int32(noSamples), byref(timeIntervalSeconds),
                                          byref(maxSamples),
                                          c_uint32(segmentIndex))
         self.checkResult(m)
 
-        return (sampleRate.value / 1.0E9, maxSamples.value)
+        return (timeIntervalSeconds.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """ Convert the sample interval (float of seconds) to the
-        corresponding integer timebase value as defined by the API.
-        See "Timebases" section of the PS4000a programmers guide
+        """
+        Convert `sampleTimeS` in s to the integer timebase number.
+
+        See "Timebases" section of the PS4000a programmer's guide
         for more information.
         """
 
         if self.model == '4828':
+            # TODO does a model 4828 exist?
             maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
 
             if sampleTimeS <= 12.5E-9:
@@ -337,6 +339,14 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 5.0E7) + 2)
 
+        elif self.model.startswith('4824'):
+            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
+
+            if sampleTimeS > maxSampleTime:
+                sampleTimeS = maxSampleTime
+            timebase = math.floor(sampleTimeS * 8e7 - 1)
+            timebase = max(0, timebase)
+
         else:  # The original case from non "A" series
             warnings.warn("The model PS4000a you are using may not be "
                           "fully supported", stacklevel=2)
@@ -352,13 +362,11 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 2e7) + 1)
 
-        # is this cast needed?
-        timebase = int(timebase)
         return timebase
 
     def getTimestepFromTimebase(self, timebase):
-        """Return timebase to sampletime as seconds."""
-        if self.model == '4828':
+        """Convert `timebase` index to sampletime in seconds."""
+        if self.model == '4828' or self.model.startswith('4824'):
             dt = (timebase + 1) / 8.0E7
         elif self.model == '4444':
             if timebase < 3:
