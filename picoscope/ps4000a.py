@@ -143,7 +143,7 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
         if sn is not None:
-            serialNullTermStr = create_string_buffer(str(sn))
+            serialNullTermStr = create_string_buffer(bytes(sn, encoding='utf-8'))
         else:
             serialNullTermStr = None
         # Passing None is the same as passing NULL
@@ -166,7 +166,7 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelOpenUnitAsync(self, sn):
         c_status = c_int16()
         if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
+            serialNullTermStr = create_string_buffer(bytes(sn, encoding='utf-8'))
         else:
             serialNullTermStr = None
 
