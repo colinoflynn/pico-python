@@ -454,6 +454,10 @@ class PS4000a(_PicoscopeBase):
         self._lowLevelSetDataBuffer(channel, data, downSampleMode,
                                     segmentIndex)
 
+    def _lowLevelPingUnit(self):
+        """Check connection to picoscope and return the error."""
+        return self.lib.ps4000aPingUnit(c_int16(self.handle))
+
     ####################################################################
     # Untested functions below                                         #
     #                                                                  #
