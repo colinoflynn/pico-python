@@ -140,14 +140,14 @@ class PS4000a(_PicoscopeBase):
 
         super(PS4000a, self).__init__(serialNumber, connect)
 
-    def _lowLevelOpenUnit(self, sn):
+    def _lowLevelOpenUnit(self, serial):
         c_handle = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(bytes(sn, encoding='utf-8'))
+        if serial is not None:
+            serialStr = create_string_buffer(bytes(serial, encoding='utf-8'))
         else:
-            serialNullTermStr = None
+            serialStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNullTermStr)
+        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialStr)
         self.handle = c_handle.value
 
         # This will check if the power supply is not connected
@@ -163,15 +163,15 @@ class PS4000a(_PicoscopeBase):
 
         self.model = self.getUnitInfo('VariantInfo')
 
-    def _lowLevelOpenUnitAsync(self, sn):
+    def _lowLevelOpenUnitAsync(self, serial):
         c_status = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(bytes(sn, encoding='utf-8'))
+        if serial is not None:
+            serialStr = create_string_buffer(bytes(serial, encoding='utf-8'))
         else:
-            serialNullTermStr = None
+            serialStr = None
 
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialNullTermStr)
+        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialStr)
         self.checkResult(m)
 
         return c_status.value
@@ -188,6 +188,7 @@ class PS4000a(_PicoscopeBase):
 
         if complete.value != 0:
             self.handle = handle.value
+            self.model = self.getUnitInfo('VariantInfo')
 
         # if we only wanted to return one value, we could do somethign like
         # progressPercent = progressPercent * (1 - 0.1 * complete)
@@ -289,13 +290,35 @@ class PS4000a(_PicoscopeBase):
         else:
             return False
 
-    def _lowLevelGetTimebase(self, timebase, noSamples, oversample, segmentIndex):
-        """Return (timeIntervalSeconds, maxSamples) for a given `timebase` number."""
+    def _lowLevelGetTimebase(self, timebase, noSamples, oversample,
+                             segmentIndex):
+        """
+        Calculate the sampling interval and maximum number of samples.
+
+        timebase
+            Number of the selected timebase.
+        noSamples
+            Number of required samples.
+        oversample
+        Nnot used.
+        segmentIndex
+            Index of the segment to save samples in
+
+        Return
+        -------
+        timeIntervalSeconds : float
+            Time interval between two samples in s.
+        maxSamples : int
+            maximum number of samples available depending on channels
+            and timebase chosen.
+        """
         maxSamples = c_int32()
         timeIntervalSeconds = c_float()
 
-        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle), c_uint32(timebase),
-                                         c_int32(noSamples), byref(timeIntervalSeconds),
+        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle),
+                                         c_uint32(timebase),
+                                         c_int32(noSamples),
+                                         byref(timeIntervalSeconds),
                                          byref(maxSamples),
                                          c_uint32(segmentIndex))
         self.checkResult(m)
@@ -391,9 +414,6 @@ class PS4000a(_PicoscopeBase):
         Be sure to call _lowLevelClearDataBuffer
         when you are done with the data array
         or else subsequent calls to GetValue will still use the same array.
-
-        segmentIndex is unused, but required by other versions of the API
-        (eg PS5000a)
         """
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
