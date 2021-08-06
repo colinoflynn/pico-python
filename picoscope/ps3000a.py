@@ -267,15 +267,15 @@ class PS3000a(_PicoscopeBase):
         return maxSegments.value
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
-                          timebase, oversample, segmentIndex):
+                          timebase, oversample, segmentIndex, callback,
+                          pParameter):
         # NOT: Oversample is NOT used!
         timeIndisposedMs = c_int32()
         m = self.lib.ps3000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
             c_int16(oversample), byref(timeIndisposedMs),
-            c_uint32(segmentIndex),
-            c_void_p(), c_void_p())
+            c_uint32(segmentIndex), callback, pParameter)
         self.checkResult(m)
         return timeIndisposedMs.value
 

@@ -67,7 +67,7 @@ import warnings
 from picoscope.picobase import _PicoscopeBase
 
 
-# Wrappers for callbacks. PICO_STATUS is uint32_t
+# Decorators for callback functions. PICO_STATUS is uint32_t.
 def blockReady(function):
     """typedef void (*ps4000aBlockReady)
     (
@@ -90,8 +90,27 @@ def dataReady(function):
      void         * pParameter
     )
     """
-    callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_uint32, c_int16, c_void_p)
+    callback = CFUNCTYPE(c_void_p,
+                         c_int16, c_uint32, c_uint32, c_int16, c_void_p)
     return callback(function)
+
+
+def streamingReady(function):
+    """typedef void (*ps4000aStreamingReady)
+    (
+        int16_t     handle,
+        int32_t     noOfSamples,
+        uint32_t    startIndex,
+        int16_t     overflow,
+        uint32_t    triggerAt,
+        int16_t     triggered,
+        int16_t     autoStop,
+        void      * pParameter
+    )
+    """
+    callback = CFUNCTYPE(c_void_p, c_int16, c_int32, c_uint32, c_int16,
+                         c_uint32, c_int16, c_int16, c_void_p)
+    return callback
 
 
 class PS4000a(_PicoscopeBase):
@@ -307,8 +326,9 @@ class PS4000a(_PicoscopeBase):
             c_enum(direction), c_uint32(delay), c_int16(timeout_ms))
         self.checkResult(m)
 
-    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples, timebase,
-                          oversample, segmentIndex, callback=c_void_p(), pParameter=c_void_p()):
+    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
+                          timebase, oversample, segmentIndex, callback,
+                          pParameter):
         timeIndisposedMs = c_int32()
         m = self.lib.ps4000aRunBlock(
             c_int16(self.handle), c_int32(numPreTrigSamples),
