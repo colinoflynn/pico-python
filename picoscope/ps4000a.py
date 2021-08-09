@@ -117,6 +117,12 @@ class PS4000a(_PicoscopeBase):
                   "milliseconds": 4,
                   "seconds": 5}
 
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
+                            "GateHigh": 2, "GateLow": 3}
+
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1,
+                              "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
+
     def __init__(self, serialNumber=None, connect=True):
         """Load DLLs."""
         self.handle = None
