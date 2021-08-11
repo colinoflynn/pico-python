@@ -117,6 +117,12 @@ class PS4000a(_PicoscopeBase):
                   "milliseconds": 4,
                   "seconds": 5}
 
+    SIGGEN_TRIGGER_TYPES = {"Rising": 0, "Falling": 1,
+                            "GateHigh": 2, "GateLow": 3}
+
+    SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1,
+                              "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
+
     def __init__(self, serialNumber=None, connect=True):
         """Load DLLs."""
         self.handle = None
@@ -140,14 +146,15 @@ class PS4000a(_PicoscopeBase):
 
         super(PS4000a, self).__init__(serialNumber, connect)
 
-    def _lowLevelOpenUnit(self, sn):
+    def _lowLevelOpenUnit(self, serialNumber):
         c_handle = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(str(sn))
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialNullTermStr = None
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNullTermStr)
+        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNumberStr)
         self.handle = c_handle.value
 
         # This will check if the power supply is not connected
@@ -163,17 +170,18 @@ class PS4000a(_PicoscopeBase):
 
         self.model = self.getUnitInfo('VariantInfo')
 
-    def _lowLevelOpenUnitAsync(self, sn):
+    def _lowLevelOpenUnitAsync(self, serialNumber):
         c_status = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialNullTermStr = None
-
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialNullTermStr)
+        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialNumberStr)
         self.checkResult(m)
 
+        # Set the model after completion in _lowLevelOpenUnitProgress.
         return c_status.value
 
     def _lowLevelOpenUnitProgress(self):
@@ -188,6 +196,7 @@ class PS4000a(_PicoscopeBase):
 
         if complete.value != 0:
             self.handle = handle.value
+            self.model = self.getUnitInfo('VariantInfo')
 
         # if we only wanted to return one value, we could do somethign like
         # progressPercent = progressPercent * (1 - 0.1 * complete)
@@ -291,27 +300,51 @@ class PS4000a(_PicoscopeBase):
         else:
             return False
 
-    def _lowLevelGetTimebase(self, tb, noSamples, oversample, segmentIndex):
-        """Return (timeIntervalSeconds, maxSamples)."""
-        maxSamples = c_int32()
-        sampleRate = c_float()
+    def _lowLevelGetTimebase(self, timebase, noSamples, oversample,
+                             segmentIndex):
+        """
+        Calculate the sampling interval and maximum number of samples.
 
-        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle), c_uint32(tb),
-                                         c_int32(noSamples), byref(sampleRate),
+        timebase
+            Number of the selected timebase.
+        noSamples
+            Number of required samples.
+        oversample
+        Nnot used.
+        segmentIndex
+            Index of the segment to save samples in
+
+        Return
+        -------
+        timeIntervalSeconds : float
+            Time interval between two samples in s.
+        maxSamples : int
+            maximum number of samples available depending on channels
+            and timebase chosen.
+        """
+        maxSamples = c_int32()
+        timeIntervalSeconds = c_float()
+
+        m = self.lib.ps4000aGetTimebase2(c_int16(self.handle),
+                                         c_uint32(timebase),
+                                         c_int32(noSamples),
+                                         byref(timeIntervalSeconds),
                                          byref(maxSamples),
                                          c_uint32(segmentIndex))
         self.checkResult(m)
 
-        return (sampleRate.value / 1.0E9, maxSamples.value)
+        return (timeIntervalSeconds.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
-        """ Convert the sample interval (float of seconds) to the
-        corresponding integer timebase value as defined by the API.
-        See "Timebases" section of the PS4000a programmers guide
+        """
+        Convert `sampleTimeS` in s to the integer timebase number.
+
+        See "Timebases" section of the PS4000a programmer's guide
         for more information.
         """
 
         if self.model == '4828':
+            # TODO does a model 4828 exist?
             maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
 
             if sampleTimeS <= 12.5E-9:
@@ -339,6 +372,14 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 5.0E7) + 2)
 
+        elif self.model.startswith('4824'):
+            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
+
+            if sampleTimeS > maxSampleTime:
+                sampleTimeS = maxSampleTime
+            timebase = math.floor(sampleTimeS * 8e7 - 1)
+            timebase = max(0, timebase)
+
         else:  # The original case from non "A" series
             warnings.warn("The model PS4000a you are using may not be "
                           "fully supported", stacklevel=2)
@@ -354,13 +395,11 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 2e7) + 1)
 
-        # is this cast needed?
-        timebase = int(timebase)
         return timebase
 
     def getTimestepFromTimebase(self, timebase):
-        """Return timebase to sampletime as seconds."""
-        if self.model == '4828':
+        """Convert `timebase` index to sampletime in seconds."""
+        if self.model == '4828' or self.model.startswith('4824'):
             dt = (timebase + 1) / 8.0E7
         elif self.model == '4444':
             if timebase < 3:
@@ -385,9 +424,6 @@ class PS4000a(_PicoscopeBase):
         Be sure to call _lowLevelClearDataBuffer
         when you are done with the data array
         or else subsequent calls to GetValue will still use the same array.
-
-        segmentIndex is unused, but required by other versions of the API
-        (eg PS5000a)
         """
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
