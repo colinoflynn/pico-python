@@ -146,14 +146,15 @@ class PS4000a(_PicoscopeBase):
 
         super(PS4000a, self).__init__(serialNumber, connect)
 
-    def _lowLevelOpenUnit(self, serial):
+    def _lowLevelOpenUnit(self, serialNumber):
         c_handle = c_int16()
-        if serial is not None:
-            serialStr = create_string_buffer(bytes(serial, encoding='utf-8'))
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialStr = None
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialStr)
+        m = self.lib.ps4000aOpenUnit(byref(c_handle), serialNumberStr)
         self.handle = c_handle.value
 
         # This will check if the power supply is not connected
@@ -169,17 +170,18 @@ class PS4000a(_PicoscopeBase):
 
         self.model = self.getUnitInfo('VariantInfo')
 
-    def _lowLevelOpenUnitAsync(self, serial):
+    def _lowLevelOpenUnitAsync(self, serialNumber):
         c_status = c_int16()
-        if serial is not None:
-            serialStr = create_string_buffer(bytes(serial, encoding='utf-8'))
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialStr = None
-
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialStr)
+        m = self.lib.ps4000aOpenUnitAsync(byref(c_status), serialNumberStr)
         self.checkResult(m)
 
+        # Set the model after completion in _lowLevelOpenUnitProgress.
         return c_status.value
 
     def _lowLevelOpenUnitProgress(self):
