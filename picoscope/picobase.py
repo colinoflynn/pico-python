@@ -310,6 +310,8 @@ class _PicoscopeBase(object):
 
         Must have already called setSampling for proper setup.
 
+        Parameters
+        ----------
         pretrig
             Fraction of samples before the trigger.
         segmentIndex
@@ -464,6 +466,8 @@ class _PicoscopeBase(object):
         """
         Set up a simple trigger.
 
+        Parameters
+        ----------
         trigSrc
             Either a channel number corresponding to the low level
             specifications of the scope or a string such as 'A' or 'AUX'.
@@ -483,10 +487,10 @@ class _PicoscopeBase(object):
         enabled
             Enable or disable the trigger.
 
-        Support for offset is currently untested
-
-        Note, the AUX port (or EXT) only has a range of +- 1V
-        (at least in PS6000)
+        Notes
+        -----
+        - Support for offset is currently untested.
+        - The AUX port (or EXT) only has a range of +- 1V (at least in PS6000).
         """
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
@@ -523,6 +527,8 @@ class _PicoscopeBase(object):
         """
         Get the trigger time offset in s for a waveform.
 
+        Parameter
+        ---------
         segmentIndex
             Index of the memory segment in question.
         """
@@ -578,7 +584,9 @@ class _PicoscopeBase(object):
         dtype
             Datatype for the numpy array to create.
 
-        Return a numpy array with the measurement in V.
+        Return
+        ------
+        Numpy array with the measurement in V.
         """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
@@ -631,7 +639,7 @@ class _PicoscopeBase(object):
         Return
         -----
         dataV : numpy array
-            Numpy array with the values in Volts
+            Numpy array with the values in Volts.
         overflow : bool, only if returnOverflow is True
             Whether the measured value exceeded the measurement range.
         """
@@ -827,7 +835,7 @@ class _PicoscopeBase(object):
         sweepType
             Type of sweeping the frequency: 'Up', 'Down', 'UpDown', 'DownUp'.
         numSweeps
-            Number of sweeps. If nonzero, `shots` has to be zero
+            Number of sweeps. If nonzero, `shots` has to be zero.
         """
         # I put this here, because the python idiom None is very
         # close to the "None" string we expect
@@ -860,7 +868,7 @@ class _PicoscopeBase(object):
         Check setSigGenAritrarySimpleDelaPhase for parameter explanation
 
         Returns:
-            The actual duration of the waveform
+            The actual duration of the waveform.
         """
         sampling_interval = duration / len(waveform)
 
@@ -1139,13 +1147,13 @@ class _PicoscopeBase(object):
                 str(inspect.stack()[1][3]), ecName, ecDesc))
 
     def errorNumToName(self, errorCode):
-        """Return the name of the error as a string."""
+        """Return the name of the `errorCode` as a string."""
         for t in self.ERROR_CODES:
             if t[0] == errorCode:
                 return t[1]
 
     def errorNumToDesc(self, errorCode):
-        """Return the description of the error as a string."""
+        """Return the description of the `errorCode` as a string."""
         for t in self.ERROR_CODES:
             if t[0] == errorCode:
                 try:
