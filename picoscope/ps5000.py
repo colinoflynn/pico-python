@@ -153,26 +153,27 @@ class PS5000(_PicoscopeBase):
 
         super(PS5000, self).__init__(serialNumber, connect)
 
-    def _lowLevelOpenUnit(self, sn):
+    def _lowLevelOpenUnit(self, serialNumber):
         c_handle = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialNullTermStr = None
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps5000OpenUnit(byref(c_handle), serialNullTermStr)
+        m = self.lib.ps5000OpenUnit(byref(c_handle), serialNumberStr)
         self.checkResult(m)
         self.handle = c_handle.value
 
-    def _lowLevelOpenUnitAsync(self, sn):
+    def _lowLevelOpenUnitAsync(self, serialNumber):
         c_status = c_int16()
-        if sn is not None:
-            serialNullTermStr = create_string_buffer(sn)
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialNullTermStr = None
-
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps5000OpenUnitAsync(byref(c_status), serialNullTermStr)
+        m = self.lib.ps5000OpenUnitAsync(byref(c_status), serialNumberStr)
         self.checkResult(m)
 
         return c_status.value

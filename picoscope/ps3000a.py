@@ -151,14 +151,15 @@ class PS3000a(_PicoscopeBase):
 
         super(PS3000a, self).__init__(serialNumber, connect)
 
-    def _lowLevelOpenUnit(self, sn):
+    def _lowLevelOpenUnit(self, serialNumber):
         c_handle = c_int16()
-        if sn is not None:
-            serialNullTermStr = byref(create_string_buffer(sn))
+        if serialNumber is not None:
+            serialNumberStr = create_string_buffer(bytes(serialNumber,
+                                                         encoding='utf-8'))
         else:
-            serialNullTermStr = None
+            serialNumberStr = None
         # Passing None is the same as passing NULL
-        m = self.lib.ps3000aOpenUnit(byref(c_handle), serialNullTermStr)
+        m = self.lib.ps3000aOpenUnit(byref(c_handle), serialNumberStr)
         self.handle = c_handle.value
 
         # copied over from ps5000a:
