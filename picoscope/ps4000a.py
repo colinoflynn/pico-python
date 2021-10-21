@@ -110,7 +110,7 @@ def streamingReady(function):
     """
     callback = CFUNCTYPE(c_void_p, c_int16, c_int32, c_uint32, c_int16,
                          c_uint32, c_int16, c_int16, c_void_p)
-    return callback
+    return callback(function)
 
 
 class PS4000a(_PicoscopeBase):

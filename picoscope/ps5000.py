@@ -274,6 +274,8 @@ class PS5000(_PicoscopeBase):
             c_uint32(segmentIndex), c_void_p(), c_void_p())
         # According to the documentation, 'callback, pParameter' should work
         # instead of the last two c_void_p parameters.
+        # However to avoid the potential for serious crashes, we decided to
+        # not include them in this function call.
         self.checkResult(m)
         return timeIndisposedMs.value
 
