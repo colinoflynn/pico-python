@@ -56,10 +56,23 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int16, c_int32, c_uint32, c_void_p, c_int64
+    c_int16, c_int32, c_uint32, c_void_p, c_int64, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
+
+
+# Decorators for callback functions. PICO_STATUS is uint32_t.
+def blockReady(function):
+    """typedef void (*ps5000aBlockReady)
+    (
+     int16_t         handle,
+     PICO_STATUS     status,
+     void          * pParameter
+    )
+    """
+    callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_void_p)
+    return callback(function)
 
 
 class PS5000a(_PicoscopeBase):
@@ -282,9 +295,7 @@ class PS5000a(_PicoscopeBase):
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
             byref(timeIndisposedMs), c_uint32(segmentIndex),
-            c_void_p(), c_void_p())
-        # According to the documentation, 'callback, pParameter' should work
-        # instead of the last two c_void_p parameters.
+            callback, pParameter)
         self.checkResult(m)
         return timeIndisposedMs.value
 
