@@ -290,12 +290,13 @@ class PS5000a(_PicoscopeBase):
                           timebase, oversample, segmentIndex, callback,
                           pParameter):
         # Oversample is NOT used!
+        self._c_runBlock_callback = blockReady(callback)
         timeIndisposedMs = c_int32()
         m = self.lib.ps5000aRunBlock(
             c_int16(self.handle), c_uint32(numPreTrigSamples),
             c_uint32(numPostTrigSamples), c_uint32(timebase),
             byref(timeIndisposedMs), c_uint32(segmentIndex),
-            callback, pParameter)
+            self._c_runBlock_callback, c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
 

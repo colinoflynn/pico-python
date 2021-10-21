@@ -329,12 +329,13 @@ class PS4000a(_PicoscopeBase):
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
                           timebase, oversample, segmentIndex, callback,
                           pParameter):
+        self._c_runBlock_callback = blockReady(callback)
         timeIndisposedMs = c_int32()
         m = self.lib.ps4000aRunBlock(
             c_int16(self.handle), c_int32(numPreTrigSamples),
             c_int32(numPostTrigSamples), c_uint32(timebase),
-            byref(timeIndisposedMs),
-            c_uint32(segmentIndex), callback, pParameter)
+            byref(timeIndisposedMs), c_uint32(segmentIndex),
+            self._c_runBlock_callback, c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
 

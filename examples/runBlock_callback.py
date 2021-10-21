@@ -5,7 +5,6 @@ import time
 ps = ps4000a.PS4000a()
 
 
-@ps4000a.blockReady
 def callbackFunction(handle, status, pParameter=None):
     """This function is executed once the block is ready."""
     if status == 0:
@@ -31,7 +30,7 @@ ps.setSamplingInterval(sample_interval, sample_duration)
 ps.setSimpleTrigger("A", threshold_V=0.1, timeout_ms=1)
 
 # Run a block
-print("Run a block")
+print("Run a block with a callback function")
 ps.runBlock(callback=callbackFunction)
 
 time.sleep(10)
