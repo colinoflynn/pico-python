@@ -310,7 +310,7 @@ class PS4000a(_PicoscopeBase):
         noSamples
             Number of required samples.
         oversample
-        Nnot used.
+            Not used.
         segmentIndex
             Index of the segment to save samples in
 

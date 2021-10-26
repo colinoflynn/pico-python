@@ -64,7 +64,6 @@ class _PicoscopeBase(object):
 
     This  class should not be called directly since it relies on lower level
     functions to communicate with the actual devices.
-
     """
 
     #########################################################
@@ -109,6 +108,8 @@ class _PicoscopeBase(object):
     # or even better
     # SOFT_TRIG = SoftwareTrigger vs SoftTrig
 
+    ERROR_CODES = _ERROR_CODES
+
     # For some reason this isn't working with me :S
     THRESHOLD_TYPE = {"Above": 0,
                       "Below": 1,
@@ -130,7 +131,17 @@ class _PicoscopeBase(object):
                        "PicoFirmwareVersion2": 0xA}
 
     def __init__(self, serialNumber=None, connect=True):
-        """Create a the scope object, and by default also connect to it."""
+        """
+        Create a scope object, and by default also connect to it.
+
+        Parameters
+        ----------
+        serialNumber
+            Set the serial number in order to connect to a specific scope.
+            Leave it empty for connecting to the next free scope.
+        connect : bool, default: True
+            Connect to the scope
+        """
         # TODO: Make A class for each channel
         # that way the settings will make more sense
 
@@ -147,7 +158,7 @@ class _PicoscopeBase(object):
             self.open(serialNumber)
 
     def getUnitInfo(self, info):
-        """Return: A string containing the requested information."""
+        """Return a string containing information about `info`."""
         if not isinstance(info, int):
             info = self.UNIT_INFO_TYPES[info]
         return self._lowLevelGetUnitInfo(info)
@@ -163,7 +174,7 @@ class _PicoscopeBase(object):
         return self.MIN_VALUE
 
     def getAllUnitInfo(self):
-        """Return: human readible unit information as a string."""
+        """Return a string containing all information of the device."""
         s = ""
         for key in sorted(self.UNIT_INFO_TYPES.keys(),
                           key=self.UNIT_INFO_TYPES.get):
@@ -176,14 +187,38 @@ class _PicoscopeBase(object):
                    VOffset=0.0, enabled=True, BWLimited=0,
                    probeAttenuation=1.0):
         """
-        Set up a specific chthe scopeannel.
+        Set up a specific scope channel with the smallest range possible.
 
-        It finds the smallest range that is capable of accepting your signal.
-        Return actual range of the scope as double.
+        Parameters
+        -----------
+        channel
+            The channel to set up.
+        coupling
+            'AC' or 'DC'. Note that if you set a channel to use AC coupling,
+            you may need to make a "dummy call" to runBlock, or the first batch
+            of data returned via getData* may be inaccurate.
+            See https://www.picotech.com/support/topic35401.html
+        VRange
+            Measurement range in V.
+        VOffset
+             An offset, in volts, to be added to the input signal before it
+             reaches the input amplifier and digitizer.
+        enabled
+            Enable or disable the channel.
+        BWLimited
+            Limit the bandwidth.
+        probeAttenuation
+            See below.
 
-        The VOffset, is an offset that the scope will ADD to your signal.
+        Return
+        ------
+        Actual range of the scope as double.
 
-        If using a probe (or a sense resitor), the probeAttenuation value is
+
+        probeAttenuation
+        ----------------
+
+        If using a probe (or a sense resitor), the `probeAttenuation` value is
         used to find the approriate channel range on the scope to use.
 
         e.g. to use a 10x attenuation probe, you must supply the following
@@ -203,19 +238,13 @@ class _PicoscopeBase(object):
         You should supply probeAttenuation = 1.3
         The rest of your units should be specified in amps.
 
-        Unfortunately, you still have to supply a VRange that is very close to
-        the allowed values. This will change in furture version where we will
-        find the next largest range to accomodate the desired range.
-
-        Note that if you set a channel to use AC coupling, you may need
-        to make a "dummy call" to runBlock, or the first batch of data
-        returned via getData* may be inaccurate.
-        See https://www.picotech.com/support/topic35401.html for more details.
+        Unfortunately, you still have to supply a `VRange` that is very close
+        to the allowed values. This will change in furture version where we
+        will find the next largest range to accomodate the desired range.
 
         If you want to use units of mA, supply a probe attenuation of 1.3E3.
         Note, the authors recommend sticking to SI units because it makes it
         easier to guess what units each parameter is in.
-
         """
         if enabled:
             enabled = 1
@@ -280,6 +309,13 @@ class _PicoscopeBase(object):
         """Run a single block.
 
         Must have already called setSampling for proper setup.
+
+        Parameters
+        ----------
+        pretrig
+            Fraction of samples before the trigger.
+        segmentIndex
+            Index of scope memory segment to save data to.
         """
         # getting max samples is riddiculous.
         # 1GS buffer means it will take so long
@@ -292,22 +328,40 @@ class _PicoscopeBase(object):
                                self.timebase, self.oversample, segmentIndex)
 
     def isReady(self):
-        """
-        Check if scope done.
-
-        Returns: bool.
-
-        """
+        """Return whether scope is ready to transfer data."""
         return self._lowLevelIsReady()
 
     def waitReady(self, spin_delay=0.01):
-        """Block until the scope is ready."""
+        """Block until the scope is ready, retesting every `spin_delay` s."""
         while not self.isReady():
             time.sleep(spin_delay)
 
     def setSamplingInterval(self, sampleInterval, duration, oversample=0,
                             segmentIndex=0):
-        """Return (actualSampleInterval, noSamples, maxSamples)."""
+        """
+        Set the timebase according to a desired sampling interval.
+
+        Parameters
+        ----------
+        sampleInterval
+            Desired interval in seconds vetween two samples.
+        duration
+            Desired duration of measurement.
+        oversample
+            Average over several measurements in the sample interval.
+            Not many picoscopes are capable of oversampling
+        segmentIndex
+            Index of the memory segment to store data into.
+
+        Return
+        ------
+        actualSampleInterval : float
+            The sample interval in seconds according to the timebase.
+        noSamples : int
+            Number of samples in the measurement duration.
+        maxSamples : int
+            Maximum number of samples possible in the memory segment.
+        """
         self.oversample = oversample
         self.timebase = self.getTimeBaseNum(sampleInterval)
 
@@ -322,35 +376,79 @@ class _PicoscopeBase(object):
         self.sampleRate = 1.0 / self.sampleInterval
         return (self.sampleInterval, self.noSamples, self.maxSamples)
 
-    def setSamplingFrequency(self, sampleFreq, noSamples, oversample=0,
+    def setSamplingFrequency(self, sampleFrequency, noSamples, oversample=0,
                              segmentIndex=0):
-        """Return (actualSampleFreq, maxSamples)."""
+        """
+        Set the timebase according to a desired sampling frequency.
+
+        Parameters
+        ----------
+        sampleFrequency
+            Desired sample frequency in samples per second.
+        noSamples
+            Desired number of samples.
+        oversample
+            Average over several measurements in the sample interval.
+            Not many picoscopes are capable of oversampling
+        segmentIndex
+            Index of the memory segment to store data into.
+
+        Return
+        ------
+        sampleRate : float
+            The sample frequency in samples per second.
+        maxSamples : int
+            Maximum number of samples possible in the memory segment.
+        """
         # TODO: make me more like the functions above
         #       at least in terms of what I return
-        sampleInterval = 1.0 / sampleFreq
+        sampleInterval = 1.0 / sampleFrequency
         duration = noSamples * sampleInterval
         self.setSamplingInterval(sampleInterval, duration, oversample,
                                  segmentIndex)
         return (self.sampleRate, self.maxSamples)
 
     def setNoOfCaptures(self, noCaptures):
+        """
+        Set the number of captures for one run of rapid block mode.
+
+        If you do not call this function before a run, the driver will capture
+        one waveform.
+        """
         self._lowLevelSetNoOfCaptures(noCaptures)
 
     def memorySegments(self, noSegments):
+        """
+        Divide the scope memory into `noSegments` segments.
+
+        The scope fills the available memory segment for a single capture.
+        More segments allow several consecutive captures.
+        The memory is distributed amongst the active channels: the number of
+        samples available to each channel is the maximum number of samples
+        divided by 2 (for 2 channels) or 4 (for 3 or 4 channels) or
+        8 (for 5 to 8 channels).
+
+        Returns
+            Number of samples in the segment.
+        """
         maxSamples = self._lowLevelMemorySegments(noSegments)
         self.maxSamples = maxSamples
         self.noSegments = noSegments
         return self.maxSamples
 
     def getMaxMemorySegments(self):
+        """
+        Return the maximum number of memory segments allowed by the device.
+        """
         segments = self._lowLevelGetMaxSegments()
         return segments
 
     def setExtTriggerRange(self, VRange=0.5):
-        """ This function sets the range for the EXT trigger channel
+        """
+        Set the range for the EXT trigger channel.
 
-            This is only implemented for PS4000 series devices where
-            the only acceptable values for VRange are 0.5 or 5.0
+        This is only implemented for PS4000 series devices where
+        the only acceptable values for VRange are 0.5 or 5.0.
         """
         VRangeAPI = None
         for item in self.CHANNEL_RANGE:
@@ -365,26 +463,34 @@ class _PicoscopeBase(object):
 
     def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising",
                          delay=0, timeout_ms=100, enabled=True):
-        """Set up a simple trigger.
+        """
+        Set up a simple trigger.
 
-        trigSrc can be either a number corresponding to the low level
-        specifications of the scope or a string such as 'A' or 'AUX'
+        Parameters
+        ----------
+        trigSrc
+            Either a channel number corresponding to the low level
+            specifications of the scope or a string such as 'A' or 'AUX'.
+        threshold_V
+            Threshold at which to trigger in V.
+        direction
+            Can be a text string such as "Rising" or "Falling",
+            or the value of the dict from self.THRESHOLD_TYPE[] corresponding
+            to your trigger type.
+        delay
+            Number of clock cycles to wait from trigger conditions met
+            until we actually trigger capture.
+        timeout_ms
+            Time to wait in ms from calling runBlock() or similar
+            (e.g. when trigger arms) for the trigger to occur. If no trigger
+            occurs it gives up & auto-triggers.
+        enabled
+            Enable or disable the trigger.
 
-        direction can be a text string such as "Rising" or "Falling",
-        or the value of the dict from self.THRESHOLD_TYPE[] corresponding
-        to your trigger type.
-
-        delay is number of clock cycles to wait from trigger conditions met
-        until we actually trigger capture.
-
-        timeout_ms is time to wait in mS from calling runBlock() or similar
-        (e.g. when trigger arms) for the trigger to occur. If no trigger
-        occurs it gives up & auto-triggers.
-
-        Support for offset is currently untested
-
-        Note, the AUX port (or EXT) only has a range of +- 1V
-        (at least in PS6000)
+        Notes
+        -----
+        - Support for offset is currently untested.
+        - The AUX port (or EXT) only has a range of +- 1V (at least in PS6000).
         """
         if not isinstance(trigSrc, int):
             trigSrc = self.CHANNELS[trigSrc]
@@ -418,20 +524,30 @@ class _PicoscopeBase(object):
                                        direction, delay, timeout_ms)
 
     def getTriggerTimeOffset(self, segmentIndex=0):
+        """
+        Get the trigger time offset in s for a waveform.
+
+        Parameter
+        ---------
+        segmentIndex
+            Index of the memory segment in question.
+        """
         return self._lowLevelGetTriggerTimeOffset(segmentIndex)
 
     def flashLed(self, times=5, start=False, stop=False):
-        """Flash the front panel LEDs.
+        """
+        Flash the front panel LEDs.
 
-        Use one of input arguments to specify how the Picoscope will flash the
-        LED
-
-        times = The number of times the picoscope will flash the LED
-        start = If true, will flash the LED indefinitely
-        stop  = If true, will stop any flashing.
+        Parameters
+        ----------
+        times : int
+            Number of times to flash the LED
+        start : bool
+            Start the LED to flash indefinitely. Equals times < 0.
+        stop : bool
+            Stop the LED to flash. Equals times == 0
 
         Note that calls to the RunStreaming or RunBlock will stop any flashing.
-
         """
         if start:
             times = -1
@@ -441,11 +557,12 @@ class _PicoscopeBase(object):
         self._lowLevelFlashLed(times)
 
     def getScaleAndOffset(self, channel):
-        """Return the scale and offset used to convert the raw waveform.
+        """
+        Return `channel`s scale and offset used to convert the raw waveform.
 
-        To use: first multiply by the scale, then subtract the offset
+        To use: first multiply by the scale, then subtract the offset.
 
-        Returns a dictionary with keys scale and offset
+        Returns a dictionary with keys 'scale' and 'offset'.
         """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
@@ -453,7 +570,24 @@ class _PicoscopeBase(object):
                 'offset': self.CHOffset[channel]}
 
     def rawToV(self, channel, dataRaw, dataV=None, dtype=np.float64):
-        """Convert the raw data to voltage units. Return as numpy array."""
+        """
+        Convert the raw data to voltage units.
+
+        Parameters
+        ----------
+        channel
+            Scope channel number or name.
+        dataRaw
+            Raw data.
+        dataV
+            Numpy array to fill with the data. If None, create an empty one.
+        dtype
+            Datatype for the numpy array to create.
+
+        Return
+        ------
+        Numpy array with the measurement in V.
+        """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
 
@@ -470,18 +604,44 @@ class _PicoscopeBase(object):
                  downSampleMode=0, segmentIndex=0, returnOverflow=False,
                  exceptOverflow=False, dataV=None, dataRaw=None,
                  dtype=np.float64):
-        """Return the data as an array of voltage values.
+        """
+        Return the data of a single channel as an array of voltage values.
 
-        it returns (dataV, overflow) if returnOverflow = True
-        else, it returns returns dataV
-        dataV is an array with size numSamplesReturned
-        overflow is a flag that is true when the signal was either too large
-                 or too small to be properly digitized
+        Paramters
+        ---------
+        channel
+            Scope channel number or name.
+        numSamples
+            Number of samples to return. If 0, take the calculated number from
+            set sampling interval/frequency.
+        startIndex
+            Index of the sample to start transfer.
+        downSampleRatio
+            Downsampling factor that will be applied to the raw data. Multiple
+            downsampling modes can be bitwise-ORed together, but the
+            downSampleRatio must be the same for all modes.
+        downSampleMode
+            Method of downsampling.
+        segmentIndex
+            Index of the memory segment to get data from.
+        returnOverflow
+            Return whether the measurement exceeded the range,
+            additionally to the data.
+        exceptOverflow
+            Raise an IOError exception on overflow.
+        dataV
+            Numpy array to fill with the data. If None, create an empty one.
+        dtype
+            Datatype for the numpy array to create.
+        dataRaw
+            Not used
 
-        if exceptOverflow is true, an IOError exception is raised on overflow
-        if returnOverflow is False. This allows you to detect overflows at
-        higher layers w/o complicated return trees. You cannot however read the
-        'good' data, you only get the exception information then.
+        Return
+        -----
+        dataV : numpy array
+            Numpy array with the values in Volts.
+        overflow : bool, only if returnOverflow is True
+            Whether the measured value exceeded the measurement range.
         """
         (dataRaw, numSamplesReturned, overflow) = self.getDataRaw(
             channel, numSamples, startIndex, downSampleRatio, downSampleMode,
@@ -504,15 +664,37 @@ class _PicoscopeBase(object):
     def getDataRaw(self, channel='A', numSamples=0, startIndex=0,
                    downSampleRatio=1, downSampleMode=0, segmentIndex=0,
                    data=None):
-        """Return the data in the purest form.
+        """
+        Return the data of a single channel.
 
-        It returns a tuple containing:
-        (data, numSamplesReturned, overflow)
-        data is an array of size numSamples
-        numSamplesReturned is the number of samples returned by the Picoscope
-                (I don't know when this would not be equal to numSamples)
-        overflow is a flag that is true when the signal was either too large
-                 or too small to be properly digitized
+        Paramters
+        ---------
+        channel
+            Scope channel number or name.
+        numSamples
+            Number of samples to return. If 0, take the calculated number from
+            set sampling interval/frequency.
+        startIndex
+            Index of the sample to start transfer.
+        downSampleRatio
+            Downsampling factor that will be applied to the raw data. Multiple
+            downsampling modes can be bitwise-ORed together, but the
+            downSampleRatio must be the same for all modes.
+        downSampleMode
+            Method of downsampling.
+        segmentIndex
+            Index of the memory segment to get data from.
+        data
+            Numpy array to fill with the data. If None, create an empty one.
+
+        Return
+        ------
+        data : numpy array
+            Array with the digitalized measurement values.
+        NumSamplesReturned : int
+            Number of samples returned.
+        overflow : bool
+            Whether the measured value exceeded the measurement range.
         """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
@@ -553,7 +735,38 @@ class _PicoscopeBase(object):
     def getDataRawBulk(self, channel='A', numSamples=0, fromSegment=0,
                        toSegment=None, downSampleRatio=1, downSampleMode=0,
                        data=None):
-        """Get data recorded in block mode."""
+        """
+        Get one or more waveforms collected in rapid block mode.
+
+        Parameters
+        ----------
+        channel
+            Scope channel number or name.
+        numSamples
+            Number of samples per segment to return.
+            If 0, take the calculated number from set sampling interval.
+        fromSegment
+            Index of the first segment to retrieve data from.
+        toSegment
+            Index of the last segment to retrieve data from. If None: the last.
+        downSampleRatio
+            Downsampling factor that will be applied to the raw data. Multiple
+            downsampling modes can be bitwise-ORed together, but the
+            downSampleRatio must be the same for all modes.
+        downSampleMode
+            Method of downsampling.
+        data
+            Numpy array to fill with the data. If None, create an empty one.
+
+        Return
+        ------
+        data : numpy array
+            Array containing the raw data.
+        numSamples : int
+            Number of samples retrieved per waveform.
+        overflow : numpy array
+            Array containing whether the range was exceeded.
+        """
         if not isinstance(channel, int):
             channel = self.CHANNELS[channel]
         if toSegment is None:
@@ -588,21 +801,41 @@ class _PicoscopeBase(object):
     def setSigGenBuiltInSimple(self,
                                offsetVoltage=0, pkToPk=2, waveType="Sine",
                                frequency=1E6, shots=1, triggerType="Rising",
-                               triggerSource="None", stopFreq=None,
+                               triggerSource="None", stopFrequency=None,
                                increment=10.0, dwellTime=1E-3, sweepType="Up",
                                numSweeps=0):
-        """Generate simple signals using the built-in waveforms.
+        """
+        Generate simple signals using the built-in waveforms.
 
-        Supported waveforms include:
-           Sine, Square, Triangle, RampUp, RampDown, and DCVoltage
-
-        Some hardware also supports these additional waveforms:
-           Sinc, Gaussian, HalfSine, and WhiteNoise
-
-        To sweep the waveform, set the stopFrequency and optionally the
-        increment, dwellTime, sweepType and numSweeps.
-
-        Supported sweep types: Up, Down, UpDown, DownUp
+        Parameters
+        ----------
+        offsetVoltage
+            Voltage offset.
+        pkToPk
+            Voltage from peak to peak
+        waveType
+            Type of waveform: 'Sine', 'Square', 'Triangle', 'RampUp',
+            'RampDown', and 'DCVoltage'.
+            Some hardware also supports these additional waveforms:
+            'Sinc', 'Gaussian', 'HalfSine', and 'WhiteNoise'.
+        frequency
+            Frequency in Hertz to start at.
+        shots
+            How often to repeat the waveform. If nonzero, `numSweeps`=0.
+        triggerType
+            Type of trigger edge/threshold. See SIGGEN_TRIGGER_TYPES.
+        triggerSource
+            Source of the waveform trigger. See SIGGEN_TRIGGER_SOURCES.
+        stopFrequency
+            Frequency in Hertz to stop at. If None, do not sweep.
+        increment
+            Frequency change in Hertz, if in sweep mode.
+        dwellTime
+            Time in seconds between two frequency changes in sweep mode.
+        sweepType
+            Type of sweeping the frequency: 'Up', 'Down', 'UpDown', 'DownUp'.
+        numSweeps
+            Number of sweeps. If nonzero, `shots` has to be zero.
         """
         # I put this here, because the python idiom None is very
         # close to the "None" string we expect
@@ -620,13 +853,14 @@ class _PicoscopeBase(object):
 
         self._lowLevelSetSigGenBuiltInSimple(
             offsetVoltage, pkToPk, waveType, frequency, shots, triggerType,
-            triggerSource, stopFreq, increment, dwellTime, sweepType,
+            triggerSource, stopFrequency, increment, dwellTime, sweepType,
             numSweeps)
 
     def setAWGSimple(self, waveform, duration, offsetVoltage=None,
                      pkToPk=None, indexMode="Single", shots=1,
                      triggerType="Rising", triggerSource="ScopeTrig"):
-        """Set the AWG to output your desired wavefrom.
+        """
+        Set the AWG to output your desired waveform.
 
         If you require precise control of the timestep increment, you should
         use setSigGenAritrarySimpleDelaPhase instead
@@ -634,8 +868,7 @@ class _PicoscopeBase(object):
         Check setSigGenAritrarySimpleDelaPhase for parameter explanation
 
         Returns:
-            The actual duration of the waveform
-
+            The actual duration of the waveform.
         """
         sampling_interval = duration / len(waveform)
 
@@ -661,7 +894,8 @@ class _PicoscopeBase(object):
                                pkToPk=None, indexMode="Single", shots=1,
                                triggerType="Rising",
                                triggerSource="ScopeTrig"):
-        """Specify deltaPhase between each sample and not the total waveform
+        """
+        Specify deltaPhase between each sample and not the total waveform
         duration.
 
         Returns the actual time duration of the waveform
@@ -851,10 +1085,7 @@ class _PicoscopeBase(object):
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
 
     def enumerateUnits(self):
-        """Enumerate connceted units.
-
-        Return serial numbers as list of strings.
-        """
+        """Return connected units as serial numbers as list of strings."""
         return self._lowLevelEnumerateUnits()
 
     def ping(self):
@@ -862,15 +1093,24 @@ class _PicoscopeBase(object):
         return self._lowLevelPingUnit()
 
     def open(self, serialNumber=None):
-        """Open the scope, using a serialNumber if given."""
+        """Open the scope, using `serialNumber` if given."""
         self._lowLevelOpenUnit(serialNumber)
 
     def openUnitAsync(self, serialNumber=None):
-        """Open the scope asynchronously."""
+        """Open the scope asynchronously, using `serialNumber` if given."""
         self._lowLevelOpenUnitAsync(serialNumber)
 
     def openUnitProgress(self):
-        """Return a tuple (progress, completed)."""
+        """
+        Check the progress of the opening procedure.
+
+        Return
+        ------
+        progress
+            Percentage of the opening procedure.
+        completed : bool
+            Whether the opening has completed.
+        """
         return self._lowLevelOpenUnitProgress()
 
     def close(self):
@@ -879,7 +1119,6 @@ class _PicoscopeBase(object):
 
         You should call this yourself because the Python garbage collector
         might take some time.
-
         """
         if self.handle is not None:
             self._lowLevelCloseUnit()
@@ -892,32 +1131,31 @@ class _PicoscopeBase(object):
     def __del__(self):
         self.close()
 
-    def checkResult(self, ec):
+    def checkResult(self, errorCode):
         """Check result of function calls, raise exception if not 0."""
         # NOTE: This will break some oscilloscopes that are powered by USB.
         # Some of the newer scopes, can actually be powered by USB and will
         # return a useful value. That should be given back to the user.
         # I guess we can deal with these edge cases in the functions themselves
-        if ec == 0:
+        if errorCode == 0:
             return
 
         else:
-            # print("Error Num: 0x%x"%ec)
-            ecName = self.errorNumToName(ec)
-            ecDesc = self.errorNumToDesc(ec)
+            ecName = self.errorNumToName(errorCode)
+            ecDesc = self.errorNumToDesc(errorCode)
             raise IOError('Error calling %s: %s (%s)' % (
                 str(inspect.stack()[1][3]), ecName, ecDesc))
 
-    def errorNumToName(self, num):
-        """Return the name of the error as a string."""
+    def errorNumToName(self, errorCode):
+        """Return the name of the `errorCode` as a string."""
         for t in self.ERROR_CODES:
-            if t[0] == num:
+            if t[0] == errorCode:
                 return t[1]
 
-    def errorNumToDesc(self, num):
-        """Return the description of the error as a string."""
+    def errorNumToDesc(self, errorCode):
+        """Return the description of the `errorCode` as a string."""
         for t in self.ERROR_CODES:
-            if t[0] == num:
+            if t[0] == errorCode:
                 try:
                     return t[2]
                 except IndexError:
@@ -939,5 +1177,3 @@ class _PicoscopeBase(object):
             elif powerstate == "PICO_POWER_SUPPLY_NOT_CONNECTED":
                 powerstate = 0x11A
         self._lowLevelChangePowerSource(powerstate)
-
-    ERROR_CODES = _ERROR_CODES
