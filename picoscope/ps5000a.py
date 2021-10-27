@@ -289,7 +289,8 @@ class PS5000a(_PicoscopeBase):
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
                           timebase, oversample, segmentIndex, callback,
                           pParameter):
-        # Oversample is NOT used!
+        # Hold a reference to the callback so that the Python
+        # function pointer doesn't get free'd.
         self._c_runBlock_callback = blockReady(callback)
         timeIndisposedMs = c_int32()
         m = self.lib.ps5000aRunBlock(
