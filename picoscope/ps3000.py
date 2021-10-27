@@ -191,8 +191,10 @@ class PS3000(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
-                          timebase, oversample, segmentIndex):
+                          timebase, oversample, segmentIndex, callback,
+                          pParameter):
         # NOT: Oversample is NOT used!
+        # Note: callback and pParameter are not available.
 
         # TODO: Fix 'delay' which is where trigger occurs in block
         if numPreTrigSamples > 0:

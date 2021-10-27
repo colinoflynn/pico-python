@@ -269,7 +269,8 @@ class PS2000a(_PicoscopeBase):
         return maxSegments.value
 
     def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
-                          timebase, oversample, segmentIndex):
+                          timebase, oversample, segmentIndex, callback,
+                          pParameter):
         # NOT: Oversample is NOT used!
         timeIndisposedMs = c_int32()
         m = self.lib.ps2000aRunBlock(
@@ -278,6 +279,8 @@ class PS2000a(_PicoscopeBase):
             c_int16(oversample), byref(timeIndisposedMs),
             c_uint32(segmentIndex),
             c_void_p(), c_void_p())
+        # According to the documentation, 'callback, pParameter' should work
+        # instead of the last two c_void_p parameters.
         self.checkResult(m)
         return timeIndisposedMs.value
 
