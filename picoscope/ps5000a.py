@@ -71,6 +71,9 @@ def blockReady(function):
      void          * pParameter
     )
     """
+    if function is None:
+        return None
+
     callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_void_p)
     return callback(function)
 
