@@ -347,12 +347,12 @@ class _PicoscopeBase(object):
         Parameters
         ----------
         sampleInterval
-            Desired interval in seconds vetween two samples.
+            Desired interval in seconds between two samples.
         duration
             Desired duration of measurement.
         oversample
             Average over several measurements in the sample interval.
-            Not many picoscopes are capable of oversampling
+            Not many picoscopes are capable of oversampling.
         segmentIndex
             Index of the memory segment to store data into.
 
