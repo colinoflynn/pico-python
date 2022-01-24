@@ -59,7 +59,7 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, \
-    c_int8, c_int16, c_int32, c_uint32, c_uint64, c_void_p, CFUNCTYPE
+    c_int8, c_int16, c_int32, c_uint32, c_int64, c_uint64, c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -74,6 +74,8 @@ def blockReady(function):
      void          * pParameter
     )
     """
+    if function is None:
+        return None
     callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_void_p)
     return callback(function)
 
@@ -210,6 +212,8 @@ class PS6000a(_PicoscopeBase):
     ###########################
     # TODO test functions below
     ###########################
+
+    # General unit calls
     def _lowLevelOpenUnit(self, serialNumber):
         c_handle = c_int16()
         if serialNumber is not None:
@@ -234,7 +238,6 @@ class PS6000a(_PicoscopeBase):
         m = self.lib.ps6000aOpenUnitAsync(byref(c_status), serialNumberStr,
                                           self.resolution)
         self.checkResult(m)
-
         return c_status.value
 
     def _lowLevelOpenUnitProgress(self):
@@ -246,10 +249,8 @@ class PS6000a(_PicoscopeBase):
                                              byref(progressPercent),
                                              byref(complete))
         self.checkResult(m)
-
         if complete.value != 0:
             self.handle = handle.value
-
         # if we only wanted to return one value, we could do somethign like
         # progressPercent = progressPercent * (1 - 0.1 * complete)
         return (progressPercent.value, complete.value)
@@ -282,23 +283,6 @@ class PS6000a(_PicoscopeBase):
 
         return serialList
 
-    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
-                            BWLimited):
-        # TODO verify that it is really "On"/"Off"
-        if enabled:
-            m = self.lib.ps6000aSetChannelOn(c_int16(self.handle),
-                                             c_enum(chNum), c_enum(coupling),
-                                             c_enum(VRange), c_float(VOffset),
-                                             c_enum(BWLimited))
-        else:
-            m = self.lib.ps6000aSetChannelOff(c_int16(self.handle),
-                                              c_enum(chNum))
-        self.checkResult(m)
-
-    def _lowLevelStop(self):
-        m = self.lib.ps6000aStop(c_int16(self.handle))
-        self.checkResult(m)
-
     def _lowLevelGetUnitInfo(self, info):
         s = create_string_buffer(256)
         requiredSize = c_int16(0)
@@ -322,37 +306,35 @@ class PS6000a(_PicoscopeBase):
         m = self.lib.ps6000aFlashLed(c_int16(self.handle), c_int16(times))
         self.checkResult(m)
 
+    def _lowLevelPingUnit(self):
+        """Check connection to picoscope and return the error."""
+        return self.lib.ps6000aPingUnit(c_int16(self.handle))
+
+    # Configure measurement
+    def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
+                            BWLimited):
+        # TODO verify that it is really "On"/"Off"
+        if enabled:
+            m = self.lib.ps6000aSetChannelOn(c_int16(self.handle),
+                                             c_enum(chNum), c_enum(coupling),
+                                             c_enum(VRange), c_float(VOffset),
+                                             c_enum(BWLimited))
+        else:
+            m = self.lib.ps6000aSetChannelOff(c_int16(self.handle),
+                                              c_enum(chNum))
+        self.checkResult(m)
+
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
                                   direction, delay, timeout_ms):
         m = self.lib.ps6000aSetSimpleTrigger(
-            c_int16(self.handle), c_int16(enabled),
-            c_enum(trigsrc), c_int16(threshold_adc),
-            c_enum(direction), c_uint32(delay), c_int16(timeout_ms))
+            c_int16(self.handle),
+            c_int16(enabled),
+            c_enum(trigsrc),
+            c_int16(threshold_adc),
+            c_enum(direction),
+            c_uint64(delay),
+            c_uint32(timeout_ms))
         self.checkResult(m)
-
-    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
-                          timebase, oversample, segmentIndex, callback,
-                          pParameter):
-        # Hold a reference to the callback so that the Python
-        # function pointer doesn't get free'd.
-        self._c_runBlock_callback = blockReady(callback)
-        timeIndisposedMs = c_int32()
-        m = self.lib.ps6000aRunBlock(
-            c_int16(self.handle), c_uint32(numPreTrigSamples),
-            c_uint32(numPostTrigSamples), c_uint32(timebase),
-            c_int16(oversample), byref(timeIndisposedMs),
-            c_uint32(segmentIndex), self._c_runBlock_callback, c_void_p())
-        self.checkResult(m)
-        return timeIndisposedMs.value
-
-    def _lowLevelIsReady(self):
-        ready = c_int16()
-        m = self.lib.ps6000aIsReady(c_int16(self.handle), byref(ready))
-        self.checkResult(m)
-        if ready.value:
-            return True
-        else:
-            return False
 
     def _lowLevelGetTimebase(self, timebase, noSamples, oversample,
                              segmentIndex):
@@ -376,22 +358,21 @@ class PS6000a(_PicoscopeBase):
             maximum number of samples available depending on channels
             and timebase chosen.
         """
-        maxSamples = c_int32()
+        maxSamples = c_uint64()
         timeIntervalSeconds = c_float()
 
         m = self.lib.ps6000aGetTimebase(c_int16(self.handle),
                                         c_uint32(timebase),
-                                        c_int32(noSamples),
+                                        c_uint64(noSamples),
                                         byref(timeIntervalSeconds),
                                         byref(maxSamples),
-                                        c_uint32(segmentIndex))
+                                        c_uint64(segmentIndex))
         self.checkResult(m)
 
         return (timeIntervalSeconds.value / 1.0E9, maxSamples.value)
 
     def getTimeBaseNum(self, sampleTimeS):
         """Convert `sampleTimeS` in s to the integer timebase number."""
-        # TODO
         maxSampleTime = (((2 ** 32 - 1) - 4) / 156250000)
 
         if sampleTimeS < 6.4E-9:
@@ -414,6 +395,123 @@ class PS6000a(_PicoscopeBase):
             dt = (timebase - 4) / 156250000.
         return dt
 
+    # Start / stop measurement
+    def _lowLevelStop(self):
+        m = self.lib.ps6000aStop(c_int16(self.handle))
+        self.checkResult(m)
+
+    def _lowLevelRunBlock(self, numPreTrigSamples, numPostTrigSamples,
+                          timebase, oversample, segmentIndex, callback,
+                          pParameter):
+        # Hold a reference to the callback so that the Python
+        # function pointer doesn't get free'd.
+        self._c_runBlock_callback = blockReady(callback)
+        timeIndisposedMs = c_int32()
+        m = self.lib.ps6000aRunBlock(
+            c_int16(self.handle),
+            c_uint64(numPreTrigSamples),
+            c_uint64(numPostTrigSamples),
+            c_uint32(timebase),
+            byref(timeIndisposedMs),
+            c_uint64(segmentIndex),
+            self._c_runBlock_callback,
+            c_void_p())
+        self.checkResult(m)
+        return timeIndisposedMs.value
+
+    def _lowLevelIsReady(self):
+        ready = c_int16()
+        m = self.lib.ps6000aIsReady(c_int16(self.handle), byref(ready))
+        self.checkResult(m)
+        if ready.value:
+            return True
+        else:
+            return False
+
+    # Acquire data
+    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
+                               segmentIndex):
+        """Set the data buffer.
+
+        Be sure to call _lowLevelClearDataBuffer
+        when you are done with the data array
+        or else subsequent calls to GetValue will still use the same array.
+        """
+        dataPtr = data.ctypes.data_as(POINTER(c_int16))
+        numSamples = len(data)
+
+        m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
+                                          c_enum(channel),
+                                          dataPtr,
+                                          c_int32(numSamples),
+                                          dataType,  # TODO
+                                          c_uint64(segmentIndex),
+                                          c_enum(downSampleMode),
+                                          action  # TODO
+                                          )
+        self.checkResult(m)
+
+    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+        m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
+                                          c_enum(channel),
+                                          c_void_p(),
+                                          c_int32(0),
+                                          dataType,  # TODO
+                                          c_uint64(segmentIndex),
+                                          c_enum(0),
+                                          action)  # TODO
+        self.checkResult(m)
+
+    def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
+                           downSampleMode, segmentIndex):
+        numSamplesReturned = c_uint64()
+        numSamplesReturned.value = numSamples
+        overflow = c_int16()
+        m = self.lib.ps6000aGetValues(
+            c_int16(self.handle),
+            c_uint64(startIndex),
+            byref(numSamplesReturned),
+            c_uint64(downSampleRatio),
+            c_enum(downSampleMode),
+            c_uint64(segmentIndex),
+            byref(overflow))
+        self.checkResult(m)
+        return (numSamplesReturned.value, overflow.value)
+
+    def _lowLevelMemorySegments(self, nSegments):
+        nMaxSamples = c_uint64()
+        m = self.lib.ps6000aMemorySegments(c_int16(self.handle),
+                                           c_uint64(nSegments),
+                                           byref(nMaxSamples))
+        self.checkResult(m)
+        return nMaxSamples.value
+
+    def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
+        time = c_int64()
+        timeUnits = c_enum()
+
+        m = self.lib.ps6000aGetTriggerTimeOffset64(
+            c_int16(self.handle),
+            byref(time),
+            byref(timeUnits),
+            c_uint64(segmentIndex))
+        self.checkResult(m)
+
+        if timeUnits.value == 0:    # ps6000a_FS
+            return time.value * 1E-15
+        elif timeUnits.value == 1:  # ps6000a_PS
+            return time.value * 1E-12
+        elif timeUnits.value == 2:  # ps6000a_NS
+            return time.value * 1E-9
+        elif timeUnits.value == 3:  # ps6000a_US
+            return time.value * 1E-6
+        elif timeUnits.value == 4:  # ps6000a_MS
+            return time.value * 1E-3
+        elif timeUnits.value == 5:  # ps6000a_S
+            return time.value * 1E0
+        else:
+            raise TypeError("Unknown timeUnits %d" % timeUnits.value)
+
     ##################################
     # TODO verify functions below here in the manual
     # TODO ensure all relevant functions are in here
@@ -423,6 +521,7 @@ class PS6000a(_PicoscopeBase):
                                         offsetVoltage, pkToPk, indexMode,
                                         shots, triggerType, triggerSource):
         """Waveform should be an array of shorts."""
+        # TODO not in the manual!
         waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
         m = self.lib.ps6000aSetSigGenArbitrary(
@@ -444,45 +543,6 @@ class PS6000a(_PicoscopeBase):
             c_uint32(triggerSource),
             c_int16(0))                          # extInThreshold
         self.checkResult(m)
-
-    def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
-                               segmentIndex):
-        """Set the data buffer.
-
-        Be sure to call _lowLevelClearDataBuffer
-        when you are done with the data array
-        or else subsequent calls to GetValue will still use the same array.
-
-        segmentIndex is unused, but required by other versions of the API
-        (eg PS5000a)
-        """
-        dataPtr = data.ctypes.data_as(POINTER(c_int16))
-        numSamples = len(data)
-
-        m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
-                                          c_enum(channel),
-                                          dataPtr, c_uint32(numSamples),
-                                          c_enum(downSampleMode))
-        self.checkResult(m)
-
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
-        m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
-                                          c_enum(channel),
-                                          c_void_p(), c_uint32(0), c_enum(0))
-        self.checkResult(m)
-
-    def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
-                           downSampleMode, segmentIndex):
-        numSamplesReturned = c_uint32()
-        numSamplesReturned.value = numSamples
-        overflow = c_int16()
-        m = self.lib.ps6000aGetValues(
-            c_int16(self.handle), c_uint32(startIndex),
-            byref(numSamplesReturned), c_uint32(downSampleRatio),
-            c_enum(downSampleMode), c_uint32(segmentIndex),
-            byref(overflow))
-        self.checkResult(m)
-        return (numSamplesReturned.value, overflow.value)
 
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
@@ -507,14 +567,6 @@ class PS6000a(_PicoscopeBase):
             c_int16(0))
         self.checkResult(m)
 
-    def _lowLevelPingUnit(self):
-        """Check connection to picoscope and return the error."""
-        return self.lib.ps6000aPingUnit(c_int16(self.handle))
-
-    ####################################################################
-    # Untested functions below                                         #
-    #                                                                  #
-    ####################################################################
     def _lowLevelGetAnalogueOffset(self, range, coupling):
         # TODO, populate properties with this function
         maximumVoltage = c_float()
@@ -547,40 +599,6 @@ class PS6000a(_PicoscopeBase):
         self.checkResult(m)
 
         return nCaptures.value
-
-    def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
-        time = c_uint64()
-        timeUnits = c_enum()
-
-        m = self.lib.ps6000aGetTriggerTimeOffset64(
-            c_int16(self.handle), byref(time),
-            byref(timeUnits), c_uint32(segmentIndex))
-        self.checkResult(m)
-
-        if timeUnits.value == 0:    # ps6000a_FS
-            return time.value * 1E-15
-        elif timeUnits.value == 1:  # ps6000a_PS
-            return time.value * 1E-12
-        elif timeUnits.value == 2:  # ps6000a_NS
-            return time.value * 1E-9
-        elif timeUnits.value == 3:  # ps6000a_US
-            return time.value * 1E-6
-        elif timeUnits.value == 4:  # ps6000a_MS
-            return time.value * 1E-3
-        elif timeUnits.value == 5:  # ps6000a_S
-            return time.value * 1E0
-        else:
-            raise TypeError("Unknown timeUnits %d" % timeUnits.value)
-
-    def _lowLevelMemorySegments(self, nSegments):
-        nMaxSamples = c_uint32()
-
-        m = self.lib.ps6000aMemorySegments(c_int16(self.handle),
-                                           c_uint32(nSegments),
-                                           byref(nMaxSamples))
-        self.checkResult(m)
-
-        return nMaxSamples.value
 
     def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin,
                                 downSampleRatioMode):
