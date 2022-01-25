@@ -58,8 +58,8 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, c_int16,\
-     c_uint16, c_int32, c_uint32, c_int64, c_uint64, c_void_p, CFUNCTYPE
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, \
+   c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -90,6 +90,8 @@ def dataReady(function):
      void         * pParameter
     )
     """
+    if function is None:
+        return None
     callback = CFUNCTYPE(c_void_p,
                          c_int16, c_uint32, c_uint32, c_int16, c_void_p)
     return callback(function)
@@ -108,6 +110,8 @@ def streamingReady(function):
         void      * pParameter
     )
     """
+    if function is None:
+        return None
     callback = CFUNCTYPE(c_void_p, c_int16, c_int32, c_uint32, c_int16,
                          c_uint32, c_int16, c_int16, c_void_p)
     return callback
@@ -146,7 +150,8 @@ class PS6000a(_PicoscopeBase):
         'add': 0x00000002,  # PICO_ADD
         'clear_this': 0x00001000,  # PICO_CLEAR_THIS_DATA_BUFFER
         'clear_waveform': 0x00002000,  # PICO_CLEAR_WAVEFORM_DATA_BUFFERS
-        'clear_waveform_read': 0x00004000,  # PICO_CLEAR_WAVEFORM_READ_DATA_BUFFERS
+        'clear_waveform_read': 0x00004000,
+        # PICO_CLEAR_WAVEFORM_READ_DATA_BUFFERS
        }
 
     DATA_TYPES = {  # PICO_DATA_TYPE
@@ -636,8 +641,12 @@ class PS6000a(_PicoscopeBase):
         return None, number, required
 
     def _lowLevelStartFirmwareUpdate(self, function):
-        callback = updateFirmwareProgress(function)
-        m = self.lib.ps6000aStartFirmwareUpdate(c_int16(self.handle), callback)
+        # Hold a reference to the callback so that the Python
+        # function pointer doesn't get free'd.
+        self._c_updateFirmware_callback = updateFirmwareProgress(function)
+        m = self.lib.ps6000aStartFirmwareUpdate(
+            c_int16(self.handle),
+            self._c_updateFirmware_callback)
         self.checkResult(m)
 
     "Misc"
@@ -652,39 +661,40 @@ class PS6000a(_PicoscopeBase):
     # Complicated triggering
     # need to understand structs for some of this to work
     def _lowLevelGetValuesTriggerTimeOffsetBulk():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetTriggerChannelConditions():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetTriggerChannelDirections():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetTriggerChannelProperties():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetTriggerDelay():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetTriggerDigitalPortProperties(self):
-        pass
+        raise NotImplementedError()
 
     # Optional input triggering: PulseWidthQualifier
     def _lowLevelSetPulseWidthQualifierConditions(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetPulseWidthQualifierDirections(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetPulseWidthQualifierProperties(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelTriggerWithinPreTriggerSamples(self):
-        pass
+        raise NotImplementedError()
 
     # Data acquisition
     def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin,
                                 downSampleRatioMode):
+        raise NotImplementedError()
         bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
         bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
         bufferLth = len(bufferMax)
@@ -697,6 +707,7 @@ class PS6000a(_PicoscopeBase):
         self.checkResult(m)
 
     def _lowLevelClearDataBuffers(self, channel):
+        raise NotImplementedError()
         m = self.lib.ps6000aSetDataBuffers(
             c_int16(self.handle), c_enum(channel),
             c_void_p(), c_void_p(), c_uint32(0), c_enum(0))
@@ -710,6 +721,7 @@ class PS6000a(_PicoscopeBase):
                                numSamples, fromSegmentIndex, toSegmentIndex,
                                downSampleRatio, downSampleRatioMode,
                                overflow):
+        raise NotImplementedError()
         noOfSamples = c_uint32(numSamples)
 
         m = self.lib.ps6000aGetValuesBulk(
@@ -730,20 +742,21 @@ class PS6000a(_PicoscopeBase):
     # Async functions
     # would be nice, but we would have to learn to implement callbacks
     def _lowLevelGetValuesAsync():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelGetValuesBulkAsync():
-        pass
+        raise NotImplementedError()
 
     # overlapped functions
     def _lowLevelGetValuesOverlapped():
-        pass
+        raise NotImplementedError()
 
     # Streaming related functions
     def _lowLevelGetStreamingLatestValues():
-        pass
+        raise NotImplementedError()
 
     def _lowLevelNoOfStreamingValues(self):
+        raise NotImplementedError()
         noOfValues = c_uint32()
 
         m = self.lib.ps6000aNoOfStreamingValues(c_int16(self.handle),
@@ -753,7 +766,7 @@ class PS6000a(_PicoscopeBase):
         return noOfValues.value
 
     def _lowLevelRunStreaming():
-        pass
+        raise NotImplementedError()
 
     "alphabetically"
 
@@ -764,9 +777,10 @@ class PS6000a(_PicoscopeBase):
         not change the configuration of the oscilloscope.
         """
         # TODO
-        pass
+        raise NotImplementedError()
 
     def _lowLevelGetAnalogueOffsetLimits(self, range, coupling):
+        raise NotImplementedError()
         # TODO, populate properties with this function
         maximumVoltage = c_float()
         minimumVoltage = c_float()
@@ -779,12 +793,13 @@ class PS6000a(_PicoscopeBase):
         return (maximumVoltage.value, minimumVoltage.value)
 
     def _lowLevelGetMaximumAvailableMemory(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelMinimumTimebaseStateless(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelGetNoOfCaptures(self):
+        raise NotImplementedError()
         nCaptures = c_uint32()
 
         m = self.lib.ps6000aGetNoOfCaptures(c_int16(self.handle),
@@ -794,80 +809,81 @@ class PS6000a(_PicoscopeBase):
         return nCaptures.value
 
     def _lowLevelGetNoOfProcessedCaptures(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelGetTriggerInfo(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelMemorySegmentsBySamples(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelNearestSampleIntervalStateless(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelQueryMaxSegmentsBySamples(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelQueryOutputEdgeDetect(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetDigitalPortOff(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetDigitalPortOn(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSetOutputEdgeDetect(self):
-        pass
+        raise NotImplementedError()
 
     # Signal Generator
+    # TODO add signal generator, at least in a simple version.
     def _lowLevelSigGenApply(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenClockManual(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenFilter(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenFrequency(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenFrequencyLimits(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenFrequencySweep(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenLimits(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenPause(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenPhase(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenPhaseSweep(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenRange(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenRestart(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenSoftwareTriggerControl(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenTrigger(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenWaveform(self):
-        pass
+        raise NotImplementedError()
 
     def _lowLevelSigGenWaveformDutyCycle(self):
-        pass
+        raise NotImplementedError()
 
     ######################################################
     # TODO methods below are not in the programmer's guide
@@ -876,6 +892,7 @@ class PS6000a(_PicoscopeBase):
                                         offsetVoltage, pkToPk, indexMode,
                                         shots, triggerType, triggerSource):
         """Waveform should be an array of shorts."""
+        # TODO called by picobase.
         raise NotImplementedError()
         waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
@@ -903,6 +920,8 @@ class PS6000a(_PicoscopeBase):
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
                                         dwellTime, sweepType, numSweeps):
+        # TODO add. Called by picobase.
+
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future
         raise NotImplementedError()
@@ -921,43 +940,4 @@ class PS6000a(_PicoscopeBase):
             c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
-        self.checkResult(m)
-
-    def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
-                                       downSampleRatioMode, segmentIndex):
-        raise NotImplementedError()
-        maxDownSampleRatio = c_uint32()
-
-        m = self.lib.ps6000aGetMaxDownSampleRatio(
-            c_int16(self.handle), c_uint32(noOfUnaggregatedSamples),
-            byref(maxDownSampleRatio),
-            c_enum(downSampleRatioMode), c_uint32(segmentIndex))
-        self.checkResult(m)
-
-        return maxDownSampleRatio.value
-
-    def _lowLevelSetDataBufferBulk(self, channel, buffer, waveform,
-                                   downSampleRatioMode):
-        raise NotImplementedError()
-        bufferPtr = buffer.ctypes.data_as(POINTER(c_int16))
-        bufferLth = len(buffer)
-
-        m = self.lib.ps6000aSetDataBufferBulk(
-            c_int16(self.handle),
-            c_enum(channel), bufferPtr, c_uint32(bufferLth),
-            c_uint32(waveform), c_enum(downSampleRatioMode))
-        self.checkResult(m)
-
-    def _lowLevelSetDataBuffersBulk(self, channel, bufferMax, bufferMin,
-                                    waveform, downSampleRatioMode):
-        raise NotImplementedError()
-        bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
-        bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
-
-        bufferLth = len(bufferMax)
-
-        m = self.lib.ps6000aSetDataBuffersBulk(
-            c_int16(self.handle), c_enum(channel),
-            bufferMaxPtr, bufferMinPtr, c_uint32(bufferLth),
-            c_uint32(waveform), c_enum(downSampleRatioMode))
         self.checkResult(m)

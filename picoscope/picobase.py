@@ -866,9 +866,9 @@ class _PicoscopeBase(object):
         Set the AWG to output your desired waveform.
 
         If you require precise control of the timestep increment, you should
-        use setSigGenAritrarySimpleDelaPhase instead
+        use setSigGenAritrarySimpleDeltaPhase instead
 
-        Check setSigGenAritrarySimpleDelaPhase for parameter explanation
+        Check setSigGenAritrarySimpleDeltaPhase for parameter explanation
 
         Returns:
             The actual duration of the waveform.
@@ -911,7 +911,7 @@ class _PicoscopeBase(object):
 
         This should in theory minimize the quantization error in the ADC.
 
-        else, the waveform shoudl be a numpy int16 type array with the
+        else, the waveform should be a numpy int16 type array with the
         containing waveform
 
         For the Quad mode, if offset voltage is not provided, then waveform[0]
