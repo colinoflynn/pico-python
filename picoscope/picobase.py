@@ -1082,10 +1082,14 @@ class _PicoscopeBase(object):
         self._lowLevelSigGenSoftwareControl(state)
 
     def setResolution(self, resolution):
-        """For 5000-series or certain 4000-series scopes ONLY,
+        """For 6000-series, 5000-series or certain 4000-series scopes ONLY,
         sets the resolution.
         """
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
+
+    def getResolution(self):
+        """Get the currently set resolution."""
+        return self._lowLevelGetDeviceResolution()
 
     def enumerateUnits(self):
         """Return connected units as serial numbers as list of strings."""
