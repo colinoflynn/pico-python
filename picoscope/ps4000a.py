@@ -509,6 +509,19 @@ class PS4000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
+    def _lowLevelGetValuesAsync(self, numSamples, startIndex, downSampleRatio,
+                                downSampleMode, segmentIndex, callback, pPar):
+        self._c_getValues_callback = dataReady(callback)
+        m = self.lib.ps4000aGetValuesAsync(c_int16(self.handle),
+                                           c_uint32(startIndex),
+                                           c_uint32(numSamples),
+                                           c_uint32(downSampleRatio),
+                                           c_enum(downSampleMode),
+                                           c_uint32(segmentIndex),
+                                           self._c_getValues_callback,
+                                           c_void_p())
+        self.checkResult(m)
+
     def _lowLevelSetDeviceResolution(self, resolution):
         self.resolution = resolution
         m = self.lib.ps4000aSetDeviceResolution(
