@@ -713,10 +713,6 @@ class PS4000a(_PicoscopeBase):
         pass
 
     # Async functions
-    # would be nice, but we would have to learn to implement callbacks
-    def _lowLevelGetValuesAsync(self):
-        pass
-
     def _lowLevelGetValuesBulkAsync(self):
         pass
 
