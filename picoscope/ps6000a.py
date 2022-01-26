@@ -67,7 +67,7 @@ from picoscope.picobase import _PicoscopeBase
 
 # Decorators for callback functions. PICO_STATUS is uint32_t.
 def blockReady(function):
-    """typedef void (*ps4000aBlockReady)
+    """typedef void (*ps6000aBlockReady)
     (
      int16_t         handle,
      PICO_STATUS     status,
@@ -81,40 +81,20 @@ def blockReady(function):
 
 
 def dataReady(function):
-    """typedef void (*ps4000aDataReady)
+    """typedef void (*ps6000aDataReady)
     (
      int16_t         handle,
      PICO_STATUS     status,
-     uint32_t        noOfSamples,
+     uint64_t        noOfSamples,
      int16_t         overflow,
      void         * pParameter
     )
     """
     if function is None:
         return None
-    callback = CFUNCTYPE(c_void_p,
-                         c_int16, c_uint32, c_uint32, c_int16, c_void_p)
+    callback = CFUNCTYPE(c_void_p, c_int16, c_uint32, c_uint64, c_int16,
+                         c_void_p)
     return callback(function)
-
-
-def streamingReady(function):
-    """typedef void (*ps4000aStreamingReady)
-    (
-        int16_t     handle,
-        int32_t     noOfSamples,
-        uint32_t    startIndex,
-        int16_t     overflow,
-        uint32_t    triggerAt,
-        int16_t     triggered,
-        int16_t     autoStop,
-        void      * pParameter
-    )
-    """
-    if function is None:
-        return None
-    callback = CFUNCTYPE(c_void_p, c_int16, c_int32, c_uint32, c_int16,
-                         c_uint32, c_int16, c_int16, c_void_p)
-    return callback
 
 
 def updateFirmwareProgress(function):
@@ -444,9 +424,8 @@ class PS6000a(_PicoscopeBase):
         """
         if type(resolution) is str:
             resolution = self.ADC_RESOLUTIONS(resolution)
-        m = self.lib.ps6000aSetDeviceResolution(
-            c_int16(self.handle),
-            resolution)
+        m = self.lib.ps6000aSetDeviceResolution(c_int16(self.handle),
+                                                resolution)
         self.checkResult(m)
         self.resolution = resolution
         self.MIN_VALUE, self.MAX_VALUE = self._lowLevelGetAdcLimits(resolution)
@@ -458,11 +437,10 @@ class PS6000a(_PicoscopeBase):
         """
         minimum = c_int16()
         maximum = c_int16()
-        m = self.lib.ps6000aGetAdcLimits(
-            c_int16(self.handle),
-            self.ADC_RESOLUTIONS(resolution),
-            byref(minimum),
-            byref(maximum))
+        m = self.lib.ps6000aGetAdcLimits(c_int16(self.handle),
+                                         self.ADC_RESOLUTIONS(resolution),
+                                         byref(minimum),
+                                         byref(maximum))
         self.checkResult(m)
         return minimum, maximum
 
@@ -483,14 +461,13 @@ class PS6000a(_PicoscopeBase):
     # Trigger
     def _lowLevelSetSimpleTrigger(self, enabled, trigsrc, threshold_adc,
                                   direction, delay, timeout_ms):
-        m = self.lib.ps6000aSetSimpleTrigger(
-            c_int16(self.handle),
-            c_int16(enabled),
-            c_enum(trigsrc),
-            c_int16(threshold_adc),
-            c_enum(direction),
-            c_uint64(delay),
-            c_uint32(timeout_ms))
+        m = self.lib.ps6000aSetSimpleTrigger(c_int16(self.handle),
+                                             c_int16(enabled),
+                                             c_enum(trigsrc),
+                                             c_int16(threshold_adc),
+                                             c_enum(direction),
+                                             c_uint64(delay),
+                                             c_uint32(timeout_ms))
         self.checkResult(m)
 
     # Start / stop measurement
@@ -505,15 +482,14 @@ class PS6000a(_PicoscopeBase):
         # function pointer doesn't get free'd.
         self._c_runBlock_callback = blockReady(callback)
         timeIndisposedMs = c_int32()
-        m = self.lib.ps6000aRunBlock(
-            c_int16(self.handle),
-            c_uint64(numPreTrigSamples),
-            c_uint64(numPostTrigSamples),
-            c_uint32(timebase),
-            byref(timeIndisposedMs),
-            c_uint64(segmentIndex),
-            self._c_runBlock_callback,
-            c_void_p())
+        m = self.lib.ps6000aRunBlock(c_int16(self.handle),
+                                     c_uint64(numPreTrigSamples),
+                                     c_uint64(numPostTrigSamples),
+                                     c_uint32(timebase),
+                                     byref(timeIndisposedMs),
+                                     c_uint64(segmentIndex),
+                                     self._c_runBlock_callback,
+                                     c_void_p())
         self.checkResult(m)
         return timeIndisposedMs.value
 
@@ -526,7 +502,7 @@ class PS6000a(_PicoscopeBase):
         else:
             return False
 
-    # Acquire data
+    # Setup data acquisition.
     def _lowLevelMemorySegments(self, nSegments):
         nMaxSamples = c_uint64()
         m = self.lib.ps6000aMemorySegments(c_int16(self.handle),
@@ -584,32 +560,44 @@ class PS6000a(_PicoscopeBase):
         self._lowLevelSetDataBuffer(channel, data, downSampleMode,
                                     segmentIndex)
 
+    # Acquire data.
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
                            downSampleMode, segmentIndex):
         numSamplesReturned = c_uint64()
         numSamplesReturned.value = numSamples
         overflow = c_int16()
-        m = self.lib.ps6000aGetValues(
-            c_int16(self.handle),
-            c_uint64(startIndex),
-            byref(numSamplesReturned),
-            c_uint64(downSampleRatio),
-            c_enum(downSampleMode),
-            c_uint64(segmentIndex),
-            byref(overflow))
+        m = self.lib.ps6000aGetValues(c_int16(self.handle),
+                                      c_uint64(startIndex),
+                                      byref(numSamplesReturned),
+                                      c_uint64(downSampleRatio),
+                                      c_enum(downSampleMode),
+                                      c_uint64(segmentIndex),
+                                      byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
+
+    def _lowLevelGetValuesAsync(self, numSamples, startIndex, downSampleRatio,
+                                downSampleMode, segmentIndex, callback, pPar):
+        self._c_getValues_callback = dataReady(callback)
+        m = self.lib.ps6000aGetValuesAsync(c_int16(self.handle),
+                                           c_uint64(startIndex),
+                                           c_uint64(numSamples),
+                                           c_uint64(downSampleRatio),
+                                           c_enum(downSampleMode),
+                                           c_uint64(segmentIndex),
+                                           self._c_getValues_callback,
+                                           c_void_p())
+        self.checkResult(m)
 
     # Misc
     def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
         time = c_int64()
         timeUnits = c_enum()
 
-        m = self.lib.ps6000aGetTriggerTimeOffset64(
-            c_int16(self.handle),
-            byref(time),
-            byref(timeUnits),
-            c_uint64(segmentIndex))
+        m = self.lib.ps6000aGetTriggerTimeOffset64(c_int16(self.handle),
+                                                   byref(time),
+                                                   byref(timeUnits),
+                                                   c_uint64(segmentIndex))
         self.checkResult(m)
 
         try:
@@ -740,10 +728,6 @@ class PS6000a(_PicoscopeBase):
         self.checkResult(m)
 
     # Async functions
-    # would be nice, but we would have to learn to implement callbacks
-    def _lowLevelGetValuesAsync():
-        raise NotImplementedError()
-
     def _lowLevelGetValuesBulkAsync():
         raise NotImplementedError()
 
@@ -892,7 +876,7 @@ class PS6000a(_PicoscopeBase):
                                         offsetVoltage, pkToPk, indexMode,
                                         shots, triggerType, triggerSource):
         """Waveform should be an array of shorts."""
-        # TODO called by picobase.
+        # TODO called by picobase, add a combination of low level functions.
         raise NotImplementedError()
         waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
 
@@ -920,7 +904,7 @@ class PS6000a(_PicoscopeBase):
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
                                         dwellTime, sweepType, numSweeps):
-        # TODO add. Called by picobase.
+        # TODO called by picobase, add a combination of low level functions.
 
         # TODO, I just noticed that V2 exists
         # Maybe change to V2 in the future
