@@ -50,7 +50,7 @@ def test_timebase(ps):
             (800e-12, 2),
             (3.2e-9, 4),
             (6.4e-9, 5),
-            #(12.8-9, 6),
+            (12.8e-9, 6),
             (19.2e-9, 7),
             (3.84e-8, 10),
             (6.144e-7, 100))
@@ -132,6 +132,7 @@ class Handler:
             plt.plot(self.data)
             plt.title("async")
             plt.show()
+            self.ps._lowLevelClearDataBuffer(self.config[0], 0, downSampleMode=0x80000000)
             self.print("Data reading asynchronously test passed.")
         else:
             self.print(f"Data receiving error {status}.")
@@ -155,6 +156,7 @@ class Handler:
             self.data = np.zeros(ps.noSamples, dtype=np.int16)
             if not isinstance(channel, int):
                 channel = ps.CHANNELS[channel]
+            self.config = channel, numSamples
             ps._lowLevelClearDataBufferAll(channel, 0)
             ps._lowLevelSetDataBuffer(channel, self.data, downSampleMode=0x80000000, segmentIndex=0)
             ps._lowLevelGetValuesAsync(ps.noSamples, 0, 1, 0x80000000, 0, self.data_ready, None)
@@ -186,6 +188,45 @@ def test_runBlock_async(ps, channel="A", sample_interval=100e-9,
     print("Run block finished.")
 
 
+def test_downsampling(ps,
+                      sample_interval=100e-9,  # 100 ns
+                      sample_duration=2e-3,  # 1 ms
+                      ):
+    """Test for different downsampling methods."""
+    ps._lowLevelClearDataBufferAll()
+    ps.setChannel(channel="A", coupling="DC", VRange=1)
+    ps.setChannel(channel="B", enabled=False)
+    ps.setChannel(channel="C", enabled=False)
+    ps.setChannel(channel="D", enabled=False)
+
+    ps.setResolution('12')
+    ps.memorySegments(1)
+    ps.setNoOfCaptures(1)
+    interval, samples, maxSamples = ps.setSamplingInterval(sample_interval, sample_duration)
+    ps.setSimpleTrigger("A", threshold_V=0.1, timeout_ms=1)
+
+    ps.runBlock()
+    ps.waitReady()
+
+    data0 = np.zeros(ps.noSamples, dtype=np.int16)
+    data1 = np.zeros(ps.noSamples, dtype=np.int16)
+    data2 = np.zeros(ps.noSamples, dtype=np.int16)
+
+    # downSampleMode raw (no downsampling) is 0x80000000. 0 is invalid!
+    ps.getDataRaw(data=data0, downSampleMode=0x80000000)
+    ps.getDataRaw(data=data1, downSampleMode=ps.RATIO_MODE['decimate'], downSampleRatio=10)
+    ps.getDataRaw(data=data2, downSampleMode=ps.RATIO_MODE['average'], downSampleRatio=10)
+
+    samplesReduced = len(data0) // 10
+    plt.plot(data0, label="raw")
+    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced], data1[:samplesReduced], label="decimate")
+    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced], data2[:samplesReduced], label="average")
+    plt.title("downsampling")
+    plt.legend()
+    plt.show()
+    print("Downsampling test passed.")
+
+
 if __name__ == "__main__":
     """Run all the tests."""
     # Initialize the picoscope
@@ -197,6 +238,7 @@ if __name__ == "__main__":
         test_timebase(ps)
         test_deviceResolution(ps)
         test_rapid_block_mode(ps)
+        test_downsampling(ps)
         test_runBlock_async(ps)
     finally:
         # Close the connection

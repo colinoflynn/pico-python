@@ -111,7 +111,11 @@ def updateFirmwareProgress(function):
 
 
 class PS6000a(_PicoscopeBase):
-    """The following are low-level functions for the ps6000A."""
+    """The following are low-level functions for the ps6000A.
+
+    Due to the new nature of the setDataBuffer method with actions, you have to
+    clear all configured buffers before using a different readout method.
+    """
 
     LIBNAME = "ps6000a"
 
@@ -125,7 +129,6 @@ class PS6000a(_PicoscopeBase):
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
     ACTIONS = {  # PICO_ACTION they can be combined with bitwise OR.
-        # TODO decide on names
         'clear_all': 0x00000001,  # PICO_CLEAR_ALL
         'add': 0x00000002,  # PICO_ADD
         'clear_this': 0x00001000,  # PICO_CLEAR_THIS_DATA_BUFFER
@@ -202,10 +205,6 @@ class PS6000a(_PicoscopeBase):
     AWGDACInterval = 5E-9  # in seconds
     AWGDACFrequency = 1 / AWGDACInterval
 
-    # Note this is NOT what is written in the Programming guide as of version
-    # 10_5_0_28
-    # This issue was acknowledged in this thread
-    # http://www.picotech.com/support/topic13217.html
     AWGMaxVal = 0x0FFF
     AWGMinVal = 0x0000
 
@@ -434,7 +433,6 @@ class PS6000a(_PicoscopeBase):
         This function gets the maximum and minimum sample values that the ADC
         can produce at a given resolution.
         """
-        # TODO verify
         if type(resolution) is str:
             resolution = self.ADC_RESOLUTIONS[resolution]
         minimum = c_int16()
@@ -556,8 +554,8 @@ class PS6000a(_PicoscopeBase):
                                           self.ACTIONS['clear_this'])
         self.checkResult(m)
 
-    def _lowLevelClearDataBufferAll(self, channel, segmentIndex):
-        """Clear all the stored buffers."""
+    def _lowLevelClearDataBufferAll(self, channel=1, segmentIndex=0):
+        """Clear all the stored buffers for all channels."""
         m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
                                           c_enum(channel),
                                           c_void_p(),
