@@ -125,7 +125,7 @@ class PS6000a(_PicoscopeBase):
 
     NUM_CHANNELS = 4
     CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3,
-                "External": 4, "MaxChannels": 4, "TriggerAux": 5}
+                "External": 1000, "MaxChannels": 4, "TriggerAux": 1001}
 
     CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
 
@@ -186,7 +186,7 @@ class PS6000a(_PicoscopeBase):
     # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
-    EXT_RANGE_VOLTS = 1
+    EXT_RANGE_VOLTS = 5
 
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
