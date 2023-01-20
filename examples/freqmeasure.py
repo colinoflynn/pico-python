@@ -50,7 +50,7 @@ class freqMeasure():
 
     def measure(self):
         print("Waiting for trigger")
-        while(self.ps.isReady() is False):
+        while not self.ps.isReady():
             time.sleep(0.01)
         print("Sampling Done")
         data = self.ps.getDataV("A", 50000)

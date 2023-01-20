@@ -41,7 +41,7 @@ def examplePS6000():
 
     for i in range(0, 50):
         ps.runBlock()
-        while(ps.isReady() is False):
+        while not ps.isReady():
             time.sleep(0.01)
 
         print("Sampling Done")

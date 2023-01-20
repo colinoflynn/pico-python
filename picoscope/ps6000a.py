@@ -669,7 +669,8 @@ class PS6000a(_PicoscopeBase):
         firmware_info = create_string_buffer(25600000)
         number = c_int16()
         required = c_uint16()
-        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle), byref(firmware_info),
+        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle),
+                                           byref(firmware_info),
                                            byref(number), byref(required))
         self.checkResult(m)
         return firmware_info, number, required
@@ -788,8 +789,8 @@ class PS6000a(_PicoscopeBase):
     def _lowLevelChannelCombinationsStateless(self, resolution, timebase):
         """
         Return a list of the possible channel combinations given a proposed
-        configuration (`resolution` and `timebase` number) of the oscilloscope. It does
-        not change the configuration of the oscilloscope.
+        configuration (`resolution` and `timebase` number) of the oscilloscope.
+        It does not change the configuration of the oscilloscope.
 
         Bit values of the different flags in a channel combination:
             PICO_CHANNEL_A_FLAGS = 1,
@@ -812,7 +813,7 @@ class PS6000a(_PicoscopeBase):
             resolution = self.ADC_RESOLUTIONS[resolution]
         m = self.lib.ps6000aChannelCombinationsStateless(c_int16(self.handle),
                                                          ChannelCombinations,
-                                                         byref(nChannelCombinations),
+                                                         nChannelCombinations,
                                                          c_uint32(resolution),
                                                          c_uint32(timebase),
                                                          )

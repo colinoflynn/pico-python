@@ -43,26 +43,27 @@ def test_timebase(ps):
             (6.4e-9, 5),
             (10e-9, 5),
             (15e-9, 6))
-    for (time, timebase) in data:
-        text = f"Time {time} does not give timebase {timebase}"
-        assert ps.getTimeBaseNum(time) == timebase, text
-    data = (#(200e-12, 0),
-            (800e-12, 2),
-            (3.2e-9, 4),
-            (6.4e-9, 5),
-            (12.8e-9, 6),
-            (19.2e-9, 7),
-            (3.84e-8, 10),
-            (6.144e-7, 100))
-    for (time, timebase) in data:
-        text = f"{time} s does not fit timebase {timebase}."
-        assert ps.getTimestepFromTimebase(timebase) == time, "Timestep: " + text
+    for (t, timebase) in data:
+        text = f"Time {t} does not give timebase {timebase}"
+        assert ps.getTimeBaseNum(t) == timebase, text
+    data = (
+        (800e-12, 2),
+        (3.2e-9, 4),
+        (6.4e-9, 5),
+        (12.8e-9, 6),
+        (19.2e-9, 7),
+        (3.84e-8, 10),
+        (6.144e-7, 100),
+    )
+    for (t, timebase) in data:
+        text = f"{t} s does not fit timebase {timebase}."
+        assert ps.getTimestepFromTimebase(timebase) == t, "Timestep: " + text
         try:
             timestep, _ = ps._lowLevelGetTimebase(timebase, 10, None, 0)
         except Exception:
-            print(f"getTimebase failed at time {time}, timebase {timebase}.")
+            print(f"getTimebase failed at time {t}, timebase {timebase}.")
             raise
-        assert timestep == time, f"LowLevel: {timestep} != {time}"
+        assert timestep == t, f"LowLevel: {timestep} != {t}"
     print("Timebase test passed.")
 
 
@@ -125,14 +126,17 @@ class Handler:
     def print(self, text):
         print(text)
 
-    def data_ready(self, handle, status, noOfSamples, overflow, pParameter=None):
+    def data_ready(self, handle, status, noOfSamples, overflow,
+                   pParameter=None):
         """Show the asynchronously received data."""
         if status == 0:
-            self.print(f"{noOfSamples} samples received with overflow: {overflow}")
+            self.print(
+                f"{noOfSamples} samples received with overflow: {overflow}")
             plt.plot(self.data)
             plt.title("async")
             plt.show()
-            self.ps._lowLevelClearDataBuffer(self.config[0], 0, downSampleMode=0x80000000)
+            self.ps._lowLevelClearDataBuffer(self.config[0], 0,
+                                             downSampleMode=0x80000000)
             self.print("Data reading asynchronously test passed.")
         else:
             self.print(f"Data receiving error {status}.")
@@ -141,8 +145,8 @@ class Handler:
         """
         Test reading data asynchronously.
 
-        If you call it manually instead of using it as a callback, use pParameter
-        for handing over the picoscope instance.
+        If you call it manually instead of using it as a callback, use
+        pParameter for handing over the picoscope instance.
         """
         if pParameter is not None:
             ps = pParameter
@@ -158,8 +162,11 @@ class Handler:
                 channel = ps.CHANNELS[channel]
             self.config = channel, numSamples
             ps._lowLevelClearDataBufferAll(channel, 0)
-            ps._lowLevelSetDataBuffer(channel, self.data, downSampleMode=0x80000000, segmentIndex=0)
-            ps._lowLevelGetValuesAsync(ps.noSamples, 0, 1, 0x80000000, 0, self.data_ready, None)
+            ps._lowLevelSetDataBuffer(channel, self.data,
+                                      downSampleMode=0x80000000,
+                                      segmentIndex=0)
+            ps._lowLevelGetValuesAsync(ps.noSamples, 0, 1, 0x80000000, 0,
+                                       self.data_ready, None)
             self.print("Get values async started.")
         else:
             self.print("Data is not ready. RunBlock had an error.")
@@ -177,7 +184,8 @@ def test_runBlock_async(ps, channel="A", sample_interval=100e-9,
     ps.memorySegments(1)
     ps.setNoOfCaptures(1)
     ps.setResolution('12')
-    interval, samples, maxSamples = ps.setSamplingInterval(sample_interval, sample_duration)
+    interval, samples, maxSamples = ps.setSamplingInterval(sample_interval,
+                                                           sample_duration)
     ps.setSimpleTrigger("A", threshold_V=0.1, timeout_ms=1)
 
     handler.config = channel, samples
@@ -202,7 +210,8 @@ def test_downsampling(ps,
     ps.setResolution('12')
     ps.memorySegments(1)
     ps.setNoOfCaptures(1)
-    interval, samples, maxSamples = ps.setSamplingInterval(sample_interval, sample_duration)
+    interval, samples, maxSamples = ps.setSamplingInterval(sample_interval,
+                                                           sample_duration)
     ps.setSimpleTrigger("A", threshold_V=0.1, timeout_ms=1)
 
     ps.runBlock()
@@ -214,13 +223,17 @@ def test_downsampling(ps,
 
     # downSampleMode raw (no downsampling) is 0x80000000. 0 is invalid!
     ps.getDataRaw(data=data0, downSampleMode=0x80000000)
-    ps.getDataRaw(data=data1, downSampleMode=ps.RATIO_MODE['decimate'], downSampleRatio=10)
-    ps.getDataRaw(data=data2, downSampleMode=ps.RATIO_MODE['average'], downSampleRatio=10)
+    ps.getDataRaw(data=data1, downSampleMode=ps.RATIO_MODE['decimate'],
+                  downSampleRatio=10)
+    ps.getDataRaw(data=data2, downSampleMode=ps.RATIO_MODE['average'],
+                  downSampleRatio=10)
 
     samplesReduced = len(data0) // 10
     plt.plot(data0, label="raw")
-    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced], data1[:samplesReduced], label="decimate")
-    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced], data2[:samplesReduced], label="average")
+    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced],
+             data1[:samplesReduced], label="decimate")
+    plt.plot(range(0, 10 * samplesReduced, 10)[:samplesReduced],
+             data2[:samplesReduced], label="average")
     plt.title("downsampling")
     plt.legend()
     plt.show()
