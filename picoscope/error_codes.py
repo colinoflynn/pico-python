@@ -374,7 +374,7 @@ ERROR_CODES = [
      ("the driver is performing a capture requested by RunStreaming or "
       "RunBlock to interrupt this capture call Stop on the device first")],
     [0x2000001, "PICO_TRIGGER_TIME_NOT_REQUESTED",
-     "Requesting the TriggerTimeOffset, the trigger time has not been set."]
+     "Requesting the TriggerTimeOffset, the trigger time has not been set."],
     [0x1000000, "PICO_DEVICE_TIME_STAMP_RESET", ""],
     [0x10000000, "PICO_WATCHDOGTIMER", ""],
     [0x10000001, "PICO_IPP_NOT_FOUND", ""],
