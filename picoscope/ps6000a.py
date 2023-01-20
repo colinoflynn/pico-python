@@ -58,8 +58,9 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, c_double,\
-   c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, c_void_p, CFUNCTYPE
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8,\
+    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64,\
+    c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -174,7 +175,8 @@ class PS6000a(_PicoscopeBase):
     RATIO_MODE = {"aggregate": 1,  # max and min of every n data.
                   "decimate": 2,  # Take every n data.
                   "average": 4,  # Average of every n data.
-                  "trigger": 0x40000000,  # 20 samples either side of the trigger. This cannot be combined with any other ratio mode
+                  "trigger": 0x40000000,  # 20 samples either side of the
+                  # trigger. This cannot be combined with any other ratio mode
                   "raw": 0x80000000,  # No downsampling
                   "none": 0x80000000,  # for compatibility
                   }
@@ -540,7 +542,8 @@ class PS6000a(_PicoscopeBase):
                                           self.ACTIONS['add'])
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex, downSampleMode=0):
+    def _lowLevelClearDataBuffer(self, channel, segmentIndex,
+                                 downSampleMode=0):
         """Clear the buffer for the chosen channel, segment, downSampleMode."""
         if downSampleMode == 0:
             downSampleMode = self.RATIO_MODE['raw']
