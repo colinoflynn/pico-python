@@ -125,23 +125,23 @@ def test_rapid_block_mode(ps,
 
 class Handler:
 
-    def print(self, text):
+    def printing(self, text):
         print(text)
 
     def data_ready(self, handle, status, noOfSamples, overflow,
                    pParameter=None):
         """Show the asynchronously received data."""
         if status == 0:
-            self.print("{} samples received with overflow: {}".format(
+            self.printing("{} samples received with overflow: {}".format(
                 noOfSamples, overflow))
             plt.plot(self.data)
             plt.title("async")
             plt.show()
             self.ps._lowLevelClearDataBuffer(self.config[0], 0,
                                              downSampleMode=0x80000000)
-            self.print("Data reading asynchronously test passed.")
+            self.printing("Data reading asynchronously test passed.")
         else:
-            self.print("Data receiving error {}.".format(status))
+            self.printing("Data receiving error {}.".format(status))
 
     def test_read_async(self, handle=None, status=0, pParameter=None):
         """
@@ -155,7 +155,7 @@ class Handler:
         else:
             ps = self.ps
         if status == 0:
-            self.print("Block is ready and can be read.")
+            self.printing("Block is ready and can be read.")
             # config is a global variable written by the caller.
             channel, numSamples = self.config
             # Define data for data_ready.
@@ -169,9 +169,9 @@ class Handler:
                                       segmentIndex=0)
             ps._lowLevelGetValuesAsync(ps.noSamples, 0, 1, 0x80000000, 0,
                                        self.data_ready, None)
-            self.print("Get values async started.")
+            self.printing("Get values async started.")
         else:
-            self.print("Data is not ready. RunBlock had an error.")
+            self.printing("Data is not ready. RunBlock had an error.")
 
 
 def test_runBlock_async(ps, channel="A", sample_interval=100e-9,
