@@ -347,12 +347,12 @@ class _PicoscopeBase(object):
         Parameters
         ----------
         sampleInterval
-            Desired interval in seconds vetween two samples.
+            Desired interval in seconds between two samples.
         duration
             Desired duration of measurement.
         oversample
             Average over several measurements in the sample interval.
-            Not many picoscopes are capable of oversampling
+            Not many picoscopes are capable of oversampling.
         segmentIndex
             Index of the memory segment to store data into.
 
@@ -866,9 +866,9 @@ class _PicoscopeBase(object):
         Set the AWG to output your desired waveform.
 
         If you require precise control of the timestep increment, you should
-        use setSigGenAritrarySimpleDelaPhase instead
+        use setSigGenAritrarySimpleDeltaPhase instead
 
-        Check setSigGenAritrarySimpleDelaPhase for parameter explanation
+        Check setSigGenAritrarySimpleDeltaPhase for parameter explanation
 
         Returns:
             The actual duration of the waveform.
@@ -911,7 +911,7 @@ class _PicoscopeBase(object):
 
         This should in theory minimize the quantization error in the ADC.
 
-        else, the waveform shoudl be a numpy int16 type array with the
+        else, the waveform should be a numpy int16 type array with the
         containing waveform
 
         For the Quad mode, if offset voltage is not provided, then waveform[0]
@@ -1082,10 +1082,14 @@ class _PicoscopeBase(object):
         self._lowLevelSigGenSoftwareControl(state)
 
     def setResolution(self, resolution):
-        """For 5000-series or certain 4000-series scopes ONLY,
+        """For 6000-series, 5000-series or certain 4000-series scopes ONLY,
         sets the resolution.
         """
         self._lowLevelSetDeviceResolution(self.ADC_RESOLUTIONS[resolution])
+
+    def getResolution(self):
+        """Get the currently set resolution."""
+        return self._lowLevelGetDeviceResolution()
 
     def enumerateUnits(self):
         """Return connected units as serial numbers as list of strings."""

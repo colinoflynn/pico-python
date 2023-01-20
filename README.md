@@ -10,6 +10,7 @@ around, but this one tries to improve on them via:
   * Supports both Windows and Linux and Mac
 
 System has support for:
+ * PS6000A Class (Picoscope 6xxxE)
  * PS6000
  * PS5000A Class (PicoScope 5242A/5243A/5244A/5442A/5443A/5444A/5242B/5244B/5442B/5443B/5444B)
  * PS4000A Class (PicoScope 4444/4824)
