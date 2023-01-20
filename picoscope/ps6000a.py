@@ -114,6 +114,9 @@ def updateFirmwareProgress(function):
 class PS6000a(_PicoscopeBase):
     """The following are low-level functions for the ps6000A.
 
+    The 'TriggerAux' channel (trigger input at backside) works with
+    setSimpleTrigger.
+
     Due to the new nature of the setDataBuffer method with actions, you have to
     clear all configured buffers before using a different readout method.
     """
@@ -181,13 +184,11 @@ class PS6000a(_PicoscopeBase):
                   "none": 0x80000000,  # for compatibility
                   }
 
-    # TODO verify values below
-
-    # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
     EXT_RANGE_VOLTS = 5
 
+    # TODO verify AWG values
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
@@ -596,6 +597,24 @@ class PS6000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegmentIndex,
+                               toSegmentIndex, downSampleRatio, downSampleMode,
+                               overflow):
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
+        overflowPoint = overflow.ctypes.data_as(POINTER(c_int16))
+        m = self.lib.ps6000aGetValuesBulk(
+            c_int16(self.handle),
+            c_uint64(0),  # startIndex
+            byref(c_int64(numSamples)),
+            c_int64(fromSegmentIndex),
+            c_int64(toSegmentIndex),
+            c_int64(downSampleRatio),
+            c_enum(downSampleMode),
+            overflowPoint
+        )
+        self.checkResult(m)
+
     def _lowLevelGetValuesAsync(self, numSamples, startIndex, downSampleRatio,
                                 downSampleMode, segmentIndex, callback, pPar):
         if downSampleMode == 0:
@@ -733,26 +752,6 @@ class PS6000a(_PicoscopeBase):
     # These would be nice, but the user would have to provide us
     # with an array.
     # we would have to make sure that it is contiguous amonts other things
-    def _lowLevelGetValuesBulk(self,
-                               numSamples, fromSegmentIndex, toSegmentIndex,
-                               downSampleRatio, downSampleMode,
-                               overflow):
-        if downSampleMode == 0:
-            downSampleMode = self.RATIO_MODE['raw']
-        # TODO this method works.
-        overflowPoint = overflow.ctypes.data_as(POINTER(c_int16))
-        m = self.lib.ps6000aGetValuesBulk(
-            c_int16(self.handle),
-            c_uint64(0),  # startIndex
-            byref(c_int64(numSamples)),
-            c_int64(fromSegmentIndex),
-            c_int64(toSegmentIndex),
-            c_int64(downSampleRatio),
-            c_enum(downSampleMode),
-            overflowPoint
-        )
-        self.checkResult(m)
-
     def _lowLevelSetNoOfCaptures(self, nCaptures):
         m = self.lib.ps6000aSetNoOfCaptures(c_int16(self.handle),
                                             c_uint32(nCaptures))
@@ -899,60 +898,3 @@ class PS6000a(_PicoscopeBase):
 
     def _lowLevelSigGenWaveformDutyCycle(self):
         raise NotImplementedError()
-
-    ######################################################
-    # TODO methods below are not in the programmer's guide
-    ######################################################
-    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
-                                        offsetVoltage, pkToPk, indexMode,
-                                        shots, triggerType, triggerSource):
-        """Waveform should be an array of shorts."""
-        # TODO called by picobase, add a combination of low level functions.
-        raise NotImplementedError()
-        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
-
-        m = self.lib.ps6000aSetSigGenArbitrary(
-            c_int16(self.handle),
-            c_uint32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
-            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
-            c_uint32(int(deltaPhase)),           # startDeltaPhase
-            c_uint32(int(deltaPhase)),           # stopDeltaPhase
-            c_uint32(0),                         # deltaPhaseIncrement
-            c_uint32(0),                         # dwellCount
-            waveformPtr,                         # arbitraryWaveform
-            c_int32(len(waveform)),              # arbitraryWaveformSize
-            c_enum(0),                           # sweepType for deltaPhase
-            c_enum(0),            # operation (adding random noise and whatnot)
-            c_enum(indexMode),                   # single, dual, quad
-            c_uint32(shots),
-            c_uint32(0),                         # sweeps
-            c_uint32(triggerType),
-            c_uint32(triggerSource),
-            c_int16(0))                          # extInThreshold
-        self.checkResult(m)
-
-    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource, stopFreq, increment,
-                                        dwellTime, sweepType, numSweeps):
-        # TODO called by picobase, add a combination of low level functions.
-
-        # TODO, I just noticed that V2 exists
-        # Maybe change to V2 in the future
-        raise NotImplementedError()
-
-        if stopFreq is None:
-            stopFreq = frequency
-
-        m = self.lib.ps6000aSetSigGenBuiltIn(
-            c_int16(self.handle),
-            c_int32(int(offsetVoltage * 1000000)),
-            c_int32(int(pkToPk * 1000000)),
-            c_int16(waveType),
-            c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime),
-            c_enum(sweepType), c_enum(0),
-            c_uint32(shots), c_uint32(numSweeps),
-            c_enum(triggerType), c_enum(triggerSource),
-            c_int16(0))
-        self.checkResult(m)
