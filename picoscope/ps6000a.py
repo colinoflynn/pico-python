@@ -630,25 +630,25 @@ class PS6000a(_PicoscopeBase):
                                            c_void_p())
         self.checkResult(m)
 
-    ###########################
-    # TODO test functions below
-    ###########################
-
     # Misc
     def _lowLevelGetTriggerTimeOffset(self, segmentIndex):
         time = c_int64()
         timeUnits = c_enum()
 
-        m = self.lib.ps6000aGetTriggerTimeOffset64(c_int16(self.handle),
-                                                   byref(time),
-                                                   byref(timeUnits),
-                                                   c_uint64(segmentIndex))
+        m = self.lib.ps6000aGetTriggerTimeOffset(c_int16(self.handle),
+                                                 byref(time),
+                                                 byref(timeUnits),
+                                                 c_uint64(segmentIndex))
         self.checkResult(m)
 
         try:
             return time.value * self.TIME_UNITS[timeUnits.value]
         except KeyError:
             raise TypeError("Unknown timeUnits %d" % timeUnits.value)
+
+    ###########################
+    # TODO test functions below
+    ###########################
 
     "Updates"
 
@@ -665,13 +665,14 @@ class PS6000a(_PicoscopeBase):
         required : bool
             Whether an update is required or not.
         """
-        # TODO what to do with the struct?
+        # TODO raises PICO_STRING_BUFFER_TOO_SMALL
+        firmware_info = create_string_buffer(25600000)
         number = c_int16()
         required = c_uint16()
-        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle), c_void_p(),
+        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle), byref(firmware_info),
                                            byref(number), byref(required))
         self.checkResult(m)
-        return None, number, required
+        return firmware_info, number, required
 
     def _lowLevelStartFirmwareUpdate(self, function):
         # Hold a reference to the callback so that the Python
@@ -784,14 +785,39 @@ class PS6000a(_PicoscopeBase):
 
     "alphabetically"
 
-    def _lowLevelChannelCombinationsStateless(self):
+    def _lowLevelChannelCombinationsStateless(self, resolution, timebase):
         """
         Return a list of the possible channel combinations given a proposed
-        configuration (resolution and timebase) of the oscilloscope. It does
+        configuration (`resolution` and `timebase` number) of the oscilloscope. It does
         not change the configuration of the oscilloscope.
+
+        Bit values of the different flags in a channel combination:
+            PICO_CHANNEL_A_FLAGS = 1,
+            PICO_CHANNEL_B_FLAGS = 2,
+            PICO_CHANNEL_C_FLAGS = 4,
+            PICO_CHANNEL_D_FLAGS = 8,
+            PICO_CHANNEL_E_FLAGS = 16,
+            PICO_CHANNEL_F_FLAGS = 32,
+            PICO_CHANNEL_G_FLAGS = 64,
+            PICO_CHANNEL_H_FLAGS = 128,
+            PICO_PORT0_FLAGS = 65536,
+            PICO_PORT1_FLAGS = 131072,
+            PICO_PORT2_FLAGS = 262144,
+            PICO_PORT3_FLAGS = 524288,
         """
-        # TODO
-        raise NotImplementedError()
+        # TODO raises PICO_CHANNELFLAGSCOMBINATIONS_ARRAY_SIZE_TOO_SMALL
+        ChannelCombinations = create_string_buffer(b"", 100000)
+        nChannelCombinations = c_uint32()
+        if isinstance(resolution, str):
+            resolution = self.ADC_RESOLUTIONS[resolution]
+        m = self.lib.ps6000aChannelCombinationsStateless(c_int16(self.handle),
+                                                         ChannelCombinations,
+                                                         byref(nChannelCombinations),
+                                                         c_uint32(resolution),
+                                                         c_uint32(timebase),
+                                                         )
+        self.checkResult(m)
+        return ChannelCombinations
 
     def _lowLevelGetAnalogueOffsetLimits(self, range, coupling):
         raise NotImplementedError()

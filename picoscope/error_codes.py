@@ -368,7 +368,10 @@ ERROR_CODES = [
     [0x6001, "PICO_HARDWARE_READY_TIMEOUT",
      "waiting for the device be ready for capture timed out"],
     [0x6002, "PICO_HARDWARE_CAPTURING_CALL_STOP",
-     "the driver is performing a capture requested by RunStreaming or RunBlock to interrupt this capture call Stop on the device first"],
+     ("the driver is performing a capture requested by RunStreaming or "
+      "RunBlock to interrupt this capture call Stop on the device first")],
+    [0x2000001, "PICO_TRIGGER_TIME_NOT_REQUESTED",
+     "Requesting the TriggerTimeOffset, the trigger time has not been set."]
     [0x1000000, "PICO_DEVICE_TIME_STAMP_RESET", ""],
     [0x10000000, "PICO_WATCHDOGTIMER", ""],
     [0x10000001, "PICO_IPP_NOT_FOUND", ""],
