@@ -413,7 +413,7 @@ class PS6000a(_PicoscopeBase):
         for key, value in self.ADC_RESOLUTIONS.items():
             if value == self.resolution:
                 return key
-        raise TypeError(f"Unknown resolution {resolution}.")
+        raise TypeError("Unknown resolution {}.".format(resolution))
 
     def _lowLevelSetDeviceResolution(self, resolution):
         """

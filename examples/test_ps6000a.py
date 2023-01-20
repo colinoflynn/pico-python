@@ -44,7 +44,7 @@ def test_timebase(ps):
             (10e-9, 5),
             (15e-9, 6))
     for (t, timebase) in data:
-        text = f"Time {t} does not give timebase {timebase}"
+        text = "Time {} does not give timebase {}".format(t, timebase)
         assert ps.getTimeBaseNum(t) == timebase, text
     data = (
         (800e-12, 2),
@@ -56,14 +56,16 @@ def test_timebase(ps):
         (6.144e-7, 100),
     )
     for (t, timebase) in data:
-        text = f"{t} s does not fit timebase {timebase}."
+        text = "{} s does not fit timebase {}.".format(t, timebase)
         assert ps.getTimestepFromTimebase(timebase) == t, "Timestep: " + text
         try:
             timestep, _ = ps._lowLevelGetTimebase(timebase, 10, None, 0)
         except Exception:
-            print(f"getTimebase failed at time {t}, timebase {timebase}.")
+            print(
+                "getTimebase failed at time {}, timebase {}.".format(t,
+                                                                     timebase))
             raise
-        assert timestep == t, f"LowLevel: {timestep} != {t}"
+        assert timestep == t, "LowLevel: {} != {}".format(timestep, t)
     print("Timebase test passed.")
 
 
@@ -130,8 +132,8 @@ class Handler:
                    pParameter=None):
         """Show the asynchronously received data."""
         if status == 0:
-            self.print(
-                f"{noOfSamples} samples received with overflow: {overflow}")
+            self.print("{} samples received with overflow: {}".format(
+                noOfSamples, overflow))
             plt.plot(self.data)
             plt.title("async")
             plt.show()
@@ -139,7 +141,7 @@ class Handler:
                                              downSampleMode=0x80000000)
             self.print("Data reading asynchronously test passed.")
         else:
-            self.print(f"Data receiving error {status}.")
+            self.print("Data receiving error {}.".format(status))
 
     def test_read_async(self, handle=None, status=0, pParameter=None):
         """
