@@ -886,10 +886,10 @@ class _PicoscopeBase(object):
                 self._lowLevelCloseUnit()
                 self.handle = None
         except AttributeError:
-        # _lowLevelCloseUnit raise: libps5000a.so not found if not connected
+        # self.handle doesn't exist when not connected
             pass
         except OSError:
-        # self.handle doesn't exist when not connected
+        # _lowLevelCloseUnit raise: libps5000a.so not found if not connected
             pass
 
     def stop(self):
