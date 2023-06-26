@@ -881,9 +881,16 @@ class _PicoscopeBase(object):
         might take some time.
 
         """
-        if self.handle is not None:
-            self._lowLevelCloseUnit()
-            self.handle = None
+        try:
+            if self.handle is not None:
+                self._lowLevelCloseUnit()
+                self.handle = None
+        except AttributeError:
+        # _lowLevelCloseUnit raise: libps5000a.so not found if not connected
+            pass
+        except OSError:
+        # self.handle doesn't exist when not connected
+            pass
 
     def stop(self):
         """Stop scope acquisition."""
