@@ -456,7 +456,7 @@ class PS4000a(_PicoscopeBase):
         if self.model == '4828' or self.model.startswith('4824'):
             dt = (timebase + 1) / 8.0E7
         elif self.model == '4444':
-            if timebase < 3:
+            if timebase <= 3:
                 dt = 2 ** timebase / 4.0E8
             else:
                 dt = (timebase - 2) / 5.0E7
