@@ -130,7 +130,7 @@ class PS6000a(_PicoscopeBase):
     CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3,
                 "External": 1000, "MaxChannels": 4, "TriggerAux": 1001}
 
-    CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
+    CHANNEL_COUPLINGS = {"DC50": 50, "DC": 1, "AC": 0}
 
     ACTIONS = {  # PICO_ACTION they can be combined with bitwise OR.
         'clear_all': 0x00000001,  # PICO_CLEAR_ALL
