@@ -58,8 +58,8 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8,\
-    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64,\
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, \
+    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, \
     c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
@@ -130,7 +130,7 @@ class PS6000a(_PicoscopeBase):
     CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3,
                 "External": 1000, "MaxChannels": 4, "TriggerAux": 1001}
 
-    CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
+    CHANNEL_COUPLINGS = {"DC50": 50, "DC": 1, "AC": 0}
 
     ACTIONS = {  # PICO_ACTION they can be combined with bitwise OR.
         'clear_all': 0x00000001,  # PICO_CLEAR_ALL
