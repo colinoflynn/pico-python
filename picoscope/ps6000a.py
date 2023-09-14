@@ -58,8 +58,8 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8,\
-    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64,\
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, \
+    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, \
     c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
