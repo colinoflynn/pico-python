@@ -59,7 +59,8 @@ import platform
 # float is always defined as 32 bits
 # double is defined as 64 bits
 from ctypes import byref, POINTER, create_string_buffer, c_float, c_int8, \
-   c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, c_void_p, CFUNCTYPE
+    c_double, c_int16, c_uint16, c_int32, c_uint32, c_int64, c_uint64, \
+    c_void_p, CFUNCTYPE
 from ctypes import c_int32 as c_enum
 
 from picoscope.picobase import _PicoscopeBase
@@ -111,7 +112,14 @@ def updateFirmwareProgress(function):
 
 
 class PS6000a(_PicoscopeBase):
-    """The following are low-level functions for the ps6000A."""
+    """The following are low-level functions for the ps6000A.
+
+    The 'TriggerAux' channel (trigger input at backside) works with
+    setSimpleTrigger.
+
+    Due to the new nature of the setDataBuffer method with actions, you have to
+    clear all configured buffers before using a different readout method.
+    """
 
     LIBNAME = "ps6000a"
 
@@ -120,19 +128,18 @@ class PS6000a(_PicoscopeBase):
 
     NUM_CHANNELS = 4
     CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3,
-                "External": 4, "MaxChannels": 4, "TriggerAux": 5}
+                "External": 1000, "MaxChannels": 4, "TriggerAux": 1001}
 
-    CHANNEL_COUPLINGS = {"DC50": 2, "DC": 1, "AC": 0}
+    CHANNEL_COUPLINGS = {"DC50": 50, "DC": 1, "AC": 0}
 
     ACTIONS = {  # PICO_ACTION they can be combined with bitwise OR.
-        # TODO decide on names
         'clear_all': 0x00000001,  # PICO_CLEAR_ALL
         'add': 0x00000002,  # PICO_ADD
         'clear_this': 0x00001000,  # PICO_CLEAR_THIS_DATA_BUFFER
         'clear_waveform': 0x00002000,  # PICO_CLEAR_WAVEFORM_DATA_BUFFERS
         'clear_waveform_read': 0x00004000,
         # PICO_CLEAR_WAVEFORM_READ_DATA_BUFFERS
-       }
+    }
 
     DATA_TYPES = {  # PICO_DATA_TYPE
         'int8': 0,  # PICO_INT8_T
@@ -140,7 +147,7 @@ class PS6000a(_PicoscopeBase):
         'int32': 2,  # PICO_INT32_T
         'uint32': 3,  # PICO_UINT32_T
         'int64': 4,  # PICO_INT64_T
-        }
+    }
 
     TIME_UNITS = [  # PICO_TIME_UNITS
         1e-15,  # PICO_FS
@@ -149,7 +156,7 @@ class PS6000a(_PicoscopeBase):
         1e-6,  # PICO_US
         1e-3,  # PICO_MS
         1,  # PICO_S
-        ]
+    ]
 
     # Only at 8 bit, use GetAdcLimits for other resolutions.
     MAX_VALUE = 32512
@@ -168,13 +175,20 @@ class PS6000a(_PicoscopeBase):
                      {"rangeV": 20.0,   "apivalue": 10, "rangeStr": "20 V"},
                      ]
 
-    # TODO verify values below
+    RATIO_MODE = {"aggregate": 1,  # max and min of every n data.
+                  "decimate": 2,  # Take every n data.
+                  "average": 4,  # Average of every n data.
+                  "trigger": 0x40000000,  # 20 samples either side of the
+                  # trigger. This cannot be combined with any other ratio mode
+                  "raw": 0x80000000,  # No downsampling
+                  "none": 0x80000000,  # for compatibility
+                  }
 
-    # EXT/AUX seems to have an imput impedence of 50 ohm (PS6403B)
     EXT_MAX_VALUE = 32767
     EXT_MIN_VALUE = -32767
-    EXT_RANGE_VOLTS = 1
+    EXT_RANGE_VOLTS = 5
 
+    # TODO verify AWG values
     WAVE_TYPES = {"Sine": 0, "Square": 1, "Triangle": 2,
                   "RampUp": 3, "RampDown": 4,
                   "Sinc": 5, "Gaussian": 6, "HalfSine": 7, "DCVoltage": 8,
@@ -187,14 +201,6 @@ class PS6000a(_PicoscopeBase):
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1, "AuxIn": 2,
                               "ExtIn": 3, "SoftTrig": 4, "TriggerRaw": 5}
 
-    # This is actually different depending on the AB/CD models
-    # I wonder how we could detect the difference between the oscilloscopes
-    # I believe we can obtain this information from the setInfo function
-    # by readign the hardware version
-    # for the PS6403B version, the hardware version is "1 1",
-    # an other possibility is that the PS6403B shows up as 6403 when using
-    # VARIANT_INFO and others show up as PS6403X where X = A,C or D
-
     AWGPhaseAccumulatorSize = 32
     AWGBufferAddressWidth = 14
     AWGMaxSamples = 2 ** AWGBufferAddressWidth
@@ -202,10 +208,6 @@ class PS6000a(_PicoscopeBase):
     AWGDACInterval = 5E-9  # in seconds
     AWGDACFrequency = 1 / AWGDACInterval
 
-    # Note this is NOT what is written in the Programming guide as of version
-    # 10_5_0_28
-    # This issue was acknowledged in this thread
-    # http://www.picotech.com/support/topic13217.html
     AWGMaxVal = 0x0FFF
     AWGMinVal = 0x0000
 
@@ -232,10 +234,6 @@ class PS6000a(_PicoscopeBase):
             )
 
         super(PS6000a, self).__init__(serialNumber, connect)
-
-    ###########################
-    # TODO test functions below
-    ###########################
 
     "General unit calls"
 
@@ -313,6 +311,7 @@ class PS6000a(_PicoscopeBase):
         return serialList
 
     def _lowLevelFlashLed(self, times):
+        # TODO verify as it does not work
         m = self.lib.ps6000aFlashLed(c_int16(self.handle), c_int16(times))
         self.checkResult(m)
 
@@ -365,19 +364,20 @@ class PS6000a(_PicoscopeBase):
             and timebase chosen.
         """
         maxSamples = c_uint64()
-        timeIntervalSeconds = c_float()
+        timeIntervalNanoSeconds = c_double()
 
         m = self.lib.ps6000aGetTimebase(c_int16(self.handle),
                                         c_uint32(timebase),
                                         c_uint64(noSamples),
-                                        byref(timeIntervalSeconds),
+                                        byref(timeIntervalNanoSeconds),
                                         byref(maxSamples),
                                         c_uint64(segmentIndex))
         self.checkResult(m)
 
-        return (timeIntervalSeconds.value / 1.0E9, maxSamples.value)
+        return (timeIntervalNanoSeconds.value / 1.0e9, maxSamples.value)
 
-    def getTimeBaseNum(self, sampleTimeS):
+    @staticmethod
+    def getTimeBaseNum(sampleTimeS):
         """Convert `sampleTimeS` in s to the integer timebase number."""
         maxSampleTime = (((2 ** 32 - 1) - 4) / 156250000)
 
@@ -393,7 +393,8 @@ class PS6000a(_PicoscopeBase):
 
         return timebase
 
-    def getTimestepFromTimebase(self, timebase):
+    @staticmethod
+    def getTimestepFromTimebase(timebase):
         """Convert `timebase` index to sampletime in seconds."""
         if timebase < 5:
             dt = 2 ** timebase / 5E9
@@ -408,11 +409,11 @@ class PS6000a(_PicoscopeBase):
         m = self.lib.ps6000aGetDeviceResolution(c_int16(self.handle),
                                                 byref(resolution))
         self.checkResult(m)
-        for key in self.ADC_RESOLUTIONS.keys():
-            if self.ADC_RESOLUTIONS[key] == resolution:
-                self.resolution = key
+        self.resolution = resolution.value
+        for key, value in self.ADC_RESOLUTIONS.items():
+            if value == self.resolution:
                 return key
-        raise TypeError(f"Unknown resolution {resolution}.")
+        raise TypeError("Unknown resolution {}.".format(resolution))
 
     def _lowLevelSetDeviceResolution(self, resolution):
         """
@@ -423,7 +424,7 @@ class PS6000a(_PicoscopeBase):
         can be enabled to capture data.
         """
         if type(resolution) is str:
-            resolution = self.ADC_RESOLUTIONS(resolution)
+            resolution = self.ADC_RESOLUTIONS[resolution]
         m = self.lib.ps6000aSetDeviceResolution(c_int16(self.handle),
                                                 resolution)
         self.checkResult(m)
@@ -435,19 +436,20 @@ class PS6000a(_PicoscopeBase):
         This function gets the maximum and minimum sample values that the ADC
         can produce at a given resolution.
         """
+        if type(resolution) is str:
+            resolution = self.ADC_RESOLUTIONS[resolution]
         minimum = c_int16()
         maximum = c_int16()
         m = self.lib.ps6000aGetAdcLimits(c_int16(self.handle),
-                                         self.ADC_RESOLUTIONS(resolution),
+                                         resolution,
                                          byref(minimum),
                                          byref(maximum))
         self.checkResult(m)
-        return minimum, maximum
+        return minimum.value, maximum.value
 
     # Channel
     def _lowLevelSetChannel(self, chNum, enabled, coupling, VRange, VOffset,
                             BWLimited):
-        # TODO verify that it is really "On"/"Off"
         if enabled:
             m = self.lib.ps6000aSetChannelOn(c_int16(self.handle),
                                              c_enum(chNum), c_enum(coupling),
@@ -467,7 +469,7 @@ class PS6000a(_PicoscopeBase):
                                              c_int16(threshold_adc),
                                              c_enum(direction),
                                              c_uint64(delay),
-                                             c_uint32(timeout_ms))
+                                             c_uint32(timeout_ms * 1000))
         self.checkResult(m)
 
     # Start / stop measurement
@@ -526,7 +528,8 @@ class PS6000a(_PicoscopeBase):
             PICO_ACTION values can be ORed together to allow clearing and
             adding in one call.
         """
-        # TODO understand SetDataBuffer with action and dataType
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
         dataPtr = data.ctypes.data_as(POINTER(c_int16))
         numSamples = len(data)
 
@@ -540,7 +543,23 @@ class PS6000a(_PicoscopeBase):
                                           self.ACTIONS['add'])
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+    def _lowLevelClearDataBuffer(self, channel, segmentIndex,
+                                 downSampleMode=0):
+        """Clear the buffer for the chosen channel, segment, downSampleMode."""
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
+        m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
+                                          c_enum(channel),
+                                          c_void_p(),
+                                          c_int32(0),
+                                          self.DATA_TYPES['int16'],
+                                          c_uint64(segmentIndex),
+                                          c_enum(downSampleMode),
+                                          self.ACTIONS['clear_this'])
+        self.checkResult(m)
+
+    def _lowLevelClearDataBufferAll(self, channel=1, segmentIndex=0):
+        """Clear all the stored buffers for all channels."""
         m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
                                           c_enum(channel),
                                           c_void_p(),
@@ -548,7 +567,7 @@ class PS6000a(_PicoscopeBase):
                                           self.DATA_TYPES['int16'],
                                           c_uint64(segmentIndex),
                                           c_enum(0),
-                                          self.ACTIONS['clear_this'])
+                                          self.ACTIONS['clear_all'])
         self.checkResult(m)
 
     def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex,
@@ -563,6 +582,8 @@ class PS6000a(_PicoscopeBase):
     # Acquire data.
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
                            downSampleMode, segmentIndex):
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
         numSamplesReturned = c_uint64()
         numSamplesReturned.value = numSamples
         overflow = c_int16()
@@ -576,8 +597,28 @@ class PS6000a(_PicoscopeBase):
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
 
+    def _lowLevelGetValuesBulk(self, numSamples, fromSegmentIndex,
+                               toSegmentIndex, downSampleRatio, downSampleMode,
+                               overflow):
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
+        overflowPoint = overflow.ctypes.data_as(POINTER(c_int16))
+        m = self.lib.ps6000aGetValuesBulk(
+            c_int16(self.handle),
+            c_uint64(0),  # startIndex
+            byref(c_int64(numSamples)),
+            c_int64(fromSegmentIndex),
+            c_int64(toSegmentIndex),
+            c_int64(downSampleRatio),
+            c_enum(downSampleMode),
+            overflowPoint
+        )
+        self.checkResult(m)
+
     def _lowLevelGetValuesAsync(self, numSamples, startIndex, downSampleRatio,
                                 downSampleMode, segmentIndex, callback, pPar):
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
         self._c_getValues_callback = dataReady(callback)
         m = self.lib.ps6000aGetValuesAsync(c_int16(self.handle),
                                            c_uint64(startIndex),
@@ -594,16 +635,20 @@ class PS6000a(_PicoscopeBase):
         time = c_int64()
         timeUnits = c_enum()
 
-        m = self.lib.ps6000aGetTriggerTimeOffset64(c_int16(self.handle),
-                                                   byref(time),
-                                                   byref(timeUnits),
-                                                   c_uint64(segmentIndex))
+        m = self.lib.ps6000aGetTriggerTimeOffset(c_int16(self.handle),
+                                                 byref(time),
+                                                 byref(timeUnits),
+                                                 c_uint64(segmentIndex))
         self.checkResult(m)
 
         try:
             return time.value * self.TIME_UNITS[timeUnits.value]
         except KeyError:
             raise TypeError("Unknown timeUnits %d" % timeUnits.value)
+
+    ###########################
+    # TODO test functions below
+    ###########################
 
     "Updates"
 
@@ -620,13 +665,15 @@ class PS6000a(_PicoscopeBase):
         required : bool
             Whether an update is required or not.
         """
-        # TODO what to do with the struct?
+        # TODO raises PICO_STRING_BUFFER_TOO_SMALL
+        firmware_info = create_string_buffer(25600000)
         number = c_int16()
         required = c_uint16()
-        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle), c_void_p(),
+        m = self.lib.ps6000aCheckForUpdate(c_int16(self.handle),
+                                           byref(firmware_info),
                                            byref(number), byref(required))
         self.checkResult(m)
-        return None, number, required
+        return firmware_info, number, required
 
     def _lowLevelStartFirmwareUpdate(self, function):
         # Hold a reference to the callback so that the Python
@@ -681,7 +728,9 @@ class PS6000a(_PicoscopeBase):
 
     # Data acquisition
     def _lowLevelSetDataBuffers(self, channel, bufferMax, bufferMin,
-                                downSampleRatioMode):
+                                downSampleMode):
+        if downSampleMode == 0:
+            downSampleMode = self.RATIO_MODE['raw']
         raise NotImplementedError()
         bufferMaxPtr = bufferMax.ctypes.data_as(POINTER(c_int16))
         bufferMinPtr = bufferMin.ctypes.data_as(POINTER(c_int16))
@@ -691,7 +740,7 @@ class PS6000a(_PicoscopeBase):
                                            c_enum(channel),
                                            bufferMaxPtr, bufferMinPtr,
                                            c_uint32(bufferLth),
-                                           c_enum(downSampleRatioMode))
+                                           c_enum(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelClearDataBuffers(self, channel):
@@ -705,23 +754,6 @@ class PS6000a(_PicoscopeBase):
     # These would be nice, but the user would have to provide us
     # with an array.
     # we would have to make sure that it is contiguous amonts other things
-    def _lowLevelGetValuesBulk(self,
-                               numSamples, fromSegmentIndex, toSegmentIndex,
-                               downSampleRatio, downSampleRatioMode,
-                               overflow):
-        raise NotImplementedError()
-        noOfSamples = c_uint32(numSamples)
-
-        m = self.lib.ps6000aGetValuesBulk(
-            c_int16(self.handle),
-            byref(noOfSamples),
-            c_uint32(fromSegmentIndex), c_uint32(toSegmentIndex),
-            c_uint32(downSampleRatio), c_enum(downSampleRatioMode),
-            overflow.ctypes.data_as(POINTER(c_int16))
-            )
-        self.checkResult(m)
-        return noOfSamples.value
-
     def _lowLevelSetNoOfCaptures(self, nCaptures):
         m = self.lib.ps6000aSetNoOfCaptures(c_int16(self.handle),
                                             c_uint32(nCaptures))
@@ -754,14 +786,39 @@ class PS6000a(_PicoscopeBase):
 
     "alphabetically"
 
-    def _lowLevelChannelCombinationsStateless(self):
+    def _lowLevelChannelCombinationsStateless(self, resolution, timebase):
         """
         Return a list of the possible channel combinations given a proposed
-        configuration (resolution and timebase) of the oscilloscope. It does
-        not change the configuration of the oscilloscope.
+        configuration (`resolution` and `timebase` number) of the oscilloscope.
+        It does not change the configuration of the oscilloscope.
+
+        Bit values of the different flags in a channel combination:
+            PICO_CHANNEL_A_FLAGS = 1,
+            PICO_CHANNEL_B_FLAGS = 2,
+            PICO_CHANNEL_C_FLAGS = 4,
+            PICO_CHANNEL_D_FLAGS = 8,
+            PICO_CHANNEL_E_FLAGS = 16,
+            PICO_CHANNEL_F_FLAGS = 32,
+            PICO_CHANNEL_G_FLAGS = 64,
+            PICO_CHANNEL_H_FLAGS = 128,
+            PICO_PORT0_FLAGS = 65536,
+            PICO_PORT1_FLAGS = 131072,
+            PICO_PORT2_FLAGS = 262144,
+            PICO_PORT3_FLAGS = 524288,
         """
-        # TODO
-        raise NotImplementedError()
+        # TODO raises PICO_CHANNELFLAGSCOMBINATIONS_ARRAY_SIZE_TOO_SMALL
+        ChannelCombinations = create_string_buffer(b"", 100000)
+        nChannelCombinations = c_uint32()
+        if isinstance(resolution, str):
+            resolution = self.ADC_RESOLUTIONS[resolution]
+        m = self.lib.ps6000aChannelCombinationsStateless(c_int16(self.handle),
+                                                         ChannelCombinations,
+                                                         nChannelCombinations,
+                                                         c_uint32(resolution),
+                                                         c_uint32(timebase),
+                                                         )
+        self.checkResult(m)
+        return ChannelCombinations
 
     def _lowLevelGetAnalogueOffsetLimits(self, range, coupling):
         raise NotImplementedError()
@@ -868,60 +925,3 @@ class PS6000a(_PicoscopeBase):
 
     def _lowLevelSigGenWaveformDutyCycle(self):
         raise NotImplementedError()
-
-    ######################################################
-    # TODO methods below are not in the programmer's guide
-    ######################################################
-    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
-                                        offsetVoltage, pkToPk, indexMode,
-                                        shots, triggerType, triggerSource):
-        """Waveform should be an array of shorts."""
-        # TODO called by picobase, add a combination of low level functions.
-        raise NotImplementedError()
-        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
-
-        m = self.lib.ps6000aSetSigGenArbitrary(
-            c_int16(self.handle),
-            c_uint32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
-            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
-            c_uint32(int(deltaPhase)),           # startDeltaPhase
-            c_uint32(int(deltaPhase)),           # stopDeltaPhase
-            c_uint32(0),                         # deltaPhaseIncrement
-            c_uint32(0),                         # dwellCount
-            waveformPtr,                         # arbitraryWaveform
-            c_int32(len(waveform)),              # arbitraryWaveformSize
-            c_enum(0),                           # sweepType for deltaPhase
-            c_enum(0),            # operation (adding random noise and whatnot)
-            c_enum(indexMode),                   # single, dual, quad
-            c_uint32(shots),
-            c_uint32(0),                         # sweeps
-            c_uint32(triggerType),
-            c_uint32(triggerSource),
-            c_int16(0))                          # extInThreshold
-        self.checkResult(m)
-
-    def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
-                                        frequency, shots, triggerType,
-                                        triggerSource, stopFreq, increment,
-                                        dwellTime, sweepType, numSweeps):
-        # TODO called by picobase, add a combination of low level functions.
-
-        # TODO, I just noticed that V2 exists
-        # Maybe change to V2 in the future
-        raise NotImplementedError()
-
-        if stopFreq is None:
-            stopFreq = frequency
-
-        m = self.lib.ps6000aSetSigGenBuiltIn(
-            c_int16(self.handle),
-            c_int32(int(offsetVoltage * 1000000)),
-            c_int32(int(pkToPk * 1000000)),
-            c_int16(waveType),
-            c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime),
-            c_enum(sweepType), c_enum(0),
-            c_uint32(shots), c_uint32(numSweeps),
-            c_enum(triggerType), c_enum(triggerSource),
-            c_int16(0))
-        self.checkResult(m)
