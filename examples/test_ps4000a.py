@@ -29,12 +29,12 @@ def test_timebase(ps):
     else:
         data = ((25e-9, 1),
                 (100e-9, 7))
-    for (time, timebase) in data:
-        text = f"time {time} does not fit timebase {timebase}."
-        assert ps.getTimeBaseNum(time) == timebase, "timebasenum: " + text
-        assert ps.getTimestepFromTimebase(timebase) == time, "Timestep " + text
+    for (t, timebase) in data:
+        text = f"time {t} does not fit timebase {timebase}."
+        assert ps.getTimeBaseNum(t) == timebase, "timebasenum: " + text
+        assert ps.getTimestepFromTimebase(timebase) == t, "Timestep " + text
         timestep, _ = ps._lowLevelGetTimebase(timebase, 10, None, 0)
-        assert timestep == time, f"lowLevel: {timestep} != {time}"
+        assert timestep == t, f"lowLevel: {timestep} != {t}"
     print("Timebase test passed.")
 
 
