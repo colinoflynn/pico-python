@@ -58,7 +58,7 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, \
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_double, \
     c_int16, c_uint16, c_int32, c_uint32, c_uint64, c_void_p, c_int8, \
     CFUNCTYPE
 from ctypes import c_int32 as c_enum
@@ -577,10 +577,10 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aSetSigGenBuiltIn(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
-            c_int32(int(pkToPk * 1000000)),
-            c_int16(waveType),
-            c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime),
+            c_uint32(int(pkToPk * 1000000)),
+            c_enum(waveType),
+            c_double(frequency), c_double(stopFreq),
+            c_double(increment), c_double(dwellTime),
             c_enum(sweepType), c_enum(0),
             c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
