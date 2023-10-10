@@ -587,6 +587,12 @@ class PS4000a(_PicoscopeBase):
             c_int16(0))
         self.checkResult(m)
 
+    def _lowLevelSigGenSoftwareControl(self, state):
+        m = self.lib.ps4000aSigGenSoftwareControl(
+            c_int16(self.handle),
+            c_int16(state))
+        self.checkResult(m)
+
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
         maxDownSampleRatio = c_uint32()
