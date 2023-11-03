@@ -1058,9 +1058,9 @@ class _PicoscopeBase(object):
 
         """
         samplingFrequency = 1 / timeIncrement
-        deltaPhase = int(samplingFrequency / self.AWGDACFrequency *
+        deltaPhase = int(round(samplingFrequency / self.AWGDACFrequency *
                          2 ** (self.AWGPhaseAccumulatorSize -
-                               self.AWGBufferAddressWidth))
+                               self.AWGBufferAddressWidth)))
         return deltaPhase
 
     def getAWGTimeIncrement(self, deltaPhase):
