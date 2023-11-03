@@ -173,6 +173,22 @@ class PS4000a(_PicoscopeBase):
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1,
                               "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
 
+    AWGPhaseAccumulatorSize = 32
+    AWGBufferAddressWidth = 14
+    AWGMaxSamples = 2 ** AWGBufferAddressWidth
+
+    AWGDACInterval = 12.5E-9  # in seconds
+    AWGDACFrequency = 1 / AWGDACInterval
+
+    # From the programmer's guide, p.99, defined for the PicoScope 4824. Values
+    # have been checked against those returned by the
+    # ps4000aSigGenArbitraryMinMaxValues function, with a PS4824 device
+    # connected.
+    AWGMaxVal = 32767
+    AWGMinVal = -32768
+
+    AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
+
     def __init__(self, serialNumber=None, connect=True):
         """Load DLLs."""
         self.handle = None
@@ -471,6 +487,32 @@ class PS4000a(_PicoscopeBase):
             return dt
         return dt
 
+    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
+                                        offsetVoltage, pkToPk, indexMode,
+                                        shots, triggerType, triggerSource):
+        """Waveform should be an array of shorts."""
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
+
+        m = self.lib.ps4000aSetSigGenArbitrary(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
+            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
+            c_uint32(int(deltaPhase)),           # startDeltaPhase
+            c_uint32(int(deltaPhase)),           # stopDeltaPhase
+            c_uint32(0),                         # deltaPhaseIncrement
+            c_uint32(0),                         # dwellCount
+            waveformPtr,                         # arbitraryWaveform
+            c_int32(len(waveform)),              # arbitraryWaveformSize
+            c_enum(0),                           # sweepType for deltaPhase
+            c_enum(0),            # operation (adding random noise and whatnot)
+            c_enum(indexMode),                   # single, dual, quad
+            c_uint32(shots),
+            c_uint32(0),                         # sweeps
+            c_uint32(triggerType),
+            c_uint32(triggerSource),
+            c_int16(0))                          # extInThreshold
+        self.checkResult(m)
+
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
                                segmentIndex):
         """Set the data buffer.
@@ -563,10 +605,6 @@ class PS4000a(_PicoscopeBase):
         """Check connection to picoscope and return the error."""
         return self.lib.ps4000aPingUnit(c_int16(self.handle))
 
-    ####################################################################
-    # Untested functions below                                         #
-    #                                                                  #
-    ####################################################################
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
@@ -592,6 +630,11 @@ class PS4000a(_PicoscopeBase):
             c_int16(self.handle),
             c_int16(state))
         self.checkResult(m)
+
+    ####################################################################
+    # Untested functions below                                         #
+    #                                                                  #
+    ####################################################################
 
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
