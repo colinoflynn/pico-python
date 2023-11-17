@@ -453,7 +453,7 @@ class PS6000a(_PicoscopeBase):
         if enabled:
             m = self.lib.ps6000aSetChannelOn(c_int16(self.handle),
                                              c_enum(chNum), c_enum(coupling),
-                                             c_enum(VRange), c_float(VOffset),
+                                             c_enum(VRange), c_double(VOffset),
                                              c_enum(BWLimited))
         else:
             m = self.lib.ps6000aSetChannelOff(c_int16(self.handle),
