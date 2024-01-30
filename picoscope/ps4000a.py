@@ -280,11 +280,11 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aEnumerateUnits(byref(count), byref(serials),
                                            byref(serialLth))
         self.checkResult(m)
-        # a serial number is rouhgly 8 characters
+        # a serial number is rouhgly 10 characters
         # an extra character for the comma
         # and an extra one for the space after the comma?
         # the extra two also work for the null termination
-        serialLth = c_int16(count.value * (8 + 2))
+        serialLth = c_int16(count.value * (10 + 2))
         serials = create_string_buffer(serialLth.value + 1)
 
         m = self.lib.ps4000aEnumerateUnits(byref(count), serials,
