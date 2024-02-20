@@ -412,21 +412,7 @@ class PS4000a(_PicoscopeBase):
         See "Timebases" section of the PS4000a programmer's guide
         for more information.
         """
-
-        if self.model == '4828':
-            # TODO does a model 4828 exist?
-            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
-
-            if sampleTimeS <= 12.5E-9:
-                timebase = 0
-            else:
-                # Otherwise in range 2^32-1
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-
-                timebase = math.floor((sampleTimeS * 2e7) + 1)
-
-        elif self.model == '4444':
+        if self.model == '4444':
             maxSampleTime = (((2 ** 32 - 1) - 2) / 5.0E7)
 
             if (sampleTimeS <= 2.5E-9 and
@@ -442,49 +428,28 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 5.0E7) + 2)
 
-        elif self.model.startswith('4824'):
-            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
-
-            if sampleTimeS > maxSampleTime:
-                sampleTimeS = maxSampleTime
-            timebase = math.floor(sampleTimeS * 8e7 - 1)
-            timebase = max(0, timebase)
-
-        else:  # The original case from non "A" series
-            warnings.warn("The model PS4000a you are using may not be "
-                          "fully supported", stacklevel=2)
-            maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
-
-            if sampleTimeS <= 12.5E-9:
-                timebase = math.floor(math.log(sampleTimeS * 8E7, 2))
-                timebase = max(timebase, 0)
-            else:
-                # Otherwise in range 2^32-1
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-
-                timebase = math.floor((sampleTimeS * 2e7) + 1)
+        else:
+            timebase = math.floor(sampleTimeS / 12.5e-9 - 1)
+            timebase = max(timebase, 0)
+            timebase = min(timebase, 2 ** 32 - 1)
 
         return timebase
 
     def getTimestepFromTimebase(self, timebase):
-        """Convert `timebase` index to sampletime in seconds."""
-        if self.model == '4828' or self.model.startswith('4824'):
-            dt = (timebase + 1) / 8.0E7
-        elif self.model == '4444':
+        """
+        Convert `timebase` index to sampletime in seconds.
+
+        See "Timebases" section of the PS4000a programmer's guide
+        for more information.
+        """
+        if self.model == '4444':
             if timebase <= 3:
                 dt = 2 ** timebase / 4.0E8
             else:
                 dt = (timebase - 2) / 5.0E7
 
-        else:  # The original case from non "A" series
-            warnings.warn("The model PS4000a you are using may not be "
-                          "fully supported", stacklevel=2)
-            if timebase < 3:
-                dt = 2. ** timebase / 8e7
-            else:
-                dt = (timebase - 1) / 2e7
-            return dt
+        else:
+            dt = (timebase + 1) / 8.0E7
         return dt
 
     def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
