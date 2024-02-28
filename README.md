@@ -46,6 +46,19 @@ python setup.py develop
 You will require the PicoScope DLLs for this package to work. The easiest method is to install the latest PicoScope software
 or SDK from https://www.picotech.com/downloads .
 
+You may need to add the PicoScope install directory to the path, especially if changing between versions. Be sure you have installed a matching 32-bit or 64-bit version for your Python install.
+
+```
+import os
+picoinstallpath = os.path.normpath(r"C:\Program Files\Pico Technology\PicoScope 7 T&M Early Access")
+if picoinstallpath not in os.environ['PATH']:
+    print("Adding Pico Install to Path")
+    os.environ['PATH'] = picoinstallpath + os.pathsep + os.environ['PATH']
+else:
+    print("Pico Install Already on Path")
+```
+
+
 #### Linux
 Install the PicoScope Beta for Linux version of PicoScope as describe under Getting DLL's (above).  Currently this is the only way to install the shared libraries (SDK)
 
