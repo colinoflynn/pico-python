@@ -131,7 +131,8 @@ class PS2000a(_PicoscopeBase):
             from ctypes import cdll
             self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
         elif platform.system() == 'Darwin':
-            self.lib = self.loadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
+            from picoscope.darwin_utils import LoadLibraryDarwin
+            self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
         else:
             from ctypes import windll
             from ctypes.util import find_library
@@ -407,8 +408,7 @@ class PS2000a(_PicoscopeBase):
             c_int16(toSegment),
             c_int32(downSampleRatio),
             c_int16(downSampleMode),
-            overflow.ctypes.data_as(POINTER(c_int16))
-            )
+            overflow.ctypes.data_as(POINTER(c_int16)))
         self.checkResult(m)
         return overflow, numSamples
 
@@ -421,8 +421,7 @@ class PS2000a(_PicoscopeBase):
             byref(timeUpper),
             byref(timeLower),
             byref(timeUnits),
-            c_uint32(segmentIndex),
-            )
+            c_uint32(segmentIndex))
         self.checkResult(m)
 
         # timeUpper and timeLower are the upper 4 and lower 4 bytes of a 64-bit
