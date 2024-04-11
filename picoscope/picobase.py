@@ -1183,4 +1183,6 @@ class _PicoscopeBase(object):
                 powerstate = 0x119
             elif powerstate == "PICO_POWER_SUPPLY_NOT_CONNECTED":
                 powerstate = 0x11A
+            elif powerstate == "PICO_USB3_0_DEVICE_NON_USB3_0_PORT":
+                powerstate = 0x11E
         self._lowLevelChangePowerSource(powerstate)

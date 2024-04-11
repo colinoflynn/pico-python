@@ -177,7 +177,8 @@ class PS5000a(_PicoscopeBase):
         # since the user should address this immediately, and we
         # shouldn't let this go as a soft error
         # but I think this should do for now
-        if m == 0x11A:
+        # PICO_POWER_SUPPLY_NOT_CONNECTED or PICO_USB3_0_DEVICE_NON_USB3_0_PORT
+        if m == 0x11A or m == 0x11E:
             self.changePowerSource(m)
         else:
             self.checkResult(m)
