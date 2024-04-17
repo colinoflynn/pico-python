@@ -494,6 +494,12 @@ class PS5000a(_PicoscopeBase):
             c_int16(0))
         self.checkResult(m)
 
+    def _lowLevelSigGenSoftwareControl(self, state):
+        m = self.lib.ps5000aSigGenSoftwareControl(
+            c_int16(self.handle),
+            c_int16(state))
+        self.checkResult(m)
+
     def _lowLevelSetDeviceResolution(self, resolution):
         self.resolution = resolution
         m = self.lib.ps5000aSetDeviceResolution(
