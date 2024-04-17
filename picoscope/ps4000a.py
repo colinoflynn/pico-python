@@ -58,12 +58,10 @@ import platform
 # use the values specified in the h file
 # float is always defined as 32 bits
 # double is defined as 64 bits
-from ctypes import byref, POINTER, create_string_buffer, c_float, \
+from ctypes import byref, POINTER, create_string_buffer, c_float, c_double, \
     c_int16, c_uint16, c_int32, c_uint32, c_uint64, c_void_p, c_int8, \
     CFUNCTYPE
 from ctypes import c_int32 as c_enum
-
-import warnings
 
 from picoscope.picobase import _PicoscopeBase
 
@@ -173,6 +171,22 @@ class PS4000a(_PicoscopeBase):
     SIGGEN_TRIGGER_SOURCES = {"None": 0, "ScopeTrig": 1,
                               "AuxIn": 2, "ExtIn": 3, "SoftTrig": 4}
 
+    AWGPhaseAccumulatorSize = 32
+    AWGBufferAddressWidth = 14
+    AWGMaxSamples = 2 ** AWGBufferAddressWidth
+
+    AWGDACInterval = 12.5E-9  # in seconds
+    AWGDACFrequency = 1 / AWGDACInterval
+
+    # From the programmer's guide, p.99, defined for the PicoScope 4824. Values
+    # have been checked against those returned by the
+    # ps4000aSigGenArbitraryMinMaxValues function, with a PS4824 device
+    # connected.
+    AWGMaxVal = 32767
+    AWGMinVal = -32768
+
+    AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
+
     def __init__(self, serialNumber=None, connect=True):
         """Load DLLs."""
         self.handle = None
@@ -264,11 +278,11 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aEnumerateUnits(byref(count), byref(serials),
                                            byref(serialLth))
         self.checkResult(m)
-        # a serial number is rouhgly 8 characters
+        # a serial number is rouhgly 10 characters
         # an extra character for the comma
         # and an extra one for the space after the comma?
         # the extra two also work for the null termination
-        serialLth = c_int16(count.value * (8 + 2))
+        serialLth = c_int16(count.value * (10 + 2))
         serials = create_string_buffer(serialLth.value + 1)
 
         m = self.lib.ps4000aEnumerateUnits(byref(count), serials,
@@ -396,21 +410,7 @@ class PS4000a(_PicoscopeBase):
         See "Timebases" section of the PS4000a programmer's guide
         for more information.
         """
-
-        if self.model == '4828':
-            # TODO does a model 4828 exist?
-            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
-
-            if sampleTimeS <= 12.5E-9:
-                timebase = 0
-            else:
-                # Otherwise in range 2^32-1
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-
-                timebase = math.floor((sampleTimeS * 2e7) + 1)
-
-        elif self.model == '4444':
+        if self.model == '4444':
             maxSampleTime = (((2 ** 32 - 1) - 2) / 5.0E7)
 
             if (sampleTimeS <= 2.5E-9 and
@@ -426,50 +426,55 @@ class PS4000a(_PicoscopeBase):
 
                 timebase = math.floor((sampleTimeS * 5.0E7) + 2)
 
-        elif self.model.startswith('4824'):
-            maxSampleTime = (((2 ** 32 - 1) + 1) / 8E7)
-
-            if sampleTimeS > maxSampleTime:
-                sampleTimeS = maxSampleTime
-            timebase = math.floor(sampleTimeS * 8e7 - 1)
-            timebase = max(0, timebase)
-
-        else:  # The original case from non "A" series
-            warnings.warn("The model PS4000a you are using may not be "
-                          "fully supported", stacklevel=2)
-            maxSampleTime = (((2 ** 32 - 1) - 4) / 2e7)
-
-            if sampleTimeS <= 12.5E-9:
-                timebase = math.floor(math.log(sampleTimeS * 8E7, 2))
-                timebase = max(timebase, 0)
-            else:
-                # Otherwise in range 2^32-1
-                if sampleTimeS > maxSampleTime:
-                    sampleTimeS = maxSampleTime
-
-                timebase = math.floor((sampleTimeS * 2e7) + 1)
+        else:
+            timebase = math.floor(sampleTimeS / 12.5e-9 - 1)
+            timebase = max(timebase, 0)
+            timebase = min(timebase, 2 ** 32 - 1)
 
         return timebase
 
     def getTimestepFromTimebase(self, timebase):
-        """Convert `timebase` index to sampletime in seconds."""
-        if self.model == '4828' or self.model.startswith('4824'):
-            dt = (timebase + 1) / 8.0E7
-        elif self.model == '4444':
+        """
+        Convert `timebase` index to sampletime in seconds.
+
+        See "Timebases" section of the PS4000a programmer's guide
+        for more information.
+        """
+        if self.model == '4444':
             if timebase <= 3:
                 dt = 2 ** timebase / 4.0E8
             else:
                 dt = (timebase - 2) / 5.0E7
 
-        else:  # The original case from non "A" series
-            warnings.warn("The model PS4000a you are using may not be "
-                          "fully supported", stacklevel=2)
-            if timebase < 3:
-                dt = 2. ** timebase / 8e7
-            else:
-                dt = (timebase - 1) / 2e7
-            return dt
+        else:
+            dt = (timebase + 1) / 8.0E7
         return dt
+
+    def _lowLevelSetAWGSimpleDeltaPhase(self, waveform, deltaPhase,
+                                        offsetVoltage, pkToPk, indexMode,
+                                        shots, triggerType, triggerSource):
+        """Waveform should be an array of shorts."""
+        waveformPtr = waveform.ctypes.data_as(POINTER(c_int16))
+
+        m = self.lib.ps4000aSetSigGenArbitrary(
+            c_int16(self.handle),
+            c_int32(int(offsetVoltage * 1E6)),  # offset voltage in microvolts
+            c_uint32(int(pkToPk * 1E6)),         # pkToPk in microvolts
+            c_uint32(int(deltaPhase)),           # startDeltaPhase
+            c_uint32(int(deltaPhase)),           # stopDeltaPhase
+            c_uint32(0),                         # deltaPhaseIncrement
+            c_uint32(0),                         # dwellCount
+            waveformPtr,                         # arbitraryWaveform
+            c_int32(len(waveform)),              # arbitraryWaveformSize
+            c_enum(0),                           # sweepType for deltaPhase
+            c_enum(0),            # operation (adding random noise and whatnot)
+            c_enum(indexMode),                   # single, dual, quad
+            c_uint32(shots),
+            c_uint32(0),                         # sweeps
+            c_uint32(triggerType),
+            c_uint32(triggerSource),
+            c_int16(0))                          # extInThreshold
+        self.checkResult(m)
 
     def _lowLevelSetDataBuffer(self, channel, data, downSampleMode,
                                segmentIndex):
@@ -508,6 +513,19 @@ class PS4000a(_PicoscopeBase):
             byref(overflow))
         self.checkResult(m)
         return (numSamplesReturned.value, overflow.value)
+
+    def _lowLevelGetValuesAsync(self, numSamples, startIndex, downSampleRatio,
+                                downSampleMode, segmentIndex, callback, pPar):
+        self._c_getValues_callback = dataReady(callback)
+        m = self.lib.ps4000aGetValuesAsync(c_int16(self.handle),
+                                           c_uint32(startIndex),
+                                           c_uint32(numSamples),
+                                           c_uint32(downSampleRatio),
+                                           c_enum(downSampleMode),
+                                           c_uint32(segmentIndex),
+                                           self._c_getValues_callback,
+                                           c_void_p())
+        self.checkResult(m)
 
     def _lowLevelSetDeviceResolution(self, resolution):
         self.resolution = resolution
@@ -550,10 +568,6 @@ class PS4000a(_PicoscopeBase):
         """Check connection to picoscope and return the error."""
         return self.lib.ps4000aPingUnit(c_int16(self.handle))
 
-    ####################################################################
-    # Untested functions below                                         #
-    #                                                                  #
-    ####################################################################
     def _lowLevelSetSigGenBuiltInSimple(self, offsetVoltage, pkToPk, waveType,
                                         frequency, shots, triggerType,
                                         triggerSource, stopFreq, increment,
@@ -564,15 +578,26 @@ class PS4000a(_PicoscopeBase):
         m = self.lib.ps4000aSetSigGenBuiltIn(
             c_int16(self.handle),
             c_int32(int(offsetVoltage * 1000000)),
-            c_int32(int(pkToPk * 1000000)),
-            c_int16(waveType),
-            c_float(frequency), c_float(stopFreq),
-            c_float(increment), c_float(dwellTime),
+            c_uint32(int(pkToPk * 1000000)),
+            c_enum(waveType),
+            c_double(frequency), c_double(stopFreq),
+            c_double(increment), c_double(dwellTime),
             c_enum(sweepType), c_enum(0),
             c_uint32(shots), c_uint32(numSweeps),
             c_enum(triggerType), c_enum(triggerSource),
             c_int16(0))
         self.checkResult(m)
+
+    def _lowLevelSigGenSoftwareControl(self, state):
+        m = self.lib.ps4000aSigGenSoftwareControl(
+            c_int16(self.handle),
+            c_int16(state))
+        self.checkResult(m)
+
+    ####################################################################
+    # Untested functions below                                         #
+    #                                                                  #
+    ####################################################################
 
     def _lowLevelGetMaxDownSampleRatio(self, noOfUnaggregatedSamples,
                                        downSampleRatioMode, segmentIndex):
@@ -700,10 +725,6 @@ class PS4000a(_PicoscopeBase):
         pass
 
     # Async functions
-    # would be nice, but we would have to learn to implement callbacks
-    def _lowLevelGetValuesAsync(self):
-        pass
-
     def _lowLevelGetValuesBulkAsync(self):
         pass
 
