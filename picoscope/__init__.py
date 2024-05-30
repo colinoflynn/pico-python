@@ -10,6 +10,5 @@ __all__ = ["ps2000",
            "ps5000a",
            "ps6000"]
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+from . import _version
+__version__ = _version.get_versions()['version']
