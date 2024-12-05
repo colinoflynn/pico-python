@@ -158,8 +158,6 @@ class _PicoscopeBase(object):
         # These do not correspond to API values, but rather to
         # the "true" voltage as seen at the oscilloscope probe
 
-        self._check_implementation()
-
         self.CHRange = [5.0] * self.NUM_CHANNELS
         self.CHOffset = [0.0] * self.NUM_CHANNELS
         self.CHCoupling = [1] * self.NUM_CHANNELS
@@ -169,20 +167,6 @@ class _PicoscopeBase(object):
 
         if connect is True:
             self.open(serialNumber)
-
-    def _check_implementation(self):
-        # check if all the things that need to be implemented are implemented
-        assert self.LIBNAME is not None, "LIBNAME must be defined"
-        assert self.MAX_VALUE is not None, "MAX_VALUE must be defined"
-        assert self.MIN_VALUE is not None, "MIN_VALUE must be defined"
-        assert self.EXT_MAX_VALUE is not None, "EXT_MAX_VALUE must be defined"
-        assert self.EXT_MIN_VALUE is not None, "EXT_MIN_VALUE must be defined"
-        assert self.EXT_RANGE_VOLTS is not None, "EXT_RANGE_VOLTS must be defined"
-        assert self.CHANNEL_RANGE is not None, "CHANNEL_RANGE must be defined"
-        assert self.NUM_CHANNELS is not None, "NUM_CHANNELS must be defined"
-        assert self.CHANNELS is not None, "CHANNELS must be defined"
-        assert self.CHANNEL_COUPLINGS is not None, "CHANNEL_COUPLINGS must be defined"
-        assert self.BW_LIMITS is not None, "BW_LIMITS must be defined"
 
 
     def load_library(self, libname: str | None = None, dllPath: str | None = None):
