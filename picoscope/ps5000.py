@@ -50,8 +50,6 @@ from __future__ import unicode_literals
 
 import math
 
-# to load the proper dll
-import platform
 
 # Do not import or use ill definied data types
 # such as short int or long
@@ -134,22 +132,14 @@ class PS5000(_PicoscopeBase):
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
-    def __init__(self, serialNumber=None, connect=True):
-        """Load DLLs."""
-        if platform.system() == 'Linux':
-            from ctypes import cdll
-            # ok I don't know what is wrong with my installer,
-            # but I need to include .so.2
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
-        elif platform.system() == 'Darwin':
-            from picoscope.darwin_utils import LoadLibraryDarwin
-            self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
-        else:
-            from ctypes import windll
-            from ctypes.util import find_library
-            self.lib = windll.LoadLibrary(
-                find_library(str(self.LIBNAME + ".dll"))
-            )
+    def __init__(self, serialNumber=None, connect=True, dllPath=None):
+        """Load DLL and setup API.
+        
+        :param serialNumber: The serial number of the device to connect to.
+        :param connect: If True, then connect to the device.
+        :param dllPath: The path to the dll if not in standard location.
+        """
+        self.load_library(self.LIBNAME, dllPath)
 
         super(PS5000, self).__init__(serialNumber, connect)
 

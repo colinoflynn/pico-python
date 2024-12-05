@@ -50,9 +50,6 @@ from __future__ import unicode_literals
 
 import math
 
-# to load the proper dll
-import platform
-
 # Do not import or use ill definied data types
 # such as short int or long
 # use the values specified in the h file
@@ -124,7 +121,7 @@ class PS6000a(_PicoscopeBase):
     LIBNAME = "ps6000a"
 
     # Resolution in bit
-    ADC_RESOLUTIONS = {"8": 0, "10": 10, "12": 1}
+    ADC_RESOLUTIONS = {"8": 0, "10": 10, "12": 1, 8: 0, 10: 10, 12: 1}
 
     NUM_CHANNELS = 4
     CHANNELS = {"A": 0, "B": 1, "C": 2, "D": 3,
@@ -213,25 +210,17 @@ class PS6000a(_PicoscopeBase):
 
     AWG_INDEX_MODES = {"Single": 0, "Dual": 1, "Quad": 2}
 
-    def __init__(self, serialNumber=None, connect=True, resolution="8"):
-        """Load DLLs."""
+    def __init__(self, serialNumber=None, connect=True, resolution=8, dllPath=None):
+        """Load DLL and setup API.
+        
+        :param serialNumber: The serial number of the device to connect to.
+        :param connect: If True, then connect to the device.
+        :param resolution: The resolution of the device. Can be 8, 10, or 12.
+        :param dllPath: The path to the dll if not in standard location.
+        """
         self.handle = None
         self.resolution = self.ADC_RESOLUTIONS.get(resolution)
-
-        if platform.system() == 'Linux':
-            from ctypes import cdll
-            # ok I don't know what is wrong with my installer,
-            # but I need to include .so.2
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so.2")
-        elif platform.system() == 'Darwin':
-            from picoscope.darwin_utils import LoadLibraryDarwin
-            self.lib = LoadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
-        else:
-            from ctypes import windll
-            from ctypes.util import find_library
-            self.lib = windll.LoadLibrary(
-                find_library(str(self.LIBNAME + ".dll"))
-            )
+        self.load_library(self.LIBNAME, dllPath)
 
         super(PS6000a, self).__init__(serialNumber, connect)
 

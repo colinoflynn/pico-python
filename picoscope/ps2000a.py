@@ -48,8 +48,6 @@ from __future__ import unicode_literals
 import math
 import numpy as np
 
-# to load the proper dll
-import platform
 
 # Do not import or use ill definied data types
 # such as short int or long
@@ -125,19 +123,14 @@ class PS2000a(_PicoscopeBase):
 
     EXT_RANGE_VOLTS = 5
 
-    def __init__(self, serialNumber=None, connect=True):
-        """Load DLL etc."""
-        if platform.system() == 'Linux':
-            from ctypes import cdll
-            self.lib = cdll.LoadLibrary("lib" + self.LIBNAME + ".so")
-        elif platform.system() == 'Darwin':
-            self.lib = self.loadLibraryDarwin("lib" + self.LIBNAME + ".dylib")
-        else:
-            from ctypes import windll
-            from ctypes.util import find_library
-            self.lib = windll.LoadLibrary(
-                find_library(str(self.LIBNAME + ".dll"))
-            )
+    def __init__(self, serialNumber=None, connect=True, dllPath=None):
+        """Load DLL and setup API.
+        
+        :param serialNumber: The serial number of the device to connect to.
+        :param connect: If True, then connect to the device.
+        :param dllPath: The path to the dll if not in standard location.
+        """
+        self.load_library(self.LIBNAME, dllPath)
 
         self.resolution = self.ADC_RESOLUTIONS["8"]
 
