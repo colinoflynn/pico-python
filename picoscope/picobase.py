@@ -537,6 +537,17 @@ class _PicoscopeBase(object):
         """
         return self._lowLevelGetTriggerTimeOffset(segmentIndex)
 
+    def getTriggerInfo(self, segmentIndex=0):
+        """
+        Get the trigger info structure
+
+        Parameter
+        -------
+        segmentIndex
+           index of the memory segment
+        """
+        return self._lowLevelGetTriggerInfo(segmentIndex)
+    
     def flashLed(self, times=5, start=False, stop=False):
         """
         Flash the front panel LEDs.
