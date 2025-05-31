@@ -111,6 +111,18 @@ def updateFirmwareProgress(function):
     return callback(function)
 
 
+from ctypes import Structure
+class PICO_TRIGGER_INFO(Structure):
+    _pack_ = 1
+    _fields_ = [("status", c_uint32),
+                ("segmentIndex", c_uint64),
+                ("triggerIndex", c_uint64),
+                ("triggerTime", c_double),
+                ("timeUnits", c_uint32),
+                ("missedTriggers", c_uint64),
+                ("timeStampCounter", c_uint64)]
+
+        
 class PS6000a(_PicoscopeBase):
     """The following are low-level functions for the ps6000A.
 
@@ -852,9 +864,12 @@ class PS6000a(_PicoscopeBase):
     def _lowLevelGetNoOfProcessedCaptures(self):
         raise NotImplementedError()
 
-    def _lowLevelGetTriggerInfo(self):
-        raise NotImplementedError()
-
+    def _lowLevelGetTriggerInfo(self,segmentIndex):
+        triggerInfo = PICO_TRIGGER_INFO()
+        m = self.lib.ps6000aGetTriggerInfo(c_int16(self.handle), byref(triggerInfo), c_uint64(segmentIndex), 1)
+        self.checkResult(m)
+        return triggerInfo
+    
     def _lowLevelMemorySegmentsBySamples(self):
         raise NotImplementedError()
 
