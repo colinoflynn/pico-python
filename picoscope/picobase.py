@@ -464,7 +464,7 @@ class _PicoscopeBase(object):
 
         self._lowLevelSetExtTriggerRange(VRangeAPI["apivalue"])
 
-    def setSimpleTrigger(self, trigSrc, threshold_V=0, direction="Rising",
+    def setSimpleTrigger(self, trigSrc, threshold_V=0.0, direction="Rising",
                          delay=0, timeout_ms=100, enabled=True):
         """
         Set up a simple trigger.
