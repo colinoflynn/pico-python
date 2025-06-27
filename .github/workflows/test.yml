@@ -25,4 +25,4 @@ jobs:
     - name: Ruff
       run: |
         ruff picoscope setup.py
-        ruff examples/*
+        ruff examples
