@@ -24,12 +24,12 @@ setup(
                  'Topic :: System :: Hardware',
                  'Topic :: Scientific/Engineering',
                  'License :: OSI Approved :: BSD License',
-                 'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3',
                  ],
 
     # What does your project relate to?
     keywords='picoscope peripherals hardware oscilloscope ATE',
+    python_requires='>=3.9',
     install_requires=['numpy'],
     cmdclass=versioneer.get_cmdclass()
 )
