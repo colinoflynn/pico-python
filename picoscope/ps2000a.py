@@ -364,6 +364,15 @@ class PS2000a(_PicoscopeBase):
             c_enum(downSampleMode))
         self.checkResult(m)
 
+    def _lowLevelSetDataBufferBulk(self, channel, data, segmentIndex,
+                                   downSampleMode):
+        """Just calls setDataBuffer with argument order changed.
+
+        For compatibility with current picobase.py.
+        """
+        self._lowLevelSetDataBuffer(channel, data, downSampleMode,
+                                    segmentIndex)
+
     def _lowLevelSetMultipleDataBuffers(self, channel, data, downSampleMode):
         max_segments = self._lowLevelGetMaxSegments()
         if data.shape[0] < max_segments:
