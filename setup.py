@@ -29,6 +29,7 @@ setup(
 
     # What does your project relate to?
     keywords='picoscope peripherals hardware oscilloscope ATE',
+    python_requires='>=3.9',
     install_requires=['numpy'],
     cmdclass=versioneer.get_cmdclass()
 )
