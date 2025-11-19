@@ -146,7 +146,8 @@ class PS2000a(_PicoscopeBase):
     def _lowLevelOpenUnit(self, sn):
         c_handle = c_int16()
         if sn is not None:
-            serialNullTermStr = create_string_buffer(bytes(sn, encoding='utf-8'))
+            serialNullTermStr = create_string_buffer(bytes(sn,
+                                                           encoding='utf-8'))
         else:
             serialNullTermStr = None
         # Passing None is the same as passing NULL
