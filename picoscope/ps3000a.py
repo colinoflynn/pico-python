@@ -180,13 +180,16 @@ class PS3000a(_PicoscopeBase):
 
     def _lowLevelEnumerateUnits(self):
         count = c_int16(0)
-        m = self.lib.ps3000aEnumerateUnits(byref(count), None, None)
-        self.checkResult(m)
         # a serial number is rouhgly 8 characters
         # an extra character for the comma
         # and an extra one for the space after the comma?
         # the extra two also work for the null termination
-        serialLth = c_int16(count.value * (8 + 2))
+        # The EnumeratUnits functions returns an error if NULL pointers
+        # are given as parameters. Thus it is not possible to determine the
+        # number of devices beforehand - if we assume that there will
+        # never be more than 16 devices connected, we should get along with
+        # a buffer that fits 16 serial numbers.
+        serialLth = c_int16(16 * (8 + 2))
         serials = create_string_buffer(serialLth.value + 1)
 
         m = self.lib.ps3000aEnumerateUnits(byref(count), serials,
