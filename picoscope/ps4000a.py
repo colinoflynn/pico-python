@@ -494,11 +494,12 @@ class PS4000a(_PicoscopeBase):
                                           c_uint32(downSampleMode))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+    def _lowLevelClearDataBuffer(self, channel, downSampleMode, segmentIndex):
         m = self.lib.ps4000aSetDataBuffer(c_int16(self.handle),
                                           c_enum(channel),
-                                          c_void_p(), c_uint32(0), c_uint32(0),
-                                          c_enum(0))
+                                          c_void_p(), c_uint32(0),
+                                          c_uint32(segmentIndex),
+                                          c_enum(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
@@ -673,7 +674,7 @@ class PS4000a(_PicoscopeBase):
             c_uint32(bufferLth))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffers(self, channel):
+    def _lowLevelClearDataBuffers(self, channel, downSampleRatioMode):
         m = self.lib.ps4000aSetDataBuffers(
             c_int16(self.handle),
             c_enum(channel),

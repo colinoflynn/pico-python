@@ -295,7 +295,7 @@ class PS2000(_PicoscopeBase):
         self.channelBuffersPtr[channel] = dataPtr
         self.channelBuffersLen[channel] = numSamples
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+    def _lowLevelClearDataBuffer(self, channel, downSampleMode, segmentIndex):
         self.channelBuffersPtr[channel] = c_void_p()
         self.channelBuffersLen[channel] = 0
 

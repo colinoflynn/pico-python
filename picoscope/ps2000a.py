@@ -379,11 +379,12 @@ class PS2000a(_PicoscopeBase):
                                             downSampleMode, i)
             self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+    def _lowLevelClearDataBuffer(self, channel, downSampleMode, segmentIndex):
         """Clear the data in the picoscope."""
         m = self.lib.ps2000aSetDataBuffer(
             c_int16(self.handle), c_enum(channel),
-            c_void_p(), c_uint32(0), c_uint32(segmentIndex), c_enum(0))
+            c_void_p(), c_uint32(0),
+            c_uint32(segmentIndex), c_enum(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,

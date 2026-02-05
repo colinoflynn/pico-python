@@ -728,7 +728,7 @@ class _PicoscopeBase(object):
             segmentIndex)
         # necessary or else the next call to getValues will try to fill
         # this array unless it is a call trying to read the same channel.
-        self._lowLevelClearDataBuffer(channel, segmentIndex)
+        self._lowLevelClearDataBuffer(channel, downSampleMode, segmentIndex)
 
         # overflow is a bitwise mask
         overflow = bool(overflow & (1 << channel))
@@ -797,7 +797,7 @@ class _PicoscopeBase(object):
 
         # don't leave the API thinking these can be written to later
         for i, segment in enumerate(range(fromSegment, toSegment + 1)):
-            self._lowLevelClearDataBuffer(channel, segment)
+            self._lowLevelClearDataBuffer(channel, downSampleMode, segment)
 
         return (data, numSamples, overflow)
 

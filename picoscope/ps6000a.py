@@ -543,8 +543,7 @@ class PS6000a(_PicoscopeBase):
                                           self.ACTIONS['add'])
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex,
-                                 downSampleMode=0):
+    def _lowLevelClearDataBuffer(self, channel, downSampleMode, segmentIndex):
         """Clear the buffer for the chosen channel, segment, downSampleMode."""
         if downSampleMode == 0:
             downSampleMode = self.RATIO_MODE['raw']
@@ -558,7 +557,8 @@ class PS6000a(_PicoscopeBase):
                                           self.ACTIONS['clear_this'])
         self.checkResult(m)
 
-    def _lowLevelClearDataBufferAll(self, channel=1, segmentIndex=0):
+    def _lowLevelClearDataBufferAll(self, channel=1, downSampleMode=0,
+                                    segmentIndex=0):
         """Clear all the stored buffers for all channels."""
         m = self.lib.ps6000aSetDataBuffer(c_int16(self.handle),
                                           c_enum(channel),
@@ -566,7 +566,7 @@ class PS6000a(_PicoscopeBase):
                                           c_int32(0),
                                           self.DATA_TYPES['int16'],
                                           c_uint64(segmentIndex),
-                                          c_enum(0),
+                                          c_enum(downSampleMode),
                                           self.ACTIONS['clear_all'])
         self.checkResult(m)
 
@@ -743,7 +743,7 @@ class PS6000a(_PicoscopeBase):
                                            c_enum(downSampleMode))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffers(self, channel):
+    def _lowLevelClearDataBuffers(self, downSampleMode, channel):
         raise NotImplementedError()
         m = self.lib.ps6000aSetDataBuffers(
             c_int16(self.handle), c_enum(channel),

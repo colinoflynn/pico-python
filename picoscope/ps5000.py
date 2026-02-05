@@ -346,9 +346,10 @@ class PS5000(_PicoscopeBase):
                                          c_enum(downSampleMode))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffer(self, channel, segmentIndex):
+    def _lowLevelClearDataBuffer(self, channel, downSampleMode, segmentIndex):
         m = self.lib.ps5000SetDataBuffer(c_int16(self.handle), c_enum(channel),
-                                         c_void_p(), c_uint32(0), c_enum(0))
+                                         c_void_p(), c_uint32(0),
+                                         c_enum(downSampleMode))
         self.checkResult(m)
 
     def _lowLevelGetValues(self, numSamples, startIndex, downSampleRatio,
@@ -497,10 +498,10 @@ class PS5000(_PicoscopeBase):
                                           c_enum(downSampleRatioMode))
         self.checkResult(m)
 
-    def _lowLevelClearDataBuffers(self, channel):
+    def _lowLevelClearDataBuffers(self, channel, downSampleRatioMode):
         m = self.lib.ps5000SetDataBuffers(
             c_int16(self.handle), c_enum(channel),
-            c_void_p(), c_void_p(), c_uint32(0), c_enum(0))
+            c_void_p(), c_void_p(), c_uint32(0), c_enum(downSampleRatioMode))
         self.checkResult(m)
 
     # Bulk values.
