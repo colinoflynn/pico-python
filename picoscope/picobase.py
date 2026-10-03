@@ -1127,7 +1127,7 @@ class _PicoscopeBase(object):
         You should call this yourself because the Python garbage collector
         might take some time.
         """
-        if self.handle is not None:
+        if self.handle:
             self._lowLevelCloseUnit()
             self.handle = None
 
